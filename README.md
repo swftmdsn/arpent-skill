@@ -16,9 +16,35 @@ The vault is the durable layer: projects, decisions, reusable knowledge, tasks, 
 
 Arpent is not a note-taking application, autonomous agent, semantic retrieval service, or bundled long-term memory provider. It is an administration and continuity layer between those tools and the work you intend to keep.
 
+## How it compares to alternatives
+
+Arpent overlaps with note systems, agent memory, and retrieval tools, but it draws a different product boundary: it administers durable work across projects and replaceable agents. It is not trying to make one model remember everything or to become the best engine for retrieving and synthesizing a large corpus.
+
+| Alternative | What it optimizes for | Arpent's position |
+|---|---|---|
+| **Built-in memory in ChatGPT, Claude, and other hosts** | Low-friction personalization and recall inside one product or account | Arpent keeps project state, decisions, sources, and handovers in local files that remain usable when the host, model, or conversation changes. Native memory can still handle host-level personalization. |
+| **[Hindsight](https://github.com/vectorize-io/hindsight), [Supermemory](https://github.com/supermemoryai/supermemory), and other delegated memory providers** | Remembering facts, traits, events, and reminders, with semantic retrieval, consolidation, contradiction handling, or temporal reasoning | These systems are complementary. Arpent keeps work product and explicit operational context in the vault and defines an opt-in boundary for delegated personal recall instead of reimplementing a memory engine. The provider remains optional and replaceable. |
+| **[GBrain](https://github.com/garrytan/gbrain)** | A full agent brain: ingestion, hybrid and vector retrieval, knowledge-graph traversal, cited synthesis, autonomous enrichment, MCP access, and team-scale operation | Choose GBrain when retrieval, synthesis, graph intelligence, or autonomous ingestion is the primary need. Choose Arpent when the primary need is inspectable project administration, deterministic lifecycle and routing, and documentary handover across changing agents. |
+| **Note applications and plain PARA vaults** | Flexible human-authored capture and organization, usually with less operating policy | Arpent adds stable IDs, explicit provenance and lifecycle, deterministic CLI mutations, project context, agent operating rules, and visible uncertainty. The trade-off is more structure and metadata discipline. |
+
+The practical boundary is simple: material you want to read, edit, hand over, or build upon belongs in Arpent; personal facts and preferences that should be recalled opportunistically may belong in an enabled memory provider; large-scale semantic retrieval and synthesis may belong in a dedicated brain or retrieval system.
+
+## Key principles
+
+1. **Continuity over recollection.** Projects should carry enough context to resume without reconstructing the past.
+2. **Files over applications.** The durable layer stays readable, editable, portable, and user-owned.
+3. **AI as leverage.** Agents operate the system; they do not own its memory or determine its lifespan.
+4. **Determinism over guessing.** Placement follows explicit metadata, and uncertainty remains visible.
+5. **Knowledge over accumulation.** Reusable output matters more than raw capture volume.
+6. **Lifecycle over clutter.** Active work stays light while history remains recoverable.
+7. **Provenance over opacity.** Sources, authorship, relations, and status are part of the work.
+8. **Explicit automation over ambient automation.** No hidden daemon, implicit AI indexing, or lifecycle without configured rules.
+9. **Replaceable derivatives.** Search, indexes, and summaries can change without threatening source material.
+10. **Human control at meaningful boundaries.** Ambiguous routing, subjective fields, maturity changes, and dissolution remain deliberate decisions.
+
 ## Quick start
 
-Arpent requires Python 3.9 or later and Git. From a local checkout:
+From a local checkout:
 
 ```bash
 python3 -m pip install -e .
@@ -63,8 +89,6 @@ context  | indexes | archives | agent workspaces
       memory provider | scheduler | external backup
 ```
 
-The skill defines how an agent should interpret and operate the system. The CLI performs deterministic operations. The vault holds the durable work. Memory providers, schedulers, and external backups remain optional and replaceable.
-
 ### The three layers
 
 Arpent is easier to understand when its three layers remain separate:
@@ -83,32 +107,11 @@ Not every file in a vault has the same authority:
 
 - Markdown notes and original attachments are durable source material.
 - Frontmatter is structured state attached to a readable note.
-- `_context.md` and todo Markdown records are durable continuity surfaces. `MEMORY.md` is an optional cross-project log, disabled and unseeded by default.
+- `_context.md` and todo Markdown records are durable continuity surfaces.
 - `todo.db` is authoritative structured state for the todo module and must remain consistent with its Markdown records.
 - `index.json`, `sidecar.json`, and `search.db` are rebuildable derivatives.
 - `context_index.json` is generated, but it can also hold optional L1 summaries that are preserved in backups.
 - External memory, schedulers, Git remotes, and backup transport live outside Arpent's core boundary.
-
-Most note systems help you store what happened. Arpent helps the work remain usable:
-
-- projects carry enough context to resume or hand over;
-- decisions retain the reasons behind them;
-- reusable knowledge escapes the project that produced it;
-- temporary material leaves the active workspace without erasing history;
-- authorship, sources, relations, and lifecycle state remain inspectable;
-- agents can share durable context without sharing a vendor or conversation history.
-
-The result is less reconstruction, less repeated explanation, and more reuse. Good work becomes infrastructure for the next project instead of dead material from the last one.
-
-## Own the system, rent the intelligence
-
-Arpent is filesystem-first. Markdown and original files remain readable without Arpent, and generated indexes can be replaced or rebuilt.
-
-AI is leverage, not the foundation. A configured agent can navigate, maintain, connect, and act on the structure, but the model is replaceable and the work remains yours.
-
-> **Own the system. Rent the intelligence.**
-
-Your next agent does not need the memory of your previous agent. It needs the same durable context, decisions, source material, and operating rules.
 
 ## What you use it for
 
@@ -130,7 +133,7 @@ capture -> resume (read files) -> produce -> close
 | Stage | Current behavior |
 |---|---|
 | **Capture** | `arpent note new`, fleeting capture, full-mode todo, or `arpent note ingest` |
-| **Resume** | Read `me.md`, then the target project/area `_context.md`, then only the specific notes or sources needed; never read optional `MEMORY.md` without explicit user opt-in; there is no resume command |
+| **Resume** | Read `me.md`, then the target project/area `_context.md`, then only the specific notes or sources needed; there is no resume command |
 | **Produce** | Continue broad useful work in ordinary notes or drafts, using the semantically correct type and status |
 | **Close** | `arpent session end` records summary, decisions, and next steps for the next session |
 
@@ -175,7 +178,7 @@ It is especially useful if you:
 - want local, inspectable files instead of application lock-in;
 - accept some metadata discipline in exchange for continuity and control.
 
-Arpent is probably not the right fit if you want a five-minute filing method, collaborative cloud software, best-in-class semantic retrieval, or an autonomous system that reorganizes your work in the background. PARA is simpler to adopt, dedicated retrieval and memory systems are stronger on their own axes, and Arpent's differentiating administration layer still needs real-world validation.
+Arpent is probably not the right fit if you want a five-minute filing method, collaborative cloud software, or autonomous background organization. Its administration layer also still needs real-world validation.
 
 ### What adoption requires
 
@@ -192,24 +195,7 @@ Arpent trades hidden application behavior for explicit operation. A useful deplo
 
 ## What ships today
 
-Arpent is in active pre-release development. The current implementation includes:
-
-- a seven-bucket vault scaffold for active work, reusable knowledge, tools, archives, and uncertainty under `00_inbox/unsure/`;
-- deterministic note creation, editing, routing, status changes, and archival;
-- deliberate project creation with canonical complete `_context.md` and project folders;
-- append-only fleeting capture;
-- project and area context plus local end-of-session continuity in full and minimal modes;
-- actionable inbox inventory, structured-note dry-run plans, and lossless raw-file ingestion;
-- whole-vault file inventory and local full-text search over structured notes;
-- optional L0/L1/L2 progressive context with hash-aware AI summaries;
-- effort and health views computed from the live vault;
-- extraction of typed child notes from linear working material and deliberate source dissolution;
-- configurable lifecycle sweeps with dry runs and audit logs;
-- a SQLite-backed todo flow with readable Markdown traces;
-- read-only tool inspection, an explicit cron registry, local usage schema v2 logging, and usage reports;
-- templates for agent roles, skills, workflows, and capability declarations, plus directories for prompts and styles.
-
-The CLI command surface is tested, but the product has not completed its required real-world validation period.
+Arpent is in active pre-release development. The CLI command surface is tested, but the product has not completed its required real-world validation period.
 
 ### Implementation status by capability
 
@@ -228,16 +214,10 @@ The CLI command surface is tested, but the product has not completed its require
 | Lifecycle sweeps | Implemented for installed ephemeral tools |
 | Cron registry execution | Implemented; scheduling daemon is external |
 | Logical snapshots, verification, and restore | Implemented |
-| Reader, calendar, sport, journal, and CRM | Placeholders or planned specifications, not installed tools |
-| Semantic/vector retrieval | Not shipped |
-| Delegated long-term memory provider | Optional host integration, disabled and not bundled |
-| Collaboration, server, authentication, and built-in sync | Not shipped |
 
 ### Current limits
 
 - Arpent is local and single-user. It has no server, authentication, collaboration layer, or built-in sync.
-- The editable Python installation installs the CLI only. It does not register an agent skill with a host application.
-- `arpent init` seeds `.agent`, `COMPASS.md`, and a compact vault-local operating skill, while this repository keeps the fuller source specification in `SKILL.md` and the reference documents. Host-specific discovery and activation are not automated.
 - Delegated memory is an interface and operating model, disabled by default in
   both minimal and full vault modes. Hindsight, Supermemory, and other providers
   require explicit user opt-in at the host level and are not bundled or wired by
@@ -246,13 +226,10 @@ The CLI command surface is tested, but the product has not completed its require
 - Todo is the only installed daily-flow tool. Reader, calendar, journal, sport, and CRM commands currently exit as not installed. Fleeting capture works through `note new --type fleeting`; the separate `fleeting` command is only a placeholder.
 - A fresh vault has no autonomous lifecycle. The seeded cron job is disabled and requires an external scheduler.
 - Backup creates a verified, restorable logical vault snapshot locally or in a chosen filesystem directory. It includes ordinary local logs, including usage events, but is not encrypted, remote, or a backup of external memory and Git history.
-- Re-running `arpent init` only adds missing current-format seeds. It does not
-  migrate or upgrade files from previous Arpent formats.
 - The CLI has no `area create`, top-level `review`, tool installation, memory
   queue flush, dedicated resume, capture, or production command. Reviewed
   filesystem migration is implemented under `arpent import ...`.
 - `triage` inventories every non-fleeting inbox item and exposes actions, ages, and hashes, but remains non-interactive and does not move files itself. An agent must propose and confirm the plan before applying per-item operations.
-- Dry runs prevent the target lifecycle or cron mutation, but they can still write usage, audit, sweep, or notification logs.
 
 This distinction is deliberate: the working core, the agent operating specification, and the roadmap are related, but they are not presented as equally shipped.
 
@@ -267,7 +244,7 @@ python3 -m pip install -e .
 arpent --version
 ```
 
-This installs `arpent` and the shorter `arp` alias. The runtime uses only the Python standard library; package installation uses standard Python build tooling.
+The runtime uses only the Python standard library; package installation uses standard Python build tooling.
 
 ### Recommended isolated installation
 
@@ -300,7 +277,7 @@ arpent --version
 arpent --help
 ```
 
-Python must be 3.9 or newer. `git` must be available on `PATH` when `arpent init` runs. Arpent does not create the first commit or configure a remote.
+`git` must be available on `PATH` when `arpent init` runs. Arpent does not create the first commit or configure a remote.
 
 ### Agent-host installation is separate
 
@@ -317,41 +294,16 @@ arpent init ~/my-vault
 ```
 
 `arpent init` creates the full scaffold and initializes it as a Git repository.
-Use `arpent init ~/my-vault --minimal` for the seven buckets, complete
-frontmatter/routing contracts, the core Arpent skill, project creation, local
-project/area `_context.md` continuity, and index support. Minimal mode does not
-seed delegated-memory queues, the memory wiki, context summaries, cron, todo,
-tools, sweep, or portable-agent modules. The `context`, `tools`, `cron`, `sweep`,
-and `todo` command groups refuse to run in a minimal vault; `project create` and
-local `session end` work alongside core note, index, search, archive, health,
-usage report, and backup commands.
-
-Both modes create the seven vault buckets, `.arpent`, `.agent`, `COMPASS.md`,
-`me.md`, the complete routing/frontmatter contracts, the core vault-local Arpent
-skill, and directories used by indexes, import state, databases, and logs. Full
-mode additionally seeds optional context, todo, cron, tool, memory-wiki, backup,
-documentation, and portable-agent surfaces. Minimal mode intentionally omits
-those optional modules.
-
-Neither mode seeds `MEMORY.md`; minimal mode does not seed `06_indexes/memory/`
-at all. An explicit `session end --memory-log` can create the optional log in
-either mode for that invocation.
+Use `arpent init ~/my-vault --minimal` for the core only; the exact capability
+difference is listed under [Full versus minimal mode](#full-versus-minimal-mode).
 
 `init` does not create your projects or areas unless they are explicitly declared
 with `--structure <file.json|file.md>`. A structure file may independently list
 Areas, Resources, and projects; JSON project objects may also set `area`,
 `effort_cadence`, and `effort_level`. Area and Resource entries create folders,
-while project entries create the canonical project context and subfolders. Init
-still does not register the skill with an agent host, create a Git commit, or
-enable background jobs. Project creation otherwise remains a deliberate next
-step with `arpent project create <name>`; note routing never invents a project.
-Running init again in the same mode adds missing current seeds, reuses safe
-Area/Resource directories and canonical matching projects without overwriting
-them, and refuses incomplete or conflicting projects. This can add local
-continuity seeds to an older minimal vault, but it does not rewrite stale
-user-edited instructions, perform a version migration, or change a vault
-implicitly between modes. Git initialization and privacy-allowlisted usage
-telemetry can still have ordinary operational side effects.
+while project entries create the canonical project context and subfolders.
+Project creation otherwise remains a deliberate next step with
+`arpent project create <name>`; note routing never invents a project.
 
 ### Seed an initial structure
 
@@ -550,14 +502,12 @@ arpent init [path] [--minimal] [--structure FILE]
 
 | Capability | Full | Minimal |
 |---|---:|---:|
-| Seven buckets and `.arpent` marker | Yes | Yes |
+| Seven buckets, `.arpent`, `.agent`, `COMPASS.md`, and `me.md` | Yes | Yes |
 | Universal frontmatter and routing contracts | Yes | Yes |
 | Note, archive, status, triage, health | Yes | Yes |
 | Inventory, keyword search, backup | Yes | Yes |
 | Deliberate project creation | Yes | Yes |
 | Project/area `_context.md` and `session end` | Yes | Yes |
-| Seeded `MEMORY.md` | No | No |
-| Explicit `session end --memory-log` | Yes | Yes |
 | Triage JSON, note edit dry-run, and raw ingestion | Yes | Yes |
 | Reviewed external filesystem import | Yes | Yes |
 | Local usage v2 events, report, and qualitative journal | Yes | Yes |
@@ -614,58 +564,9 @@ ARPENT_VAULT_ROOT="$HOME/my-vault" arpent health
 | `arpent backup` | Create and verify a logical vault snapshot |
 | `arpent <group> <subcommand> --help` | Inspect the complete syntax for a nested operation |
 
-### First run
-
-```bash
-# Create a vault
-arpent init ~/my-vault
-cd ~/my-vault
-
-# Create a deliberate project destination in full or minimal mode
-arpent project create "Migration Site" --effort-cadence heavylift --effort-level high
-
-# Capture work directly into the project
-arpent note new "Migration constraints" --project migration-site \
-  --body "The cutover must preserve existing customer URLs."
-
-# Resume in a later session by reading in this order:
-# 1. me.md
-# 2. 01_projects/migration-site/_context.md
-# 3. only the specific notes or sources needed
-
-# Produce broad useful work; use type: production only if semantically correct
-arpent note new "Cutover sequence" --type draft --status active \
-  --project migration-site --body "Draft the sequence here."
-
-# Optional full-mode task tracking
-arpent todo add "Validate migration plan" --priority high
-arpent todo list
-
-# Close local continuity in either mode
-arpent session end --project migration-site \
-  --summary "Documented constraints and started the cutover sequence." \
-  --decision "Preserve existing customer URLs." \
-  --next-step "Validate the sequence."
-
-# Inspect, organize, index, retrieve, and report
-arpent status
-arpent triage --json
-arpent efforts
-arpent health
-arpent index
-arpent search "customer URLs"
-arpent usage report
-```
-
-Projects and areas are intentional destinations. Use `arpent project create` as the primary project path. Area creation remains manual, and Arpent never invents a missing project or area while routing a note.
-
-Commands work from the vault root or any descendant directory because Arpent searches upward for the `.arpent` marker.
-
 ### Read command output correctly
 
 Arpent prints human-readable output by default. Commands exposing `--json`, such as `triage`, `note edit --dry-run`, `note ingest --dry-run`, `usage report`, `health`, `context pending`, `todo list`, `todo show`, and `sweep status`, are preferable for scripts. Exit code `0` means the command completed; validation, trust, consistency, or partial failures return a nonzero exit.
-
-Vault-scoped parsed commands append best-effort schema-v2 events to `06_indexes/logs/usage.log`, including read operations and parsed failures when a vault can be identified. This local log is operational telemetry, not the durable content source; it excludes note bodies, titles, summaries, queries, paths, project/area names, URLs, errors, and command payloads.
 
 ## Common workflows
 
@@ -936,25 +837,11 @@ A newly initialized vault gives an agent a local reading order:
 4. `06_indexes/docs/` explains architecture and policy in depth.
 5. `me.md` stores human-owned orientation, preferences, boundaries, and current direction and should be read early.
 
-For a concrete resume, use the narrower documentary order: `me.md`, then the target project or area `_context.md`, then only the specific notes or sources needed. This protocol works in minimal and full vaults and is not a CLI command. Do not read optional `MEMORY.md` without explicit user opt-in.
+For a concrete resume, follow [the project context reading order](#create-and-use-project-context).
 
 Tell a new agent to read `.agent` before acting. The expected operating protocol is to identify intent, inspect relevant context, announce meaningful moves or renames, invoke the CLI, and report the result. The CLI enforces mechanical invariants; the agent remains responsible for subjective interpretation and user confirmation.
 
 If the CLI is unavailable, source files remain readable, but safe mutation becomes more limited. Do not manually emulate todo dual state, extraction, dissolution, sweep, context-summary, backup, or delegated-queue transactions. The repository's [`ingestion-and-degraded-mode.md`](references/ingestion-and-degraded-mode.md) documents direct ordinary-note work and the default `_context.md` close fallback; optional `MEMORY.md` writes still require explicit user opt-in.
-
-### Back up before risky maintenance
-
-```bash
-arpent backup --destination /Volumes/Backups/arpent
-arpent backup verify /Volumes/Backups/arpent/<snapshot>
-arpent backup restore /Volumes/Backups/arpent/<snapshot> \
-  --to "$HOME/restored-vault"
-cd "$HOME/restored-vault"
-git init
-arpent index
-```
-
-The restore target must not already exist. `.git/` is outside the snapshot, so initialize a new repository if the restored copy should be versioned. Rebuilding the index refreshes intentionally omitted derivatives.
 
 ---
 
@@ -1125,7 +1012,7 @@ Hashes are semantic for context purposes: ordinary timestamp changes do not inva
 
 A `linear` note can hold exploratory or sequential material without pretending to be atomic knowledge. Arpent can extract reusable child notes while preserving lineage, then archive the source after deliberate dissolution.
 
-Projects and instrumented areas carry `_context.md`, the default readable handover surface. An optional `MEMORY.md` can record cross-project session summaries only after explicit `--memory-log` opt-in; it is not a bundled long-term memory provider.
+Projects and instrumented areas carry `_context.md` as their readable handover surface.
 
 ### Memory boundaries
 
@@ -1242,26 +1129,10 @@ Filters are exact values from `06_indexes/tools.yaml`. `tools show` prints the s
 
 The default full vault declares `context_summary` and `todo` as installed. Reader, review, and backup-related tool definitions can be present as planned registry entries without corresponding installed command groups. Registry presence alone does not make a capability executable.
 
-Cron commands are an explicit local-code trust boundary. An enabled job must
-declare `"trust": "local-code"`; its command runs with the user's permissions
-and inherited environment, so only enable jobs from a vault you fully trust.
-Jobs have a bounded timeout and concurrent ticks are serialized.
-
-Arpent does not run a daemon. To evaluate due cron entries, an external scheduler must invoke:
-
-```bash
-arpent cron run --tick --allow-local-code
-```
-
-For example, a Unix cron installation can run the tick every minute from the vault root:
-
-```cron
-* * * * * cd /absolute/path/to/vault && /absolute/path/to/arpent cron run --tick --allow-local-code
-```
-
-The built-in schedule matcher uses UTC and supports `*` or comma-separated exact integers in the five standard fields. It does not implement ranges or step syntax.
-
 ### Cron execution model
+
+Arpent does not run a daemon. Cron commands are an explicit local-code trust
+boundary, and an external scheduler must invoke them. Preview and execution use:
 
 ```bash
 # Show what is due without launching local code.
@@ -1271,7 +1142,17 @@ arpent cron run --tick --dry-run
 arpent cron run --tick --allow-local-code
 ```
 
-`--tick` is mandatory. Each enabled job needs a unique ID, a non-empty command, `"trust": "local-code"`, and a timeout from 1 to 86400 seconds; the default timeout is 300 seconds. Due-state and execution use UTC.
+An enabled job must declare `"trust": "local-code"`; its command runs with the
+user's permissions and inherited environment, so only enable jobs from a vault
+you fully trust. Jobs have a bounded timeout and concurrent ticks are serialized.
+
+For example, a Unix cron installation can run the tick every minute from the vault root:
+
+```cron
+* * * * * cd /absolute/path/to/vault && /absolute/path/to/arpent cron run --tick --allow-local-code
+```
+
+The built-in schedule matcher uses UTC and supports `*` or comma-separated exact integers in the five standard fields. It does not implement ranges or step syntax. `--tick` is mandatory. Each enabled job needs a unique ID, a non-empty command, and a timeout from 1 to 86400 seconds; the default timeout is 300 seconds.
 
 Arpent/`arp` jobs run through the installed package with `ARPENT_VAULT_ROOT` set. External commands are tokenized and launched directly from the vault root with the inherited environment; they do not run through an implicit shell. Real local-code execution is disabled on Windows.
 
@@ -1722,19 +1603,6 @@ asks hierarchical placement questions, and `import apply` asks one final batch
 confirmation unless `--yes` is supplied. `note dissolve --yes` retains its own
 explicit destructive boundary. Other preview/announce/confirm behavior comes
 from the agent protocol, not a generic parser prompt.
-
-## Design principles
-
-1. **Continuity over recollection.** Projects should carry enough context to resume without reconstructing the past.
-2. **Files over applications.** The durable layer stays readable, editable, portable, and user-owned.
-3. **AI as leverage.** Agents operate the system; they do not own its memory or determine its lifespan.
-4. **Determinism over guessing.** Placement follows explicit metadata, and uncertainty remains visible.
-5. **Knowledge over accumulation.** Reusable output matters more than raw capture volume.
-6. **Lifecycle over clutter.** Active work stays light while history remains recoverable.
-7. **Provenance over opacity.** Sources, authorship, relations, and status are part of the work.
-8. **Explicit automation over ambient automation.** No hidden daemon, implicit AI indexing, or lifecycle without configured rules.
-9. **Replaceable derivatives.** Search, indexes, and summaries can change without threatening source material.
-10. **Human control at meaningful boundaries.** Ambiguous routing, subjective fields, maturity changes, and dissolution remain deliberate decisions.
 
 ## Roadmap
 
