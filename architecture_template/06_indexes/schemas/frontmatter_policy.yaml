@@ -1,0 +1,163 @@
+version: 0.3.0
+serialization:
+  shape: complete_all_fields
+  unused_scalar: null
+  unused_list: []
+fields:
+  title:
+    filler: user_or_agent
+    required: true
+    format: lowercase_ascii_snake_case
+  id:
+    filler: system
+    required: true
+    immutable: true
+  created:
+    filler: system
+    required: true
+    immutable: true
+    format: dd-mm-yyyyTHH:MM:SSZ
+  modified:
+    filler: system
+    required: true
+    format: dd-mm-yyyyTHH:MM:SSZ
+  description:
+    filler: user_or_agent
+    required: false
+    policy: null_when_redundant_with_title_or_body
+  type:
+    filler: user_or_agent
+    required: true
+  project:
+    filler: user_or_agent
+    required: conditional
+    policy: mutually_exclusive_with_resource
+  area:
+    filler: user_or_agent
+    required: conditional
+    policy: may_accompany_project_or_resource_as_context
+  resource:
+    filler: user_or_agent
+    required: conditional
+    policy: mutually_exclusive_with_project
+  status:
+    filler: user_or_agent
+    required: true
+    policy: active_for_actionable_stable_for_knowledge_ongoing_for_evolving
+  effort_cadence:
+    filler: user_or_agent
+    required: false
+    policy: active_actionables_only_never_infer
+  effort_level:
+    filler: user_or_agent
+    required: false
+    policy: active_actionables_only_never_infer
+  tags:
+    filler: user_or_agent
+    required: false
+  chosen_location:
+    filler: user_or_agent
+    required: false
+  source:
+    filler: user_agent_or_system
+    required: true
+  link:
+    filler: user_or_agent
+    required: conditional
+  author:
+    filler: user_agent_or_system
+    required: true
+  depth:
+    filler: user_or_agent
+    required: false
+    range: 1-5
+    policy: detail_level_null_when_not_meaningful
+  appreciated:
+    filler: user_only
+    required: false
+    agent_forbidden: true
+  importance:
+    filler: user_only
+    required: false
+    agent_forbidden: true
+  pinned:
+    filler: user_or_agent
+    required: false
+    default: false
+  expires_at:
+    filler: user_or_agent
+    required: false
+    format: dd-mm-yyyyTHH:MM:SSZ
+  related:
+    filler: user_or_agent
+    required: false
+  relations:
+    filler: user_or_agent
+    required: false
+    item_shape:
+      type: relation_type
+      target: note_id
+  parent:
+    filler: user_or_agent
+    required: conditional
+  observations:
+    filler: user_agent_or_system
+    required: false
+  extracted_to:
+    filler: user_agent_or_system
+    required: conditional
+enums:
+  type:
+    - note
+    - concept
+    - journal
+    - log
+    - checklist
+    - reference
+    - draft
+    - template
+    - meeting
+    - idea
+    - fleeting
+    - linear
+    - integration
+    - angle
+    - production
+    - map
+    - artefact
+  status:
+    - inbox
+    - maturing
+    - active
+    - stable
+    - ongoing
+    - standby
+    - waiting
+    - to-start
+    - done
+    - stale
+    - archived
+  effort_cadence:
+    - heavylift
+    - slowburn
+  effort_level:
+    - low
+    - medium
+    - high
+  source:
+    - manual
+    - generated
+    - imported
+    - captured
+    - conversation
+    - derived
+  author:
+    - user
+    - agent
+    - imported
+  relation_type:
+    - supports
+    - contradicts
+    - depends_on
+    - derived_from
+    - example_of

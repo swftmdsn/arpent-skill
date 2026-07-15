@@ -1,0 +1,10 @@
+[project]
+name = "arpent-cli"
+version = "0.1.0"
+description = "Arpent vault CLI"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+arpent = "scripts.cli:main"
+arp = "scripts.cli:main"

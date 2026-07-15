@@ -1,0 +1,53 @@
+version: 0.2.0
+tools:
+  context_summary:
+    category: transversal
+    ephemeral: false
+    skill: 06_indexes/global_skills/context_summary.skill.md
+    writes_to:
+      - 06_indexes/context_index.json
+    database: null
+    status: installed
+    lifecycle: []
+  todo:
+    category: daily-flow
+    ephemeral: true
+    skill: 06_indexes/global_skills/todo.skill.md
+    writes_to:
+      - 02_areas/area__perso__todo__active
+    database: 06_indexes/databases/todo.db
+    status: installed
+    lifecycle:
+      - from: done
+        after_days: 30
+        action: archive-with-trace
+  reader:
+    category: transversal
+    ephemeral: true
+    skill: 06_indexes/global_skills/reader.skill.md
+    writes_to:
+      - 05_tools/reader/
+    database: 06_indexes/databases/reader.db
+    status: planned
+    lifecycle:
+      - from: done
+        after_days: 60
+        action: archive-with-trace
+  review:
+    category: transversal
+    ephemeral: false
+    skill: 06_indexes/global_skills/review.skill.md
+    writes_to:
+      - 05_tools/review/
+    database: null
+    status: planned
+    lifecycle: []
+  z_backup:
+    category: transversal
+    ephemeral: false
+    skill: 06_indexes/global_skills/z_backup.skill.md
+    writes_to:
+      - 06_indexes/backup/
+    database: null
+    status: planned
+    lifecycle: []

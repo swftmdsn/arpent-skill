@@ -1,0 +1,46 @@
+# Databases and SQLite runtime files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Generated or redundant indexes
+06_indexes/backup/*
+!06_indexes/backup/.gitkeep
+06_indexes/imports/*
+!06_indexes/imports/.gitkeep
+06_indexes/logs/*
+!06_indexes/logs/.gitkeep
+!06_indexes/logs/usage-journal.md
+06_indexes/index.json
+06_indexes/sidecar.json
+06_indexes/context_index.json
+
+# Python artifacts
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Node artifacts
+node_modules/
+**/node_modules/
+
+# Heavy or regeneratable tool artifacts
+05_tools/artefacts/*
+!05_tools/artefacts/.gitkeep
+05_tools/*/cache/
+05_tools/*/articles/*/archive.html
+05_tools/*/articles/*/.meta.json
+
+# Secrets
+06_indexes/secrets/
+*.pem
+*.key
+credentials.json
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.obsidian/workspace.json

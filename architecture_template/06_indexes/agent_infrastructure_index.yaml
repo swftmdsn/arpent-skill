@@ -1,0 +1,10 @@
+version: 0.2.0
+# Canonical definitions live in 03_resources/agent_infrastructure/.
+# This file is their discovery registry, not their source of truth.
+agent_roles: []
+agent_skills: []
+agent_workflows: []
+agent_prompts: []
+agent_templates: []
+agent_style: []
+capabilities: []

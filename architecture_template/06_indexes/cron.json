@@ -1,0 +1,18 @@
+{
+  "version": "0.1.0",
+  "jobs": [
+    {
+      "id": "ephemeral-sweep",
+      "enabled": false,
+      "schedule": "0 6 * * *",
+      "command": "arpent sweep ephemeral",
+      "trust": "local-code",
+      "timeout_seconds": 300,
+      "notify_channel": null,
+      "tags": ["lifecycle", "ephemeral"],
+      "last_started": null,
+      "last_run": null,
+      "description": "Apply lifecycle rules from tools.yaml."
+    }
+  ]
+}

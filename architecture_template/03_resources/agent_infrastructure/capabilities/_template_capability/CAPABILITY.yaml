@@ -1,0 +1,10 @@
+id: template-capability
+# Supported kinds: cli, mcp, api, plugin.
+kind: cli
+description: Replace with the action this capability makes available.
+connection:
+  command: null
+  endpoint: null
+  config_ref: null
+credential_refs: []
+requires_confirmation: false

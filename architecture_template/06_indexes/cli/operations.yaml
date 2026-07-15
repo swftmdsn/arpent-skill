@@ -1,0 +1,168 @@
+version: 0.6.0
+description: Contract-first operation registry for the Arpent CLI.
+routing:
+  types: [note, concept, journal, log, checklist, reference, draft, template, meeting, idea, fleeting, linear, integration, angle, production, map, artefact]
+  statuses: [inbox, maturing, active, stable, ongoing, standby, waiting, to-start, done, stale, archived]
+  sources: [manual, generated, imported, captured, conversation, derived]
+  authors: [user, agent, imported]
+  default_status:
+    map: ongoing
+    concept: maturing
+    fleeting: inbox
+    idea: inbox
+  type_subfolders:
+    meeting: meetings
+    log: sessions
+  type_overrides:
+    fleeting:
+      bucket: 00_inbox/fleeting
+      filename: date
+      append: true
+    map:
+      bucket: 03_resources/maps-of-content
+    integration:
+      bucket: 03_resources/integrations
+    artefact:
+      bucket: 05_tools/artefacts
+  status_type_overrides:
+    linear_archived:
+      type: linear
+      status: archived
+      bucket: 04_archives/linear_notes
+  zero_field_routes:
+    captured: 00_inbox/captures
+    default: 00_inbox
+routing_overrides: {}
+operations:
+  init:
+    phase: 1
+    summary: Scaffold a new vault.
+  import_scan:
+    phase: 1
+    summary: Read-only scan an external filesystem tree into a hashed JSONL inventory and reviewable plan.
+  import_suggest:
+    phase: 2
+    summary: Refresh deterministic folder-role suggestions with confidence and reasons.
+  import_review:
+    phase: 2
+    summary: Confirm hierarchical folder roles interactively or accept explicit suggestions.
+  import_validate:
+    phase: 1
+    summary: Validate inventory integrity, destination declarations, and optional current source hashes.
+  import_summary:
+    phase: 1
+    summary: Summarize planned roles, source kinds, and unresolved folder decisions.
+  import_apply:
+    phase: 1
+    summary: Preview or resumably copy reviewed external files through per-item ingestion transactions.
+  import_status:
+    phase: 1
+    summary: Show durable applied, ignored, failed, and remaining import counts.
+  status:
+    phase: 1
+    summary: Show vault state.
+  index:
+    phase: 1
+    summary: Inventory folders and files, then rebuild generated indexes and deterministic context levels.
+  context_pending:
+    phase: 1
+    summary: List paths whose optional AI-generated L1 summary is missing or stale.
+  context_set:
+    phase: 1
+    summary: Store an optional L1 summary against the current semantic content hash.
+  context_show:
+    phase: 1
+    summary: Read L0, L1, or on-demand L2 context for an indexed path.
+  triage:
+    phase: 3
+    summary: Inventory every inbox item with safe routing, ingestion, or leave actions.
+  efforts:
+    phase: 1
+    summary: Show active actionables by explicit effort cadence and level.
+  search:
+    phase: 1
+    summary: Search indexed vault notes by keyword; external memory is queried separately by the host.
+  backup:
+    phase: 1
+    summary: Create, verify, or restore a manifest-backed logical vault snapshot.
+  archive:
+    phase: 1
+    summary: Move a note into archives; never delete.
+  health:
+    phase: 1
+    summary: Report live output/input density and lifecycle signals.
+  usage_report:
+    phase: 4
+    summary: Report privacy-preserving command events, current triage age, and unavailable qualitative metrics.
+  note_new:
+    phase: 1
+    summary: Create a note and route it from frontmatter.
+  note_route:
+    phase: 1
+    summary: Re-route an existing note by changing routing fields.
+  note_read:
+    phase: 1
+    summary: Print a note without changing its metadata.
+  note_find:
+    phase: 1
+    summary: Find notes by keyword.
+  note_status:
+    phase: 1
+    summary: Change lifecycle status.
+  note_edit:
+    phase: 1
+    summary: Edit a note and route it through the contract.
+  note_ingest:
+    phase: 3
+    summary: Losslessly ingest raw or malformed text, or move an untouched binary and create its Markdown companion reference.
+  note_extract:
+    phase: 1
+    summary: Extract a typed child note and maintain the bidirectional parent relation.
+  note_dissolve:
+    phase: 1
+    summary: Validate and archive a decomposed linear note as its dissolution record.
+  project_create:
+    phase: 2
+    summary: Create a project structure and canonical local context from a normalized human name.
+  session_end:
+    phase: 1
+    summary: Update target context by default; explicitly opt into MEMORY.md or full-mode delegated-memory queue sinks.
+  tools_list:
+    phase: 1
+    summary: List registered tool stubs.
+  tools_show:
+    phase: 1
+    summary: Show one registered tool stub.
+  cron_run:
+    phase: 1
+    summary: Preview due jobs or execute explicitly trusted local code with an out-of-vault confirmation.
+  sweep_ephemeral:
+    phase: 1
+    summary: Apply lifecycle rules declared by ephemeral tools.
+  sweep_status:
+    phase: 1
+    summary: Read the latest completed ephemeral sweep summary.
+  todo_add:
+    phase: 2
+    summary: Create a SQLite todo and its Markdown lifecycle record.
+  todo_list:
+    phase: 2
+    summary: List current or archived todo records.
+  todo_show:
+    phase: 2
+    summary: Show one todo with its structured fields and lifecycle path.
+  todo_edit:
+    phase: 2
+    summary: Edit todo fields without changing its immutable ID or creation date.
+  todo_done:
+    phase: 2
+    summary: Mark a todo done.
+  todo_defer:
+    phase: 2
+    summary: Set the date on which a todo should be done.
+  todo_block:
+    phase: 2
+    summary: Mark a todo waiting on a stable object ID.
+  todo_archive:
+    phase: 2
+    summary: Archive a completed todo while retaining its SQLite row.
