@@ -13,7 +13,7 @@ note. Durable or reusable material should become an ordinary typed note.
 - Fleeting entries do not appear in structured note status, search-by-ID, or
   routing operations.
 
-## CLI path
+## Full path
 
 ```text
 arpent note new <text> --type fleeting --json
@@ -21,7 +21,7 @@ arpent note new <text> --type fleeting --json
 
 The command uses the title as body when no body is supplied.
 
-## Filesystem path
+## Minimal path
 
 Read the current UTC day file when it exists, preserve every existing entry,
 append one `## HH:MM` block, then verify the final entry. When the available

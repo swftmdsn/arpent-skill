@@ -13,7 +13,7 @@ from scripts import operations
 from scripts import todo
 from scripts.vault import init_vault
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _subprocess_env():
@@ -28,7 +28,7 @@ def _subprocess_env():
 class CaptureContractTests(unittest.TestCase):
     def test_note_plan_is_non_mutating_and_routes_captured_content(self):
         with tempfile.TemporaryDirectory() as temporary:
-            vault = init_vault(Path(temporary) / "vault", minimal=True)
+            vault = init_vault(Path(temporary) / "vault", minimal=False)
 
             plan = notes.plan_note_new(
                 vault,
@@ -47,7 +47,7 @@ class CaptureContractTests(unittest.TestCase):
 
     def test_note_plan_hash_applies_the_reviewed_semantics(self):
         with tempfile.TemporaryDirectory() as temporary:
-            vault = init_vault(Path(temporary) / "vault", minimal=True)
+            vault = init_vault(Path(temporary) / "vault", minimal=False)
             command = [
                 sys.executable,
                 "-m",
@@ -106,7 +106,7 @@ class CaptureContractTests(unittest.TestCase):
 
     def test_stale_note_plan_hash_is_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:
-            vault = init_vault(Path(temporary) / "vault", minimal=True)
+            vault = init_vault(Path(temporary) / "vault", minimal=False)
             with self.assertRaisesRegex(ValueError, "no longer matches"):
                 notes.plan_note_new(
                     vault,
@@ -118,7 +118,7 @@ class CaptureContractTests(unittest.TestCase):
 
     def test_note_apply_rejects_route_changed_after_planning(self):
         with tempfile.TemporaryDirectory() as temporary:
-            vault = init_vault(Path(temporary) / "vault", minimal=True)
+            vault = init_vault(Path(temporary) / "vault", minimal=False)
             plan = notes.plan_note_new(
                 vault,
                 title="Route snapshot",
@@ -139,7 +139,7 @@ class CaptureContractTests(unittest.TestCase):
 
     def test_note_apply_binds_unsure_reason_even_when_path_is_unchanged(self):
         with tempfile.TemporaryDirectory() as temporary:
-            vault = init_vault(Path(temporary) / "vault", minimal=True)
+            vault = init_vault(Path(temporary) / "vault", minimal=False)
             plan = notes.plan_note_new(
                 vault,
                 title="Ambiguous route",
@@ -190,7 +190,7 @@ class CaptureContractTests(unittest.TestCase):
                 "add",
                 "Prepare review",
                 "--due",
-                "20-07-2026",
+                "20-07-2026-09-30",
             ]
             preview = subprocess.run(
                 [*base, "--dry-run", "--json"],
@@ -213,7 +213,8 @@ class CaptureContractTests(unittest.TestCase):
             )
             self.assertEqual(apply.returncode, 0, apply.stderr)
             result = json.loads(apply.stdout)
-            self.assertEqual(result["todo"]["due_date"], "20-07-2026")
+            self.assertEqual(plan["todo"]["due_date"], "20-07-2026-09-30")
+            self.assertEqual(result["todo"]["due_date"], "20-07-2026-09-30")
             self.assertEqual(result["id"], plan["todo"]["id"])
             self.assertTrue((vault.root / result["path"]).is_file())
             self.assertTrue((vault.root / "06_indexes/databases/todo.db").is_file())
@@ -232,11 +233,11 @@ class CaptureContractTests(unittest.TestCase):
 
     def test_always_mode_requires_review_before_note_creation(self):
         with tempfile.TemporaryDirectory() as temporary:
-            vault = init_vault(Path(temporary) / "vault", minimal=True)
+            vault = init_vault(Path(temporary) / "vault", minimal=False)
             contract = vault.operations_path()
             contract.write_text(
                 contract.read_text(encoding="utf-8").replace(
-                    "mode: explicit-intent", "mode: always",
+                    "policy: explicit-intent", "policy: always",
                 ),
                 encoding="utf-8",
             )
@@ -275,13 +276,13 @@ class CaptureContractTests(unittest.TestCase):
 
     def test_always_mode_gates_existing_note_mutations(self):
         with tempfile.TemporaryDirectory() as temporary:
-            vault = init_vault(Path(temporary) / "vault", minimal=True)
+            vault = init_vault(Path(temporary) / "vault", minimal=False)
             plan = notes.plan_note_new(vault, title="Policy target", ntype="note")
             _, _, metadata = notes.apply_note_new(vault, plan)
             contract = vault.operations_path()
             contract.write_text(
                 contract.read_text(encoding="utf-8").replace(
-                    "mode: explicit-intent", "mode: always",
+                    "policy: explicit-intent", "policy: always",
                 ),
                 encoding="utf-8",
             )
@@ -298,7 +299,7 @@ class CaptureContractTests(unittest.TestCase):
                 check=False,
             )
             self.assertNotEqual(blocked.returncode, 0)
-            self.assertIn("requires approval", blocked.stderr)
+            self.assertIn("requires confirmation", blocked.stderr)
 
             applied = subprocess.run(
                 [*command, "--yes"],
@@ -312,7 +313,7 @@ class CaptureContractTests(unittest.TestCase):
 
     def test_fleeting_json_contract_has_no_per_entry_frontmatter_or_id(self):
         with tempfile.TemporaryDirectory() as temporary:
-            vault = init_vault(Path(temporary) / "vault", minimal=True)
+            vault = init_vault(Path(temporary) / "vault", minimal=False)
             command = [
                 sys.executable, "-m", "scripts.cli", "note", "new",
                 "Quick thought", "--type", "fleeting", "--json",
@@ -330,9 +331,12 @@ class CaptureContractTests(unittest.TestCase):
             self.assertEqual(payload["format"], "arpent-fleeting-result")
             self.assertNotIn("id", payload)
             self.assertNotIn("frontmatter", payload)
+            self.assertRegex(
+                payload["path"], r"^00_inbox/fleeting/\d{2}-\d{2}-\d{4}\.md$"
+            )
             self.assertRegex(payload["captured_time"], r"^\d{2}:\d{2}$")
 
-    def test_confirmation_modes_and_configurable_threshold(self):
+    def test_confirmation_policies_and_configurable_threshold(self):
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "operations.yaml"
             packaged = operations.default_operations_text()
@@ -349,7 +353,7 @@ class CaptureContractTests(unittest.TestCase):
             )
 
             source.write_text(
-                packaged.replace("mode: explicit-intent", "mode: never"),
+                packaged.replace("policy: explicit-intent", "policy: never"),
                 encoding="utf-8",
             )
             self.assertFalse(
@@ -357,29 +361,67 @@ class CaptureContractTests(unittest.TestCase):
             )
 
             source.write_text(
-                packaged.replace("mode: explicit-intent", "mode: never").replace(
-                    "confirmation: high-impact", "confirmation: invalid", 1,
+                packaged.replace("policy: explicit-intent", "policy: never").replace(
+                    "high_impact: true", "high_impact: invalid", 1,
                 ),
                 encoding="utf-8",
             )
-            with self.assertRaisesRegex(ValueError, "must be one of"):
+            with self.assertRaisesRegex(ValueError, "must be a boolean"):
                 operations.requires_confirmation("import_apply", count=100, path=source)
 
             source.write_text(
-                packaged.replace("mode: explicit-intent", "mode: always"),
+                packaged.replace("policy: explicit-intent", "policy: always"),
                 encoding="utf-8",
             )
             self.assertTrue(
                 operations.requires_confirmation("note_new", count=1, path=source)
             )
 
-    def test_legacy_contract_without_confirmation_defaults_to_always(self):
+    def test_contract_without_confirmation_is_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "operations.yaml"
             lines = operations.default_operations_text().splitlines()
             source.write_text("\n".join(lines[:2] + lines[5:]) + "\n", encoding="utf-8")
 
-            self.assertEqual(operations.confirmation_policy(source)["mode"], "always")
+            with self.assertRaisesRegex(ValueError, "requires a confirmation section"):
+                operations.confirmation_policy(source)
+
+    def test_legacy_confirmation_keys_are_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "operations.yaml"
+            packaged = operations.default_operations_text()
+
+            source.write_text(
+                packaged.replace(
+                    "  policy: explicit-intent",
+                    "  policy: explicit-intent\n  mode: explicit-intent",
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "confirmation.mode is unsupported"):
+                operations.confirmation_policy(source)
+
+            source.write_text(
+                packaged.replace(
+                    "    high_impact: true",
+                    "    confirmation: high-impact\n    high_impact: true",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "confirmation is unsupported"):
+                operations.operation_is_high_impact("import_apply", source)
+
+    def test_old_operation_contract_version_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "operations.yaml"
+            source.write_text(
+                operations.default_operations_text().replace("version: 0.9.0", "version: 0.8.0"),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "older contracts are unsupported"):
+                operations.load_operations(source)
 
     def test_backup_yes_is_preserved_before_or_after_restore_subcommand(self):
         parser = cli.build_parser()

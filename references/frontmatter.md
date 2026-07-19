@@ -11,8 +11,8 @@ The schema is closed during normal use. Do not invent per-project fields: CLI va
 # === Identity and system timestamps ===
 title: <lowercase_ascii_snake_case>
 id: <type>-<YYYYMMDD>-<letter>      # stable graph anchor, never used in filename
-created: 19-04-2026T14:30:00Z
-modified: 19-04-2026T14:30:00Z
+created: 19-04-2026-14-30
+modified: 19-04-2026-14-30
 
 # === Classification and routing ===
 description: <useful standalone summary or null>
@@ -38,7 +38,7 @@ importance: null                     # USER ONLY - agent must leave null
 pinned: false                        # default false, user toggles
 
 # === Lifecycle ===
-expires_at: null                     # dd-mm-yyyyTHH:MM:SSZ - mostly for buffer items
+expires_at: null                     # dd-MM-YYYY-HH-mm UTC - mostly for buffer items
 
 # === Layer 6: Graph relations ===
 related: []                          # IDs of weak/non-qualified related notes
@@ -57,8 +57,8 @@ The full policy is encoded in `06_indexes/schemas/frontmatter_policy.yaml`. Quic
 |---|---|---|---|
 | `title` | user, agent | yes | lowercase ASCII `snake_case`; also determines an ordinary note's filename |
 | `id` | system | yes | immutable graph anchor, format `<type>-<YYYYMMDD>-<letter>`; never appears in the filename |
-| `created` | system | yes | immutable; `dd-mm-yyyyTHH:MM:SSZ` |
-| `modified` | system | yes | updated on edit; `dd-mm-yyyyTHH:MM:SSZ` |
+| `created` | system | yes | immutable; `dd-MM-YYYY-HH-mm` UTC |
+| `modified` | system | yes | updated on edit; `dd-MM-YYYY-HH-mm` UTC |
 | `description` | user, agent | no | useful standalone summary; `null` when it would repeat the title or body |
 | `type` | user, agent | yes | enum, see below |
 | `project` | user, agent | conditional | project-local home matching `01_projects/<slug>`; mutually exclusive with `resource` |
@@ -76,7 +76,7 @@ The full policy is encoded in `06_indexes/schemas/frontmatter_policy.yaml`. Quic
 | `appreciated` | **user only** | no | agent forbidden - leave null |
 | `importance` | **user only** | no | agent forbidden - leave null |
 | `pinned` | user, agent | no | default `false`; user toggles to `true` |
-| `expires_at` | user, agent | no | `dd-mm-yyyyTHH:MM:SSZ`; mostly for buffer items |
+| `expires_at` | user, agent | no | `dd-MM-YYYY-HH-mm` UTC; mostly for buffer items |
 | `related` | user, agent | no | IDs of weak/non-qualified related notes |
 | `relations` | user, agent | no | Typed semantic relations. Each item is `{type: <relation_type>, target: <note_id>}`. Valid `type` values are centralized in the Relation Type Enum below. |
 | `parent` | user, agent | conditional | required for any note extracted from a source note |
@@ -242,8 +242,8 @@ The CLI implements this as a pure function: `route(frontmatter) → Path`.
 ---
 title: gradient_actionnabilite
 id: concept-20260419-a
-created: 19-04-2026T10:00:00Z
-modified: 19-04-2026T10:00:00Z
+created: 19-04-2026-10-00
+modified: 19-04-2026-10-00
 description: File classification principle ordering items by how much they demand action right now.
 type: concept
 project: null
@@ -282,8 +282,8 @@ extracted_to: []
 ---
 title: do_things_that_dont_scale
 id: reference-20260414-a
-created: 14-04-2026T09:15:00Z
-modified: 14-04-2026T09:15:00Z
+created: 14-04-2026-09-15
+modified: 14-04-2026-09-15
 description: Paul Graham's argument that unscalable founder effort teaches you what users actually want.
 type: reference
 project: null
@@ -322,8 +322,8 @@ extracted_to: []
 ---
 title: notes_lecture_how_to_take_smart_notes
 id: linear-20260418-a
-created: 18-04-2026T20:00:00Z
-modified: 18-04-2026T22:00:00Z
+created: 18-04-2026-20-00
+modified: 18-04-2026-22-00
 description: Reading notes for Ahrens' book covering Zettelkasten, fleeting/literature/permanent notes, and the slip-box workflow.
 type: linear
 project: null
@@ -362,8 +362,8 @@ After dissolution, this note moves to `04_archives/linear_notes/`, gets `status:
 ---
 title: andrej_karpathy_portrait
 id: draft-20260419-a
-created: 19-04-2026T16:00:00Z
-modified: 19-04-2026T16:00:00Z
+created: 19-04-2026-16-00
+modified: 19-04-2026-16-00
 description: Co-founder of OpenAI turned independent educator championing radical pedagogy over institutional power.
 type: draft
 project: null
@@ -404,9 +404,9 @@ This is **not** a vault note - it is a logical memory record held by the host's 
 content: "Invite Claire to next cooking dinner"
 project_id: null
 area_id: social
-expires_at: 15-05-2026T00:00:00Z
+expires_at: 15-05-2026-00-00
 priority: normal
-created_at: 19-04-2026T20:00:00Z
+created_at: 19-04-2026-20-00
 ```
 
 ### Memory record - stable trait (profile role)
@@ -417,8 +417,8 @@ Also not a vault note - a memory record in the profile role:
 content: "I prefer direct feedback over reassurance"
 category: communication
 confidence: 1.0
-created_at: 10-04-2026T15:00:00Z
-last_confirmed_at: 19-04-2026T10:00:00Z
+created_at: 10-04-2026-15-00
+last_confirmed_at: 19-04-2026-10-00
 source: manual
 ```
 
@@ -432,16 +432,16 @@ The exact storage of these records belongs to the active memory system; the skil
 
 ```
 # All meetings with Bertrand this quarter
-type: meeting AND tags contains "bertrand" AND created on-or-after 01-04-2026
+type: meeting AND tags contains "bertrand" AND created on-or-after 01-04-2026-00-00
 
 # All pinned stable knowledge notes
 status: stable AND pinned: true
 
 # All captures from this week not yet integrated
-type: reference AND source: captured AND created on-or-after 13-04-2026
+type: reference AND source: captured AND created on-or-after 13-04-2026-00-00
 ```
 
-Use date-aware tooling for chronological comparisons because day-first strings do not sort chronologically. Exact values remain grep-able and jq-able; no LLM is needed.
+Use timestamp-aware tooling for chronological comparisons because day-first strings do not sort chronologically. Exact values remain grep-able and jq-able; no LLM is needed.
 
 **Trivial cross-reference.** `related`, `relations`, `parent`, `observations`, `extracted_to` make the graph traversable without parsing markdown body.
 

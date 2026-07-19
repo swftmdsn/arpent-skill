@@ -26,7 +26,8 @@ Rules required for capture:
 - `project` and `resource` are mutually exclusive; `area` is contextual.
 - Relation types are limited to `supports`, `contradicts`, `depends_on`,
   `derived_from`, and `example_of`.
-- Dates use `dd-mm-yyyy`; note timestamps use `dd-mm-yyyyTHH:MM:SSZ` in UTC.
+- Public timestamps use `dd-MM-YYYY-HH-mm` in UTC. Machine-owned values may
+  retain ISO 8601, and daily fleeting filenames remain date-only.
 
 Archive-only fields `archived_at` and `archived_from` are lifecycle extensions,
 not normal capture fields.

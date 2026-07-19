@@ -1,0 +1,2509 @@
+{
+  "adapter": "replay",
+  "benchmark_version": 1,
+  "bundle_sha256": "3429fb630177b83a7245d5ed7c733099189d85d0a7083980008229b9d21f055c",
+  "mode": "offline",
+  "scenarios": [
+    {
+      "category": "comprehension",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^SKILL\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/appendices/complete-reference-index\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/architecture\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/memory-layers\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "complete-COMPASS"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "(?:^|\\s)arpent\\s+(?:status|index|search)"
+        },
+        {
+          "detail": "matched 2 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "filesystem-native"
+        },
+        {
+          "detail": "matched 2 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "(?i)minimal.*full|full.*minimal"
+        },
+        {
+          "detail": "matched 2 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "Markdown.*source of truth|source of truth.*Markdown"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "memory.*opt-in|opt-in.*memory"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "semantic search is built in"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "autonomous daemon"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "720 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "250..1600"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 169,
+        "cli_count": 0,
+        "command_count": 0,
+        "command_output_utf8_bytes": 0,
+        "command_utf8_bytes": 0,
+        "cumulative_input_proxy_utf8_bytes": 250,
+        "document_utf8_bytes": 46821,
+        "final_utf8_bytes": 720,
+        "prompt_utf8_bytes": 151,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 0,
+        "request_count": 1,
+        "request_utf8_bytes": 250,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 4,
+        "unique_document_utf8_bytes": 46821,
+        "utf8_byte_quarter_estimate": 63,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "cold_global_comprehension",
+      "score": 100.0,
+      "title": "Cold global comprehension",
+      "trace_sha256": "58dbc26d1b0033e736e1cdd85cabede9f72803e6922fba888f817e1bd4e365be"
+    },
+    {
+      "category": "capture",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^\\.arpent$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^SKILL\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/modes/full\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^README\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "complete-reference-index"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "complete-COMPASS"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent note new .*Cache invalidation question.*--type note.*--body .*Which cache keys survive the URL cutover\\?.*--json$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "(?:^|\\s)arpent\\s+(?:--help|help|status|triage|index|search|note read)"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "00_inbox"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "type.*note|note.*type"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "status.*inbox|inbox.*status"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "indexed"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "triage complete"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "100 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "40..420"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 1,
+        "command_count": 1,
+        "command_output_utf8_bytes": 104,
+        "command_utf8_bytes": 115,
+        "cumulative_input_proxy_utf8_bytes": 207,
+        "document_utf8_bytes": 8610,
+        "final_utf8_bytes": 100,
+        "prompt_utf8_bytes": 105,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 7522,
+        "request_count": 1,
+        "request_utf8_bytes": 207,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 4,
+        "unique_document_utf8_bytes": 1088,
+        "utf8_byte_quarter_estimate": 52,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "full_first_capture",
+      "score": 100.0,
+      "title": "First full-mode capture",
+      "trace_sha256": "992dbf2f0639e8fc6a6c3253fbb187405a9f0be89fd12ec9974923c984394d42"
+    },
+    {
+      "category": "capture",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^\\.arpent$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^SKILL\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^README\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^references/"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "complete-COMPASS"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent note new .*Preserve redirect table.*--type note.*--body .*Keep the old-to-new URL mapping until analytics confirm the cutover\\..*--json$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "(?:^|\\s)arpent\\s+(?:--help|help|status|triage|index|search|note read)"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "00_inbox"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "type.*note|note.*type"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "reloaded the skill"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "indexed"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "96 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "35..360"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 1,
+        "command_count": 1,
+        "command_output_utf8_bytes": 100,
+        "command_utf8_bytes": 138,
+        "cumulative_input_proxy_utf8_bytes": 235,
+        "document_utf8_bytes": 62,
+        "final_utf8_bytes": 96,
+        "prompt_utf8_bytes": 133,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 62,
+        "request_count": 1,
+        "request_utf8_bytes": 235,
+        "stable_prefix_utf8_bytes": 102,
+        "tool_count": 2,
+        "unique_document_utf8_bytes": 0,
+        "utf8_byte_quarter_estimate": 59,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "full_second_capture_loaded",
+      "score": 100.0,
+      "title": "Second capture with skill loaded",
+      "trace_sha256": "edb183cfe85bd1d75f9a3c74060ab858d8a6f1e095f5ff357b641436e4d4f80a"
+    },
+    {
+      "category": "capture",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^\\.arpent$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^06_indexes/cli/operations\\.yaml$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/workflows/capture-note\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^README\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent note new .*Project risks.*--dry-run --json$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent note new .*Project risks.*--plan-hash [a-f0-9]{64} --json$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "(?:^|\\s)arpent\\s+(?:status|triage|index|search|note read)"
+        },
+        {
+          "detail": "matched 2 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "preview"
+        },
+        {
+          "detail": "matched 2 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "plan.*hash|hash.*plan"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "(?i)created.*00_inbox|00_inbox.*created"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "applied before review"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "140 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "45..450"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 107,
+        "cli_count": 2,
+        "command_count": 2,
+        "command_output_utf8_bytes": 200,
+        "command_utf8_bytes": 297,
+        "cumulative_input_proxy_utf8_bytes": 181,
+        "document_utf8_bytes": 2456,
+        "final_utf8_bytes": 140,
+        "prompt_utf8_bytes": 87,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 62,
+        "request_count": 1,
+        "request_utf8_bytes": 181,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 5,
+        "unique_document_utf8_bytes": 2394,
+        "utf8_byte_quarter_estimate": 46,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "reviewed_capture",
+      "score": 100.0,
+      "title": "Capture under always-review policy",
+      "trace_sha256": "e51802ef965acaaf36530de1a2a75c1344f5eb64a9e8ab98cbc06af352b2053a"
+    },
+    {
+      "category": "routing",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^\\.arpent$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^SKILL\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/contracts/routing\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^README\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "^arpent note new"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "^arpent project create"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "project.*resource|resource.*project"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "which|choose|clarif"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "created"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "saved"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "chose the project"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "chose the resource"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "249 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "70..500"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 0,
+        "command_count": 0,
+        "command_output_utf8_bytes": 0,
+        "command_utf8_bytes": 0,
+        "cumulative_input_proxy_utf8_bytes": 204,
+        "document_utf8_bytes": 8859,
+        "final_utf8_bytes": 249,
+        "prompt_utf8_bytes": 129,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 7584,
+        "request_count": 1,
+        "request_utf8_bytes": 204,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 3,
+        "unique_document_utf8_bytes": 1275,
+        "utf8_byte_quarter_estimate": 51,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "routing_ambiguity",
+      "score": 100.0,
+      "title": "Project or resource ambiguity",
+      "trace_sha256": "9be905c2c9466b52f91e60aa3ef31ff3f6bef9328c09010f74f21f001d8c63dc"
+    },
+    {
+      "category": "intent-routing",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^\\.arpent$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^SKILL\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/workflows/capture-todo\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^README\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent todo add .*send the signed lease.*--do 20-07-2026-09-00 --json$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "^arpent note new"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "^arpent todo list"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "todo-"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "20-07-2026-09-00"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "active"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "fleeting"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "ordinary note"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "77 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "40..320"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 1,
+        "command_count": 1,
+        "command_output_utf8_bytes": 136,
+        "command_utf8_bytes": 68,
+        "cumulative_input_proxy_utf8_bytes": 195,
+        "document_utf8_bytes": 8963,
+        "final_utf8_bytes": 77,
+        "prompt_utf8_bytes": 113,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 7584,
+        "request_count": 1,
+        "request_utf8_bytes": 195,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 4,
+        "unique_document_utf8_bytes": 1379,
+        "utf8_byte_quarter_estimate": 49,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "todo_capture",
+      "score": 100.0,
+      "title": "Route actionable work to todo",
+      "trace_sha256": "3e0f71986e67b57a1c8ba51b025a30f92ebebc4579e07ee51d33fbabb2e7beb6"
+    },
+    {
+      "category": "intent-routing",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^\\.arpent$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^README\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^SKILL\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent note new .*Cache keys tied to canonical URLs.*--type note.*--json$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "^arpent todo add"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "--type fleeting"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "^arpent (?:status|index|search)"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "type.*note|note.*type"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "00_inbox"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "todo"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "fleeting"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "145 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "35..320"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 1,
+        "command_count": 1,
+        "command_output_utf8_bytes": 150,
+        "command_utf8_bytes": 111,
+        "cumulative_input_proxy_utf8_bytes": 195,
+        "document_utf8_bytes": 62,
+        "final_utf8_bytes": 145,
+        "prompt_utf8_bytes": 98,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 62,
+        "request_count": 1,
+        "request_utf8_bytes": 195,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 2,
+        "unique_document_utf8_bytes": 0,
+        "utf8_byte_quarter_estimate": 49,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "durable_note_capture",
+      "score": 100.0,
+      "title": "Route durable knowledge to a note",
+      "trace_sha256": "6f7bbc8ee43be6a2d11343716468d68329cb8f29e05364df5fa253733703cf26"
+    },
+    {
+      "category": "intent-routing",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^\\.arpent$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^README\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^SKILL\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent note new .*migration argument needs a counterexample.*--type fleeting --json$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "^arpent todo add"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "^arpent (?:status|triage|index|search)"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "00_inbox/fleeting/"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "(?i)captured.*[0-2][0-9]:[0-5][0-9]|[0-2][0-9]:[0-5][0-9].*captured"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "frontmatter"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "per-entry ID"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "57 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "35..260"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 1,
+        "command_count": 1,
+        "command_output_utf8_bytes": 64,
+        "command_utf8_bytes": 86,
+        "cumulative_input_proxy_utf8_bytes": 178,
+        "document_utf8_bytes": 62,
+        "final_utf8_bytes": 57,
+        "prompt_utf8_bytes": 81,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 62,
+        "request_count": 1,
+        "request_utf8_bytes": 178,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 2,
+        "unique_document_utf8_bytes": 0,
+        "utf8_byte_quarter_estimate": 45,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "fleeting_capture",
+      "score": 100.0,
+      "title": "Route a quick thought to fleeting",
+      "trace_sha256": "84442d0b29daf54bbe91d5271f955eefd2698cd9719972cdcecc3b94e4c651f5"
+    },
+    {
+      "category": "modes",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^\\.arpent$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^SKILL\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/modes/minimal\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/contracts/frontmatter\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/contracts/routing\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/contracts/provenance-and-body\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^00_inbox/offline_insight\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^README\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "(?:^|\\s)(?:arpent|arp)(?:\\s|$)"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "(?:^|\\s)rm(?:\\s|$)"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "note-20260719-a"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "00_inbox/offline_insight\\.md"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "type.*note|note.*type"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "index rebuilt"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_write",
+          "passed": true,
+          "pattern": "^00_inbox/offline_insight\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": "^06_indexes/"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "125 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "45..360"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 0,
+        "command_count": 0,
+        "command_output_utf8_bytes": 0,
+        "command_utf8_bytes": 0,
+        "cumulative_input_proxy_utf8_bytes": 216,
+        "document_utf8_bytes": 13731,
+        "final_utf8_bytes": 125,
+        "prompt_utf8_bytes": 112,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 8797,
+        "request_count": 1,
+        "request_utf8_bytes": 216,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 8,
+        "unique_document_utf8_bytes": 4934,
+        "utf8_byte_quarter_estimate": 54,
+        "write_utf8_bytes": 505
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "minimal_note_capture",
+      "score": 100.0,
+      "title": "Minimal-mode direct note capture",
+      "trace_sha256": "401a9911708c756cd22abe8ffbd307af2e2766459c0e00cad96a6eba59ca8a0c"
+    },
+    {
+      "category": "modes",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^\\.arpent$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^SKILL\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/workflows/capture-todo\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/modes/minimal\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "todo_schema\\.sql"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "todo\\.db"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "(?:^|\\s)(?:arpent|arp)\\s+todo"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "sqlite"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "not supported in minimal mode"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "switch.*full"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "untracked.*inbox|inbox.*untracked"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "tracked todo.*created"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "todo-2026"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": "todo\\.db"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": "area__perso__todo"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "330 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "120..650"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 0,
+        "command_count": 0,
+        "command_output_utf8_bytes": 0,
+        "command_utf8_bytes": 0,
+        "cumulative_input_proxy_utf8_bytes": 147,
+        "document_utf8_bytes": 11016,
+        "final_utf8_bytes": 330,
+        "prompt_utf8_bytes": 69,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 11016,
+        "request_count": 1,
+        "request_utf8_bytes": 147,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 4,
+        "unique_document_utf8_bytes": 0,
+        "utf8_byte_quarter_estimate": 37,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "minimal_todo_boundary",
+      "score": 100.0,
+      "title": "Minimal-mode todo boundary",
+      "trace_sha256": "035cffab564bea800bd2ff67d56536a17f65a36fd204893e8d8d62e841dfe2c0"
+    },
+    {
+      "category": "efficiency",
+      "checks": [
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "(?:^|\\s)arpent\\s+(?:--help|help|status|triage|index|search|note read)"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "note-20260719-a"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "00_inbox/captures/cache_note\\.md"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "inbox"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "note"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "index rebuilt"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "triage complete"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "status checked"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "92 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "45..240"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 0,
+        "command_count": 0,
+        "command_output_utf8_bytes": 0,
+        "command_utf8_bytes": 0,
+        "cumulative_input_proxy_utf8_bytes": 186,
+        "document_utf8_bytes": 0,
+        "final_utf8_bytes": 92,
+        "prompt_utf8_bytes": 106,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 0,
+        "request_count": 1,
+        "request_utf8_bytes": 186,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 0,
+        "unique_document_utf8_bytes": 0,
+        "utf8_byte_quarter_estimate": 47,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "post_capture_discipline",
+      "score": 100.0,
+      "title": "No post-capture ritual",
+      "trace_sha256": "2b66575e3e97d63a2a0b10bffaf943a53f8b110da58e7e69976f5193dc164994"
+    },
+    {
+      "category": "maintenance",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^SKILL\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/appendices/complete-reference-index\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/architecture\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/routing\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^scripts/operations\\.yaml$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^scripts/routing\\.py$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^architecture_template/06_indexes/cli/operations\\.yaml$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "(?:^|\\s)arpent(?:\\s|$)"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "scripts/operations\\.yaml.*authoritative|authoritative.*scripts/operations\\.yaml"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "routing\\.py"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "tests"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "vault-local.*authoritative"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "edited"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "541 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "150..850"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 0,
+        "command_count": 0,
+        "command_output_utf8_bytes": 0,
+        "command_utf8_bytes": 0,
+        "cumulative_input_proxy_utf8_bytes": 292,
+        "document_utf8_bytes": 57637,
+        "final_utf8_bytes": 541,
+        "prompt_utf8_bytes": 187,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 37716,
+        "request_count": 1,
+        "request_utf8_bytes": 292,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 6,
+        "unique_document_utf8_bytes": 19921,
+        "utf8_byte_quarter_estimate": 73,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "rearchitecture_source_selection",
+      "score": 100.0,
+      "title": "Rearchitecture source selection",
+      "trace_sha256": "382c9fd2312b6bee2ef4009a7de7f731aa6de078d731c74151cc70fb01bf1396"
+    },
+    {
+      "category": "maintenance",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^SKILL\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/appendices/complete-reference-index\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/frontmatter\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^scripts/operations\\.yaml$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^scripts/frontmatter\\.py$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^tests/tests/test_capture_contract\\.py$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^architecture_template/06_indexes/cli/operations\\.yaml$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "(?:^|\\s)arpent(?:\\s|$)"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "routing.types|types.*scripts/operations\\.yaml"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "validation|parser"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "tests"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "only.*vault-local"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "edited"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "636 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "160..900"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 0,
+        "command_count": 0,
+        "command_output_utf8_bytes": 0,
+        "command_utf8_bytes": 0,
+        "cumulative_input_proxy_utf8_bytes": 274,
+        "document_utf8_bytes": 65069,
+        "final_utf8_bytes": 636,
+        "prompt_utf8_bytes": 169,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 15741,
+        "request_count": 1,
+        "request_utf8_bytes": 274,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 6,
+        "unique_document_utf8_bytes": 49328,
+        "utf8_byte_quarter_estimate": 69,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "add_note_type_source_selection",
+      "score": 100.0,
+      "title": "New note type source selection",
+      "trace_sha256": "ee9252c5221b26f90cfcc9daf51eaf488744db9d11d991e2ba7f3663505e9557"
+    },
+    {
+      "category": "maintenance",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^SKILL\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/appendices/complete-reference-index\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/frontmatter\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/contracts/frontmatter\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^scripts/frontmatter\\.py$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^tests/tests/test_capture_contract\\.py$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^architecture_template/06_indexes/schemas/frontmatter_policy\\.yaml$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "(?:^|\\s)arpent(?:\\s|$)"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "closed schema"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "KEY_ORDER|canonical order"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "parser|serializ"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "tests"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "add it only to the template"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "edited"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "631 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "170..950"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 0,
+        "command_count": 0,
+        "command_output_utf8_bytes": 0,
+        "command_utf8_bytes": 0,
+        "cumulative_input_proxy_utf8_bytes": 289,
+        "document_utf8_bytes": 59496,
+        "final_utf8_bytes": 631,
+        "prompt_utf8_bytes": 184,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 59496,
+        "request_count": 1,
+        "request_utf8_bytes": 289,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 6,
+        "unique_document_utf8_bytes": 0,
+        "utf8_byte_quarter_estimate": 73,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "add_frontmatter_field_source_selection",
+      "score": 100.0,
+      "title": "New frontmatter field source selection",
+      "trace_sha256": "3207946a5d6e7c251926e096adab15d51c3694dec04946ffeb96182c02b0ea96"
+    },
+    {
+      "category": "lifecycle",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^\\.arpent$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/lifecycle\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^README\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent note extract linear-20260701-a --type concept --title .*Actionability gradient.*--resource concepts --body .+ --yes$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent note dissolve linear-20260701-a --yes$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "(?:^|\\s)(?:rm|unlink)(?:\\s|$)"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "^arpent archive linear-20260701-a"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "parent.*linear-20260701-a|linear-20260701-a.*parent"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "04_archives/linear_notes"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "archived"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "deleted"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "dissolved without validation"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "240 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "80..500"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 2,
+        "command_count": 2,
+        "command_output_utf8_bytes": 160,
+        "command_utf8_bytes": 232,
+        "cumulative_input_proxy_utf8_bytes": 257,
+        "document_utf8_bytes": 17426,
+        "final_utf8_bytes": 240,
+        "prompt_utf8_bytes": 148,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 62,
+        "request_count": 1,
+        "request_utf8_bytes": 257,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 4,
+        "unique_document_utf8_bytes": 17364,
+        "utf8_byte_quarter_estimate": 65,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "linear_lifecycle",
+      "score": 100.0,
+      "title": "Linear extraction and dissolution",
+      "trace_sha256": "f64a9d85c4f518d6b9c00caa7ae0fe285ad3970f203ccc5af3cf9a6ef0dbd8e6"
+    },
+    {
+      "category": "import",
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^\\.arpent$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "passed": true,
+          "pattern": "^references/import-and-migration\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "passed": true,
+          "pattern": "^README\\.md$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent import scan ~/Documents/legacy --output .+legacy-plan\\.json$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent import suggest .+legacy-plan\\.json$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent import review .+legacy-plan\\.json --accept-suggestions --minimum-confidence 0\\.8$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent import validate .+legacy-plan\\.json --sources$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent import apply .+legacy-plan\\.json --dry-run --json$"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_command",
+          "passed": true,
+          "pattern": "^arpent import apply .+legacy-plan\\.json --plan-hash [a-f0-9]{64} --yes --json$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "(?:^|\\s)(?:rm|mv)\\s+~/Documents/legacy"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "passed": true,
+          "pattern": "--force"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "copy-only|copied"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "source.*unchanged|unchanged.*source"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "per-item|partial"
+        },
+        {
+          "detail": "matched 2 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "passed": true,
+          "pattern": "plan.*hash|hash.*plan"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "atomic batch"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "source deleted"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "passed": true,
+          "pattern": "all succeeded"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "passed": true,
+          "pattern": "^~/Documents/legacy"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "327 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "passed": true,
+          "pattern": "130..750"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 89,
+        "cli_count": 6,
+        "command_count": 6,
+        "command_output_utf8_bytes": 367,
+        "command_utf8_bytes": 544,
+        "cumulative_input_proxy_utf8_bytes": 256,
+        "document_utf8_bytes": 7968,
+        "final_utf8_bytes": 327,
+        "prompt_utf8_bytes": 162,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 62,
+        "request_count": 1,
+        "request_utf8_bytes": 256,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 8,
+        "unique_document_utf8_bytes": 7906,
+        "utf8_byte_quarter_estimate": 64,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "reviewed_import",
+      "score": 100.0,
+      "title": "Reviewed external tree import",
+      "trace_sha256": "72243e9146088bf61e4cc4a395508cae688c9b1eb01aed9bd393bf19d472cee9"
+    }
+  ],
+  "schema_version": 1,
+  "summary": {
+    "failed": 0,
+    "hard_failure_count": 0,
+    "mean_score": 100.0,
+    "metrics": {
+      "claim_utf8_bytes": 365,
+      "cli_count": 15,
+      "command_count": 15,
+      "command_output_utf8_bytes": 1281,
+      "command_utf8_bytes": 1591,
+      "cumulative_input_proxy_utf8_bytes": 3562,
+      "document_utf8_bytes": 308238,
+      "final_utf8_bytes": 4506,
+      "prompt_utf8_bytes": 2034,
+      "provider_cache_creation_input_tokens": null,
+      "provider_cache_read_input_tokens": null,
+      "provider_cached_input_tokens": null,
+      "provider_input_tokens": null,
+      "provider_output_tokens": null,
+      "provider_reported_cost": null,
+      "provider_reported_cost_currency": null,
+      "provider_total_tokens": null,
+      "provider_usage_scenario_count": 0,
+      "repeated_document_utf8_bytes": 155828,
+      "request_count": 16,
+      "request_utf8_bytes": 3562,
+      "stable_prefix_utf8_bytes": 102,
+      "tool_count": 68,
+      "unique_document_utf8_bytes": 152410,
+      "utf8_byte_quarter_estimate": 896,
+      "write_utf8_bytes": 505
+    },
+    "passed": 16,
+    "scenario_count": 16
+  }
+}

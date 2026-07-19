@@ -35,7 +35,8 @@ The user can transition any note's status at any time via:
 arpent note status <id> <new-status>
 ```
 
-Most transitions are user-driven. The agent never changes status without consent except in narrow automatic cases (see below).
+Most transitions are user-driven. The agent changes status only when requested,
+except in the narrow automatic cases below.
 
 ### Automatic (event-driven)
 
@@ -183,7 +184,7 @@ The dissolution:
 
 The dissolution is deliberate and never inferred automatically. `always` and
 `explicit-intent` require `--yes`; `never` executes the user's dissolution
-request without a second approval. Validation of every child relation remains
+request without additional confirmation. Validation of every child relation remains
 mandatory in all modes.
 
 ### Optional path - no extraction
@@ -208,7 +209,7 @@ fleeting:
 
 The cron job `ephemeral-sweep` runs daily at 04:00 (configurable) and:
 
-1. Reads `tools.yaml`, identifies installed tools with `ephemeral: true`
+1. Reads `tools.yaml`, identifies tools with `status: installed` and `ephemeral: true`
 2. For each tool, reads its `lifecycle` rules
 3. Walks `writes_to` directory and examines each file's `status` and `modified`
 4. Applies matching transitions, but archives only `done` or `stale` content
@@ -228,7 +229,7 @@ Three actions possible for an `archive` step:
 Moves the file to `04_archives/<YYYY_qX>/<tool>/`, preserves frontmatter intact, adds:
 
 ```yaml
-archived_at: 19-04-2026T04:00:00Z
+archived_at: 19-04-2026-04-00
 archived_from: 02_areas/sport/sessions/seance_force.md
 ```
 
@@ -292,7 +293,7 @@ This:
 - Sets `status: archived` in frontmatter
 - Adds `archived_at` and `archived_from`
 
-Todos use `arpent todo archive`; linear notes use confirmed dissolution. A
+Todos use `arpent todo archive`; linear notes use validated dissolution. A
 folder, project, or arbitrary file requires a separately previewed manual
 procedure.
 
@@ -303,22 +304,21 @@ At the end of any working session, the agent updates context in a fixed order so
 At the start of the next session, resume documentarily in either mode: read root
 `me.md`, then the target project/area `_context.md`, then only the specific notes
 or sources needed. There is no resume command. Normal resume must not read the
-optional `06_indexes/memory/MEMORY.md` log unless the user explicitly asks for
-or enables it.
+optional `06_indexes/memory/MEMORY.md` log without a separate explicit read
+request.
 
 The implemented local order is:
 
 1. **Update the `_context.md` by default** for the project or area worked on by
-   appending a timestamped `Session update` block. The CLI normalizes it to the
-   complete universal frontmatter field set, preserves all free-form body
-   sections, and appends rather than rewriting them.
-2. **Only with `--memory-log`, prepend a `MEMORY.md` entry** with the session's
-   target, summary, decisions, and next steps. This optional cross-project log
-   is disabled by default and its existence does not authorize later reads.
+   appending a timestamped `Session update` block. Full uses a CLI-mediated
+   transaction; minimal applies and verifies the direct-file edit.
+2. **Only in full mode with `--memory-log`, prepend a `MEMORY.md` entry** with
+   the session's target, summary, decisions, and next steps. The flag records a
+   one-use write request; it does not permit later reads.
 3. **Full mode only:** queue supplied observations and traits in
    `pending_db_writes.yaml`. This CLI-owned queue records deferred intent only;
-   Arpent has no command that flushes it to an external provider. Minimal mode
-   rejects observation/trait flags before mutation and never creates the queue.
+   Arpent has no command that flushes it to an external provider. Minimal does
+   not operate this queue.
 
 The CLI exposes this as:
 
@@ -326,20 +326,22 @@ The CLI exposes this as:
 arpent session end [--project <slug>] [--area <slug>] [--memory-log]
 ```
 
-The `_context.md` step and explicit `--memory-log` option work in full and
-minimal modes. Fresh vaults in both modes do not seed the log; minimal mode does
-not seed `06_indexes/memory/` at all. Minimal mode therefore supports project
-creation, project/area context, capture, documentary resume, useful production,
-and close without delegated memory.
+The CLI syntax above requires full mode. Minimal updates `_context.md` directly
+and keeps user-provided orientation and durable readable information in files.
+Memory skills and surfaces remain retained but dormant.
 
 A close without `--project` or `--area` must name another explicit sink:
 `--memory-log`, or in full mode at least one `--observation` or `--trait`.
 
 The host remains responsible for persisting durable observations and traits to
 external memory. Queueing them locally does not claim that persistence
-succeeded; see `ingestion-and-degraded-mode.md`.
+succeeded; see `minimal-mode.md`.
 
-The point: durable local context lives in `_context.md`; `MEMORY.md` is only an explicitly enabled, lightweight, disposable operational thread. Never write session logs into canonical memory, never leave a permanent fact only in `MEMORY.md`, and never read that optional log without user opt-in.
+The point: durable local context lives in `_context.md`; `MEMORY.md` is only a
+lightweight, disposable operational thread written by a one-use request. Never
+write session logs into canonical memory, never leave a permanent fact only in
+`MEMORY.md`, and never read that optional log without a separate explicit read
+request.
 
 ## The memory wiki has its own, looser lifecycle
 

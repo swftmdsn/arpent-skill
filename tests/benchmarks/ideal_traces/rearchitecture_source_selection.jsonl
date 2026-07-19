@@ -1,0 +1,9 @@
+{"schema_version":1,"type":"trace","scenario_id":"rearchitecture_source_selection","provider_usage":null}
+{"type":"request","content":"SYSTEM: For product changes, inspect complete authoritative documents and implementation together.\nUSER: Before rearchitecting Arpent's routing layer, identify and inspect the authoritative architecture, routing contract, operation registry, and implementation sources. Do not make edits yet."}
+{"type":"read","path":"SKILL.md"}
+{"type":"read","path":"references/appendices/complete-reference-index.md"}
+{"type":"read","path":"references/architecture.md"}
+{"type":"read","path":"references/routing.md"}
+{"type":"read","path":"scripts/operations.yaml"}
+{"type":"read","path":"scripts/routing.py"}
+{"type":"final","text":"The coordinated source set is `references/architecture.md` for the complete system boundary, `references/routing.md` for routing intent, authoritative packaged `scripts/operations.yaml` for mechanical routes and enums, and `scripts/routing.py` for implementation. The complete reference index confirms that product changes require complete docs plus code. Routing tests must change with behavior. Vault-local and architecture-template operation registries are seeded mirrors or overlays, not the packaged authority. No files were changed."}

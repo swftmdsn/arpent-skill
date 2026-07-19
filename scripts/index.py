@@ -36,8 +36,8 @@ GENERATED_INDEX_PATHS = {
 
 
 def build_index(vault: Vault) -> dict:
-    with vault.exclusive_lock("index"):
-        with vault.exclusive_lock("mutations"):
+    with vault.exclusive_lock("mutations"):
+        with vault.exclusive_lock("index"):
             return _build_index(vault)
 
 

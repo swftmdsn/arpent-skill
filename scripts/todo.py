@@ -22,7 +22,7 @@ TRANSACTION_RELPATH = "06_indexes/logs/todo-transaction.json"
 SCHEMA_PATH = Path(__file__).with_name("todo_schema.sql")
 TODO_ROOT = "02_areas/area__perso__todo__active"
 TODO_STATUSES = ("active", "waiting", "done")
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 SCHEMA_OBJECT_NAMES = (
     "todos",
     "todos_assignee_idx",
@@ -103,6 +103,8 @@ def _initialize_connection(connection) -> None:
                 f"Unsupported unversioned todo database; expected schema version {SCHEMA_VERSION}."
             )
         connection.executescript(schema_text())
+    elif version == 2:
+        _migrate_v2_to_v3(connection)
     elif version != SCHEMA_VERSION:
         raise ValueError(
             f"Unsupported todo database schema version {version}; expected {SCHEMA_VERSION}."
@@ -119,6 +121,61 @@ def _initialize_connection(connection) -> None:
         raise ValueError(
             f"Unsupported todo database schema version {version}; expected {SCHEMA_VERSION}."
         )
+
+
+def _migrate_v2_to_v3(connection) -> None:
+    """Add UTC minute precision to todo dates while preserving v2 values."""
+    if _table_columns(connection) != list(SCHEMA_COLUMNS) or _unexpected_schema_objects(connection):
+        raise ValueError("todo.db does not match schema version 2.")
+    actual_objects = {
+        (row[0], row[1])
+        for row in connection.execute(
+            "SELECT type, name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"
+        )
+        if row[1] not in ALLOWED_AUXILIARY_SCHEMA_OBJECTS
+    }
+    expected_objects = {
+        ("table", "todos"),
+        *(("index", name) for name in SCHEMA_OBJECT_NAMES if name.endswith("_idx")),
+        ("trigger", "todos_created_at_immutable"),
+    }
+    if actual_objects != expected_objects:
+        raise ValueError("todo.db does not match schema version 2.")
+
+    columns = ", ".join(SCHEMA_COLUMNS)
+    migrated_values = ", ".join(
+        (
+            f"CASE WHEN {column} IS NULL THEN NULL "
+            f"ELSE {column} || 'T00:00:00Z' END AS {column}"
+            if column in {"due_date", "do_date"}
+            else column
+        )
+        for column in SCHEMA_COLUMNS
+    )
+    version_pragma = f"PRAGMA user_version = {SCHEMA_VERSION};"
+    current_schema = schema_text()
+    if not current_schema.rstrip().endswith(version_pragma):
+        raise RuntimeError("todo schema is missing its version pragma")
+    schema_without_version = current_schema[:current_schema.rfind(version_pragma)]
+    try:
+        connection.executescript(
+            f"""
+            BEGIN IMMEDIATE;
+            ALTER TABLE todos RENAME TO todos_v2;
+            CREATE TEMP TABLE todos_v3_values AS
+            SELECT {migrated_values} FROM todos_v2;
+            DROP TABLE todos_v2;
+            {schema_without_version}
+            INSERT INTO todos ({columns})
+            SELECT {columns} FROM todos_v3_values;
+            DROP TABLE todos_v3_values;
+            {version_pragma}
+            COMMIT;
+            """
+        )
+    except sqlite3.Error:
+        connection.rollback()
+        raise
 
 
 def _table_columns(connection) -> list[str]:
@@ -453,6 +510,8 @@ def _todo_add_plan_hash(plan: dict) -> str:
 
 def public_todo_add_plan(plan: dict) -> dict:
     public = json.loads(json.dumps(plan))
+    public["todo"]["due_date"] = _display_date(public["todo"]["due_date"])
+    public["todo"]["do_date"] = _display_date(public["todo"]["do_date"])
     public["frontmatter"].pop("created", None)
     public["frontmatter"].pop("modified", None)
     public["apply_generated_fields"] = ["created", "modified", "created_at"]
@@ -489,7 +548,7 @@ def list_todos(vault, *, status=None, include_archived=False) -> list[dict]:
             rows = connection.execute(
                 """
                 SELECT * FROM todos WHERE status = ?
-                ORDER BY COALESCE(do_date, due_date, '9999-12-31'),
+                ORDER BY COALESCE(do_date, due_date, '9999-12-31T23:59:59Z'),
                          COALESCE(list_order, ''), created_at, id
                 """,
                 (status,),
@@ -498,7 +557,7 @@ def list_todos(vault, *, status=None, include_archived=False) -> list[dict]:
             rows = connection.execute(
                 """
                 SELECT * FROM todos
-                ORDER BY COALESCE(do_date, due_date, '9999-12-31'),
+                ORDER BY COALESCE(do_date, due_date, '9999-12-31T23:59:59Z'),
                          COALESCE(list_order, ''), created_at, id
                 """
             ).fetchall()
@@ -506,7 +565,7 @@ def list_todos(vault, *, status=None, include_archived=False) -> list[dict]:
             rows = connection.execute(
                 """
                 SELECT * FROM todos WHERE status IN ('active', 'waiting')
-                ORDER BY COALESCE(do_date, due_date, '9999-12-31'),
+                ORDER BY COALESCE(do_date, due_date, '9999-12-31T23:59:59Z'),
                          COALESCE(list_order, ''), created_at, id
                 """
             ).fetchall()
@@ -857,15 +916,23 @@ def _optional_date(value, field):
         return None
     value = _required_text(value, field)
     try:
-        parsed = datetime.strptime(value, "%d-%m-%Y")
+        parsed = datetime.strptime(value, fmlib.NOTE_TIMESTAMP_FORMAT).replace(
+            tzinfo=timezone.utc
+        )
     except ValueError as exc:
-        raise ValueError(f"{field} must be a valid date in dd-mm-yyyy format") from exc
-    if parsed.strftime("%d-%m-%Y") != value:
-        raise ValueError(f"{field} must be a valid date in dd-mm-yyyy format")
-    return parsed.strftime("%Y-%m-%d")
+        raise ValueError(
+            f"{field} must be a valid UTC timestamp in {fmlib.NOTE_TIMESTAMP_LABEL} format"
+        ) from exc
+    if fmlib.format_note_timestamp(parsed) != value:
+        raise ValueError(
+            f"{field} must be a valid UTC timestamp in {fmlib.NOTE_TIMESTAMP_LABEL} format"
+        )
+    return parsed.strftime("%Y-%m-%dT%H:%M:00Z")
 
 
 def _display_date(value):
     if value is None:
         return None
-    return datetime.strptime(value, "%Y-%m-%d").strftime("%d-%m-%Y")
+    return fmlib.format_note_timestamp(
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    )

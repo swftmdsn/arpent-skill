@@ -17,6 +17,7 @@ import hashlib
 import json
 import sqlite3
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 from . import backup as backup_mod
@@ -37,10 +38,11 @@ from . import todo as todo_mod
 from . import tools as tools_mod
 from . import usage as usage_mod
 from . import views
-from .vault import Vault, init_vault
+from .vault import Vault, init_vault, prepare_full_mode, set_vault_mode
 
 __version__ = "0.1.0"
-FULL_MODE_COMMANDS = {"context", "tools", "cron", "sweep", "todo"}
+CONFIRMATION_HELP = "confirm when required by the confirmation policy"
+PLAN_HASH_HELP = "apply only if the current plan matches this exact plan_sha256"
 
 
 def _positive_int(value):
@@ -255,25 +257,87 @@ def _require_confirmation_flag(args, vault: Vault, operation: str, *, count=1,
         required = _confirmation_required(vault, operation, count=count)
     except ValueError as exc:
         sys.exit(str(exc))
-    approved = getattr(args, "yes", False) or getattr(args, "backup_yes", False)
-    if required and not approved:
-        sys.exit(message or "Confirmation policy requires approval; re-run with --yes.")
+    confirmed = getattr(args, "yes", False) or getattr(args, "backup_yes", False)
+    if required and not confirmed:
+        sys.exit(message or "Confirmation policy requires confirmation; re-run with --yes.")
 
 
-def _enforce_vault_mode(args) -> None:
+def _promote_to_full(vault: Vault, *, automatic=False) -> bool:
+    """Reconcile derivatives and enable full mode as one guarded transition."""
+    with vault.exclusive_lock("mode"):
+        with vault.exclusive_lock("mutations"):
+            original_marker = vault.safe_source_path(".arpent").read_bytes().decode("utf-8")
+            marker = vault.marker_data()
+            if marker["mode"] == "full":
+                return False
+            if automatic and not marker["auto_full"]:
+                raise ValueError("Automatic promotion was disabled by an explicit minimal choice.")
+            vault.refuse_foreign_transactions()
+            prepare_full_mode(vault)
+            vault.atomic_write_text(".arpent", json.dumps({
+                "version": marker["version"],
+                "name": marker["name"],
+                "mode": "full",
+                "auto_full": False,
+            }, sort_keys=True) + "\n")
+            try:
+                index_mod.build_index(vault)
+            except BaseException:
+                vault.atomic_write_text(".arpent", original_marker)
+                raise
+            return True
+
+
+@contextmanager
+def _vault_mode_guard(args):
+    """Keep the checked mode stable until the current CLI command completes."""
     command = getattr(args, "command", None)
-    if command not in FULL_MODE_COMMANDS:
+    if command == "init":
+        root = Path(args.path).expanduser().resolve()
+        candidate = Vault(root)
+        try:
+            candidate.marker_data()
+        except (OSError, ValueError):
+            yield
+        else:
+            with candidate.exclusive_lock("mode"):
+                yield
         return
-    vault = _need_vault()
-    try:
-        marker = vault.marker_data()
-    except (OSError, ValueError) as exc:
-        sys.exit(f"Cannot read Arpent vault mode: {exc}")
-    if marker["mode"] == "minimal":
-        sys.exit(
-            f"`arpent {command}` is not available in a minimal vault. "
-            "Initialize a separate full vault to use optional modules."
-        )
+    vault = Vault.find()
+    if vault is None:
+        yield
+        return
+    if command == "mode":
+        with vault.exclusive_lock("mode"):
+            try:
+                vault.marker_data()
+            except (OSError, ValueError) as exc:
+                sys.exit(f"Cannot read Arpent vault mode: {exc}")
+            yield
+        return
+    while True:
+        with vault.shared_lock("mode"):
+            try:
+                marker = vault.marker_data()
+            except (OSError, ValueError) as exc:
+                sys.exit(f"Cannot read Arpent vault mode: {exc}")
+            if marker["mode"] == "full":
+                yield
+                return
+            if not marker["auto_full"]:
+                sys.exit(
+                    f"`arpent {command}` is mode-gated in minimal mode. "
+                    "Use direct-file operations, or run `arpent mode full`."
+                )
+        try:
+            if _confirmation_required(vault, "mode_full"):
+                sys.exit(
+                    "Automatic full-mode promotion requires confirmation under the "
+                    "local policy; run `arpent mode full --yes`, then retry."
+                )
+            _promote_to_full(vault, automatic=True)
+        except (OSError, ValueError) as exc:
+            sys.exit(f"Cannot promote the vault to full mode: {exc}")
 
 
 # --------------------------------------------------------------------------- #
@@ -293,7 +357,7 @@ def cmd_init(args):
     root = supplied.resolve()
     try:
         if structure is not None:
-            init_structure_mod.preflight_structure(root, structure, minimal=args.minimal)
+            init_structure_mod.preflight_structure(root, structure)
         v = init_vault(root, minimal=args.minimal)
         structure_result = (
             init_structure_mod.apply_structure(v, structure) if structure is not None else None
@@ -308,6 +372,42 @@ def cmd_init(args):
         created = sum(len(values["created"]) for values in structure_result.values())
         existing = sum(len(values["existing"]) for values in structure_result.values())
         print(f"Configured structure: {created} created, {existing} already present")
+
+
+def cmd_mode_show(args):
+    v = _need_vault()
+    marker = v.marker_data()
+    usage_mod.set_result(args, subject_kind="vault", outcome="read", changed=False)
+    if args.json:
+        print(json.dumps(marker, indent=2, sort_keys=True))
+    else:
+        print(marker["mode"])
+
+
+def cmd_mode_set(args):
+    v = _need_vault()
+    marker = v.marker_data()
+    target = args.mode_cmd
+    if marker["mode"] == target and not (target == "minimal" and marker["auto_full"]):
+        changed = False
+    else:
+        _require_confirmation_flag(args, v, f"mode_{target}")
+        try:
+            if target == "full":
+                changed = _promote_to_full(v)
+            else:
+                changed = set_vault_mode(v, target)
+        except (OSError, ValueError) as exc:
+            sys.exit(str(exc))
+    usage_mod.set_result(
+        args, subject_kind="vault", outcome="edited" if changed else "read", changed=changed,
+    )
+    result = {"version": 1, "mode": target, "changed": changed}
+    if args.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        state = "Changed to" if changed else "Already in"
+        print(f"{state} {target} mode")
 
 
 def cmd_import_scan(args):
@@ -1559,12 +1659,12 @@ def cmd_todo_list(args):
     if not rows:
         print("No todos matched.")
         return
-    print("ID                         STATUS     DO          DUE         PRIORITY       CONTENT")
+    print(f"{'ID':<26} {'STATUS':<10} {'DO':<17} {'DUE':<17} {'PRIORITY':<14} CONTENT")
     for row in rows:
         status = row["lifecycle_status"] or row["status"]
         print(
-            f"{row['id']:<26} {status:<10} {(row['do_date'] or '-'):<11} "
-            f"{(row['due_date'] or '-'):<11} {(row['priority'] or '-'):<14} {row['content']}"
+            f"{row['id']:<26} {status:<10} {(row['do_date'] or '-'):<17} "
+            f"{(row['due_date'] or '-'):<17} {(row['priority'] or '-'):<14} {row['content']}"
         )
 
 
@@ -1707,7 +1807,7 @@ def cmd_usage_report(args):
 
 
 def cmd_tool_stub(args):
-    sys.exit(f"`arpent {args.tool}` is a Phase 2+ sub-tool and is not installed in this vault.")
+    sys.exit(f"`arpent {args.tool}` is an unavailable placeholder command.")
 
 
 # --------------------------------------------------------------------------- #
@@ -1762,7 +1862,8 @@ Create a deliberate project destination with: arpent project create <name>""",
         "init",
         help="scaffold a full or minimal filesystem-native LifeOS vault",
         description=(
-            "Scaffold a vault and Git repository without creating a commit. "
+            "Scaffold a vault. Full mode initializes Git without creating a commit; "
+            "minimal mode requires neither Git nor later CLI operation. "
             "Projects remain deliberate: create them afterward with `arpent project create`, "
             "or declare them explicitly with `--structure`."
         ),
@@ -1772,8 +1873,8 @@ Create a deliberate project destination with: arpent project create <name>""",
         "--minimal",
         action="store_true",
         help=(
-            "seed core notes plus project creation and local session end; keep "
-            "MEMORY.md disabled by default and omit delegated/optional modules"
+            "seed the complete vault and skills for direct-file operation; "
+            "the CLI remains inactive except for changing mode"
         ),
     )
     sp.add_argument(
@@ -1782,6 +1883,19 @@ Create a deliberate project destination with: arpent project create <name>""",
         help="create Areas, Resources, and/or projects declared in a .json or .md file",
     )
     sp.set_defaults(func=cmd_init)
+
+    mode = sub.add_parser(
+        "mode",
+        help="show or change how this vault is operated",
+    ).add_subparsers(dest="mode_cmd", required=True)
+    m = mode.add_parser("show", help="show the active vault mode")
+    m.add_argument("--json", action="store_true")
+    m.set_defaults(func=cmd_mode_show)
+    for mode_name in ("full", "minimal"):
+        m = mode.add_parser(mode_name, help=f"switch this vault to {mode_name} mode")
+        m.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
+        m.add_argument("--json", action="store_true")
+        m.set_defaults(func=cmd_mode_set)
 
     import_commands = sub.add_parser(
         "import",
@@ -1817,7 +1931,7 @@ Create a deliberate project destination with: arpent project create <name>""",
         default=0.0,
         help="with --accept-suggestions, leave lower-confidence folders unresolved (0-1)",
     )
-    imp.add_argument("--yes", action="store_true", help="mark a complete interactive review without final confirmation")
+    imp.add_argument("--yes", action="store_true", help="confirm marking a complete interactive review")
     imp.add_argument("--json", action="store_true")
     imp.set_defaults(func=cmd_import_review)
 
@@ -1835,7 +1949,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     imp = import_commands.add_parser("apply", help="preview or apply a reviewed import plan")
     imp.add_argument("plan")
     imp.add_argument("--dry-run", action="store_true")
-    imp.add_argument("--yes", action="store_true", help="apply without the final interactive confirmation")
+    imp.add_argument("--yes", action="store_true", help="provide policy confirmation without an interactive prompt")
     imp.add_argument("--plan-hash", default=None, help="apply only if decisions and routing match a reviewed dry run")
     imp.add_argument("--stop-on-error", action="store_true")
     imp.add_argument("--json", action="store_true")
@@ -1849,7 +1963,7 @@ Create a deliberate project destination with: arpent project create <name>""",
 
     sub.add_parser("status", help="show vault state").set_defaults(func=cmd_status)
     sp = sub.add_parser("index", help="inventory the vault and rebuild generated indexes")
-    sp.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    sp.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     sp.set_defaults(func=cmd_index)
     sp = sub.add_parser(
         "triage",
@@ -1872,7 +1986,7 @@ Create a deliberate project destination with: arpent project create <name>""",
         default=None,
         help="snapshot parent directory (default: 06_indexes/backup/)",
     )
-    sp.add_argument("--yes", dest="backup_yes", action="store_true", help="approve when local policy requires confirmation")
+    sp.add_argument("--yes", dest="backup_yes", action="store_true", help=CONFIRMATION_HELP)
     sp.set_defaults(func=cmd_backup)
     backup = sp.add_subparsers(dest="backup_cmd")
     b = backup.add_parser("verify", help="verify a snapshot manifest, payload, and databases")
@@ -1881,7 +1995,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     b = backup.add_parser("restore", help="restore a verified snapshot into a new directory")
     b.add_argument("snapshot")
     b.add_argument("--to", required=True, help="new target directory; must not exist")
-    b.add_argument("--yes", action="store_true", help="approve when snapshot policy requires confirmation")
+    b.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     b.set_defaults(func=cmd_backup_restore)
     sp = sub.add_parser("health", help="show live vault density and lifecycle metrics")
     sp.add_argument("--json", action="store_true")
@@ -1899,7 +2013,7 @@ Create a deliberate project destination with: arpent project create <name>""",
             "belong in usage-journal.md."
         ),
     )
-    u.add_argument("--since", default=None, help="include events on or after this dd-mm-yyyy date or timestamp")
+    u.add_argument("--since", default=None, help="include events on or after this dd-MM-YYYY-HH-mm UTC timestamp")
     u.add_argument("--json", action="store_true")
     u.set_defaults(func=cmd_usage_report)
 
@@ -1927,7 +2041,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     c.add_argument("--source-hash", required=True, help="hash returned by context pending")
     c.add_argument("--provider", default="agent", help="agent or provider identifier")
     c.add_argument("--force", action="store_true", help="replace an already-fresh L1 summary")
-    c.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    c.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     c.set_defaults(func=cmd_context_set)
 
     c = context.add_parser("show", help="read one context level for an indexed path")
@@ -1942,7 +2056,7 @@ Create a deliberate project destination with: arpent project create <name>""",
 
     sp = sub.add_parser("archive", help="archive a note by id (never deletes)")
     sp.add_argument("id")
-    sp.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    sp.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     sp.set_defaults(func=cmd_archive)
 
     project = sub.add_parser("project", help="deliberate project operations").add_subparsers(
@@ -1962,7 +2076,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     pr.add_argument("--area", default=None, help="existing unambiguous area slug")
     pr.add_argument("--effort-cadence", choices=notes_mod.EFFORT_CADENCES, default=None)
     pr.add_argument("--effort-level", choices=notes_mod.EFFORT_LEVELS, default=None)
-    pr.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    pr.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     pr.set_defaults(func=cmd_project_create)
 
     note = sub.add_parser("note", help="note operations").add_subparsers(dest="note_cmd", required=True)
@@ -1985,7 +2099,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     n.add_argument("--body", default=None)
     n.add_argument("--stdin", action="store_true", help="read body from stdin")
     n.add_argument("--dry-run", action="store_true", help="show the complete creation plan without mutation")
-    n.add_argument("--plan-hash", default=None, help="apply only if the current plan matches a reviewed plan_sha256")
+    n.add_argument("--plan-hash", default=None, help=PLAN_HASH_HELP)
     n.add_argument("--json", action="store_true", help="emit a versioned creation plan or result")
     n.set_defaults(func=cmd_note_new)
 
@@ -1994,7 +2108,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     n.add_argument("--project", default=None)
     n.add_argument("--area", default=None)
     n.add_argument("--resource", default=None)
-    n.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    n.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     n.set_defaults(func=cmd_note_route)
 
     n = note.add_parser("read", help="print a note by id")
@@ -2013,7 +2127,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     n = note.add_parser("status", help="change a note's status")
     n.add_argument("id")
     n.add_argument("status")
-    n.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    n.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     n.set_defaults(func=cmd_note_status)
 
     n = note.add_parser(
@@ -2052,7 +2166,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     n.add_argument("--stdin", action="store_true", help="replace body from stdin")
     n.add_argument("--dry-run", action="store_true", help="show exact before/after metadata and paths without domain mutation")
     n.add_argument("--json", action="store_true", help="print the edit plan as JSON")
-    n.add_argument("--plan-hash", default=None, help="apply only if the current plan matches a reviewed plan_sha256")
+    n.add_argument("--plan-hash", default=None, help=PLAN_HASH_HELP)
     n.set_defaults(func=cmd_note_edit)
 
     n = note.add_parser(
@@ -2085,7 +2199,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     n.add_argument("--source-hash", default=None, help="reject apply unless the source still has this SHA-256")
     n.add_argument("--dry-run", action="store_true", help="show exact paths and metadata without mutation")
     n.add_argument("--json", action="store_true", help="print the ingestion plan as JSON")
-    n.add_argument("--yes", action="store_true", help="approve a reviewed ingestion when policy requires it")
+    n.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     n.set_defaults(func=cmd_note_ingest)
 
     n = note.add_parser("extract", help="extract a typed child from a linear note")
@@ -2102,7 +2216,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     body_input.add_argument("--body", default=None, help="autonomous child-note body")
     body_input.add_argument("--stdin", action="store_true", help="read the child-note body from stdin")
     n.add_argument("--after", default=None, help="insert the source wikilink after this exact passage")
-    n.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    n.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     n.set_defaults(func=cmd_note_extract)
 
     n = note.add_parser("dissolve", help="archive a decomposed linear note")
@@ -2117,10 +2231,9 @@ Create a deliberate project destination with: arpent project create <name>""",
         description=(
             "By default, record summary, decisions, and next steps in project/area "
             "_context.md. The cross-project MEMORY.md log is disabled unless "
-            "--memory-log is passed, and agents must not read it later without explicit "
-            "user opt-in. A no-target close requires --memory-log or full-mode "
-            "observation/trait queue writes; minimal mode rejects those queue flags "
-            "before mutation."
+            "--memory-log is passed, and agents must not read it later without a separate "
+            "explicit read request. A no-target close requires --memory-log or observation/trait "
+            "queue writes. This CLI operation is full-mode only."
         ),
     )
     s.add_argument("--project", default=None)
@@ -2128,10 +2241,10 @@ Create a deliberate project destination with: arpent project create <name>""",
     s.add_argument("--summary", required=True)
     s.add_argument("--decision", action="append", default=[])
     s.add_argument("--next-step", action="append", default=[])
-    s.add_argument("--memory-log", action="store_true", help="explicitly create or update the optional cross-project MEMORY.md log for this close")
+    s.add_argument("--memory-log", action="store_true", help="request one create or update of the optional cross-project MEMORY.md log")
     s.add_argument("--observation", action="append", default=[])
     s.add_argument("--trait", action="append", default=[])
-    s.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    s.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     s.set_defaults(func=cmd_session_end)
 
     tools = sub.add_parser("tools", help="tools registry operations").add_subparsers(dest="tools_cmd", required=True)
@@ -2147,18 +2260,18 @@ Create a deliberate project destination with: arpent project create <name>""",
     c = cron.add_parser("run", help="run cron jobs")
     c.add_argument("--tick", action="store_true", help="run due jobs from cron.json")
     c.add_argument("--dry-run", action="store_true")
-    c.add_argument("--yes", action="store_true", help="approve execution when local policy requires confirmation")
+    c.add_argument("--yes", action="store_true", help="confirm execution when required by the local policy")
     c.add_argument(
         "--allow-local-code",
         action="store_true",
-        help="confirm out-of-band that trusted cron commands may execute",
+        help="enable execution of jobs carrying the local-code declaration",
     )
     c.set_defaults(func=cmd_cron_run)
 
     sweep = sub.add_parser("sweep", help="lifecycle sweep operations").add_subparsers(dest="sweep_cmd", required=True)
     sw = sweep.add_parser("ephemeral", help="apply configured ephemeral lifecycle rules")
     sw.add_argument("--dry-run", action="store_true")
-    sw.add_argument("--yes", action="store_true", help="approve apply when local policy requires confirmation")
+    sw.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     sw.set_defaults(func=cmd_sweep_ephemeral)
     sw = sweep.add_parser("status", help="show the latest completed ephemeral sweep")
     sw.add_argument("--json", action="store_true")
@@ -2171,8 +2284,8 @@ Create a deliberate project destination with: arpent project create <name>""",
     td.add_argument("content")
     td.add_argument("--priority", default=None)
     td.add_argument("--status", choices=todo_mod.TODO_STATUSES, default=None)
-    td.add_argument("--due", dest="due_date", default=None, help="dd-mm-yyyy")
-    td.add_argument("--do", dest="do_date", default=None, help="dd-mm-yyyy")
+    td.add_argument("--due", dest="due_date", default=None, help="dd-MM-YYYY-HH-mm UTC")
+    td.add_argument("--do", dest="do_date", default=None, help="dd-MM-YYYY-HH-mm UTC")
     td.add_argument("--duration", default=None)
     td.add_argument("--project", dest="linked_project_id", default=None)
     td.add_argument("--depends-on", dest="depends_on_id", default=None)
@@ -2181,7 +2294,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     td.add_argument("--list-order", default=None)
     td.add_argument("--assignee", dest="assignee_id", default=None)
     td.add_argument("--dry-run", action="store_true", help="show the complete todo plan without mutation")
-    td.add_argument("--plan-hash", default=None, help="apply only if the current plan matches a reviewed plan_sha256")
+    td.add_argument("--plan-hash", default=None, help=PLAN_HASH_HELP)
     td.add_argument("--json", action="store_true", help="emit a versioned creation plan or result")
     td.set_defaults(func=cmd_todo_add)
 
@@ -2205,10 +2318,10 @@ Create a deliberate project destination with: arpent project create <name>""",
     priority.add_argument("--clear-priority", action="store_true")
     td.add_argument("--status", choices=todo_mod.TODO_STATUSES, default=None)
     due = td.add_mutually_exclusive_group()
-    due.add_argument("--due", dest="due_date", default=None, help="dd-mm-yyyy")
+    due.add_argument("--due", dest="due_date", default=None, help="dd-MM-YYYY-HH-mm UTC")
     due.add_argument("--clear-due", action="store_true")
     do_date = td.add_mutually_exclusive_group()
-    do_date.add_argument("--do", dest="do_date", default=None, help="dd-mm-yyyy")
+    do_date.add_argument("--do", dest="do_date", default=None, help="dd-MM-YYYY-HH-mm UTC")
     do_date.add_argument("--clear-do", action="store_true")
     duration = td.add_mutually_exclusive_group()
     duration.add_argument("--duration", default=None)
@@ -2232,33 +2345,33 @@ Create a deliberate project destination with: arpent project create <name>""",
     assignee = td.add_mutually_exclusive_group()
     assignee.add_argument("--assignee", dest="assignee_id", default=None)
     assignee.add_argument("--clear-assignee", action="store_true")
-    td.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    td.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     td.set_defaults(func=cmd_todo_edit)
 
     td = todo.add_parser("done", help="mark a todo done")
     td.add_argument("id")
-    td.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    td.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     td.set_defaults(func=cmd_todo_done)
 
-    td = todo.add_parser("defer", help="set the date on which to do a todo")
+    td = todo.add_parser("defer", help="set the UTC time at which to do a todo")
     td.add_argument("id")
-    td.add_argument("--to", dest="to_date", required=True, help="dd-mm-yyyy")
-    td.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    td.add_argument("--to", dest="to_date", required=True, help="dd-MM-YYYY-HH-mm UTC")
+    td.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     td.set_defaults(func=cmd_todo_defer)
 
     td = todo.add_parser("block", help="mark a todo waiting on an object ID")
     td.add_argument("id")
     td.add_argument("--on", dest="dependency_id", required=True)
-    td.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    td.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     td.set_defaults(func=cmd_todo_block)
 
     td = todo.add_parser("archive", help="archive a completed todo without deleting its DB row")
     td.add_argument("id")
-    td.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    td.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     td.set_defaults(func=cmd_todo_archive)
 
     for tool_name in ("fleeting", "reader", "calendar", "sport", "journal", "crm"):
-        tp = sub.add_parser(tool_name, help=f"{tool_name} sub-tool (not installed)")
+        tp = sub.add_parser(tool_name, help=f"{tool_name} placeholder (unavailable)")
         tp.add_argument("args", nargs=argparse.REMAINDER)
         tp.set_defaults(func=cmd_tool_stub, tool=tool_name)
 
@@ -2272,8 +2385,8 @@ def main(argv=None):
     exit_code = 1
     success = False
     try:
-        _enforce_vault_mode(args)
-        args.func(args)
+        with _vault_mode_guard(args):
+            args.func(args)
         exit_code = 0
         success = True
     except SystemExit as exc:

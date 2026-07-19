@@ -35,7 +35,7 @@ class ImportPipelineTests(unittest.TestCase):
             self.assertEqual(plan["inventory"]["files"], 1)
             self.assertTrue(import_manifest.validate_plan(plan_path, plan)["valid"])
 
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
             preview = import_executor.apply_import(vault, plan_path, plan, dry_run=True)
             self.assertEqual(preview["counts"]["planned"], 1)
             self.assertFalse((vault.root / "01_projects" / "website").exists())
@@ -68,7 +68,7 @@ class ImportPipelineTests(unittest.TestCase):
             plan = import_manifest.scan_source(source, plan_path)
             import_manifest.review_plan(plan, accept_suggestions=True)
             import_manifest.save_plan(plan_path, plan)
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
 
             report = import_executor.apply_import(vault, plan_path, plan)
 
@@ -95,7 +95,7 @@ class ImportPipelineTests(unittest.TestCase):
             import_manifest.review_plan(plan, accept_suggestions=True)
             import_manifest.save_plan(plan_path, plan)
             path.write_text("after", encoding="utf-8")
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
 
             report = import_executor.apply_import(vault, plan_path, plan)
 
@@ -116,7 +116,7 @@ class ImportPipelineTests(unittest.TestCase):
             plan = import_manifest.scan_source(source, plan_path)
             import_manifest.review_plan(plan, accept_suggestions=True)
             import_manifest.save_plan(plan_path, plan)
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
 
             report = import_executor.apply_import(vault, plan_path, plan)
 
@@ -175,7 +175,7 @@ class ImportPipelineTests(unittest.TestCase):
             record = next(import_manifest.iter_inventory(plan_path, plan))
             import_manifest.review_plan(plan, accept_suggestions=True)
             import_manifest.save_plan(plan_path, plan)
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
 
             report = import_executor.apply_import(vault, plan_path, plan)
 
@@ -200,7 +200,7 @@ class ImportPipelineTests(unittest.TestCase):
             plan = import_manifest.scan_source(source, plan_path)
             import_manifest.review_plan(plan, accept_suggestions=True)
             import_manifest.save_plan(plan_path, plan)
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
 
             report = import_executor.apply_import(vault, plan_path, plan)
 
@@ -276,7 +276,7 @@ class ImportPipelineTests(unittest.TestCase):
             plan = import_manifest.scan_source(source, plan_path)
             import_manifest.review_plan(plan, accept_suggestions=True)
             import_manifest.save_plan(plan_path, plan)
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
             before = _tree_snapshot(vault.root)
 
             report = import_executor.apply_import(
@@ -297,7 +297,7 @@ class ImportPipelineTests(unittest.TestCase):
             plan = import_manifest.scan_source(source, plan_path)
             import_manifest.review_plan(plan, accept_suggestions=True)
             import_manifest.save_plan(plan_path, plan)
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
             source.rename(base / "moved")
 
             with self.assertRaisesRegex(ValueError, "source root is unavailable"):
@@ -325,7 +325,7 @@ class ImportPipelineTests(unittest.TestCase):
             plan = import_manifest.scan_source(source, plan_path)
             import_manifest.review_plan(plan, accept_suggestions=True)
             import_manifest.save_plan(plan_path, plan)
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
             import_executor.apply_import(vault, plan_path, plan)
             state = (
                 vault.root / "06_indexes" / "imports" / plan["import_id"] / "state.jsonl"
@@ -358,7 +358,7 @@ class ImportPipelineTests(unittest.TestCase):
             books.mkdir(parents=True)
             (books / "note.txt").write_text("content", encoding="utf-8")
             plan = base / "plan.json"
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
             env = dict(os.environ)
             env["ARPENT_VAULT_ROOT"] = str(vault.root)
 
@@ -398,7 +398,7 @@ class ImportPipelineTests(unittest.TestCase):
             plan = import_manifest.scan_source(source, plan_path)
             import_manifest.review_plan(plan, accept_suggestions=True)
             import_manifest.save_plan(plan_path, plan)
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
 
             import_executor.apply_import(vault, plan_path, plan)
 
@@ -416,7 +416,7 @@ class ImportPipelineTests(unittest.TestCase):
             plan = import_manifest.scan_source(source, plan_path)
             import_manifest.review_plan(plan, accept_suggestions=True)
             import_manifest.save_plan(plan_path, plan)
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
             preview = import_executor.apply_import(vault, plan_path, plan, dry_run=True)
             operations = vault.operations_path()
             content = operations.read_text(encoding="utf-8")
@@ -442,7 +442,7 @@ class ImportPipelineTests(unittest.TestCase):
             base = Path(temporary)
             source = base / "legacy"
             source.mkdir()
-            vault = init_vault(source / "vault", minimal=True)
+            vault = init_vault(source / "vault", minimal=False)
             previous = os.environ.get("ARPENT_VAULT_ROOT")
             os.environ["ARPENT_VAULT_ROOT"] = str(vault.root)
             args = type("Args", (), {
@@ -471,7 +471,7 @@ class ImportPipelineTests(unittest.TestCase):
             plan = import_manifest.scan_source(source, plan_path)
             import_manifest.review_plan(plan, accept_suggestions=True)
             import_manifest.save_plan(plan_path, plan)
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
 
             with mock.patch.object(file_transaction, "commit", side_effect=KeyboardInterrupt):
                 with self.assertRaises(KeyboardInterrupt):
@@ -499,7 +499,7 @@ class ImportPipelineTests(unittest.TestCase):
             plan = import_manifest.scan_source(source, plan_path)
             import_manifest.review_plan(plan, accept_suggestions=True)
             import_manifest.save_plan(plan_path, plan)
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
             import_executor.apply_import(vault, plan_path, plan)
             vault.root.joinpath("03_resources/books/note.md").unlink()
 
@@ -535,7 +535,7 @@ class ImportPipelineTests(unittest.TestCase):
             plan = import_manifest.scan_source(source, plan_path)
             import_manifest.review_plan(plan, accept_suggestions=True)
             import_manifest.save_plan(plan_path, plan)
-            vault = init_vault(base / "vault", minimal=True)
+            vault = init_vault(base / "vault", minimal=False)
             import_executor.apply_import(vault, plan_path, plan)
             destination = vault.root / "03_resources/books/note.md"
             destination.write_text(

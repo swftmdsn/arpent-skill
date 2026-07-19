@@ -1,9 +1,9 @@
 ---
-title: template_area_context
-id: note-00000000-b
-created: REPLACE_WITH_DD_MM_YYYY_TIMESTAMP
-modified: REPLACE_WITH_DD_MM_YYYY_TIMESTAMP
-description: Living context file for an ongoing Arpent area.
+title: REPLACE_WITH_SNAKE_CASE_AREA_CONTEXT_TITLE
+id: null
+created: REPLACE_WITH_CURRENT_UTC_TIMESTAMP
+modified: REPLACE_WITH_CURRENT_UTC_TIMESTAMP
+description: REPLACE_WITH_AREA_SPECIFIC_DESCRIPTION
 type: note
 project: null
 area: REPLACE_WITH_AREA_SLUG
@@ -34,16 +34,8 @@ extracted_to: []
 
 ## Purpose
 
-What this area is responsible for over time.
-
 ## Current state
-
-What is active, simmering, blocked, or dormant.
 
 ## Routines
 
-- Add recurring reviews, rituals, or expected maintenance.
-
 ## Key resources
-
-- Add relevant notes, tools, and indexes.

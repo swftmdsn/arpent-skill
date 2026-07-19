@@ -126,7 +126,7 @@ class PaginationTests(unittest.TestCase):
 
     def test_fts_search_is_not_silently_limited_to_fifty(self):
         with tempfile.TemporaryDirectory() as temporary:
-            vault = init_vault(Path(temporary) / "vault", minimal=True)
+            vault = init_vault(Path(temporary) / "vault", minimal=False)
             for index in range(55):
                 plan = notes.plan_note_new(
                     vault,

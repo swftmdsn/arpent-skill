@@ -28,7 +28,7 @@ summaries. `arpent index` never triggers this skill automatically.
 5. Produce a factual standalone summary of 2-5 sentences and at most 180 words.
 6. Store it with `arpent context set <path> --source-hash <hash-from-pending>
    --stdin --provider <agent-or-model-id>`.
-7. Confirm that the path no longer appears in pending results.
+7. Verify that the path no longer appears in pending results.
 
 ## Output
 

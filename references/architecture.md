@@ -132,8 +132,9 @@ Archives are read-only by convention. The CLI never writes to past quarters. `li
 
 `05_tools/` contains no know-how. Tool skills, command contracts, schemas,
 migrations, creation templates, and maintenance documentation all belong in
-`06_indexes/`. A path under `05_tools/` exists only because an installed tool
-declares it in `writes_to` for artifacts, queues, captures, caches, or outputs.
+`06_indexes/`. A path under `05_tools/` exists only because a tool with
+`status: installed` declares it in `writes_to` for artifacts, queues, captures,
+caches, or outputs.
 
 Area-bound tools normally write user content directly to `02_areas/<area>/`
 and may need no `05_tools/<tool>/` folder. Transversal tools may use a runtime
@@ -151,7 +152,7 @@ workspace under `05_tools/<tool>/`, but their definition remains in
 │   │       └── .meta.json
 │   ├── books/
 │   └── podcasts/
-└── ...                         # created only when an installed tool writes here
+└── ...                         # created only for tools with status installed
 ```
 
 Planned tools do not pre-create runtime folders. This control-plane/runtime
@@ -223,7 +224,7 @@ boundary is non-negotiable.
 │   ├── sweep.log
 │   ├── triage.log
 │   └── cron.log
-├── tools.yaml                          # SINGLE index of all installed tools
+├── tools.yaml                          # SINGLE index of declared tools and registry status
 ├── cron.json                           # registry of recurring jobs
 ├── agent_infrastructure_index.yaml     # index of roles, skills, workflows, prompts, and capabilities
 ├── index.json                          # generated directory index
@@ -243,7 +244,7 @@ creates exact file hashes and a generated L0/L1/L2 context cache. L0 is a
 deterministic one-line orientation; L1 is an optional AI summary tied to a
 semantic source hash; L2 points to the source or direct folder children. AI is
 never invoked by indexing. The explicit workflow lives in
-`06_indexes/global_skills/context_summary.skill.md`; details are installed at
+`06_indexes/global_skills/context_summary.skill.md`; details are documented at
 `06_indexes/docs/architecture/indexing-and-context.md`.
 
 ### 00_inbox/unsure/ - ambiguous items
@@ -287,26 +288,15 @@ Batch application is resumable and per-item atomic; the batch itself may
 partially succeed. No format-specific connector or external classifier is part
 of the core pipeline.
 
-## Minimal mode - fast setup, full-schema compatible
+## Minimal mode - direct files, complete information
 
-Arpent can be initialized with `arpent init --minimal` for a deliberately
-**minimal mode**: the 7 buckets, the **complete universal frontmatter** on every
-note, deterministic PARA routing, and the **index module** (`arpent index`,
-regenerating `index.json` + `sidecar.json` so the entire tree of folders and
-files stays visible and queryable at a glance). The frontmatter is *not* reduced
-in minimal mode: every note is born with the full schema written out, using
-`null`, `[]`, or `false` for unused values. What minimal mode strips is optional
-**modules**, not the note contract or local continuity. It includes `arpent
-project create`, project/area `_context.md`, local `arpent session end`,
-actionable triage/ingestion, usage reports, reviewed external import, and the core
-note/index/search/archive/health/backup commands. It does not seed
-`06_indexes/memory/`; the optional `MEMORY.md` log is created only by an explicit
-`--memory-log`. It omits delegated-memory queue writes, context summaries, cron,
-todo, tools, sweep, the memory wiki, and portable-agent infrastructure. The
-`context`, `tools`, `cron`, `sweep`, and
-`todo` command groups refuse to run in this mode; `session` does not. Agents
-must always write the full frontmatter and must not create omitted module
-structure preemptively.
+Minimal retains the same seven buckets, skills, contracts, schemas, and complete
+universal frontmatter as full. Its difference is operational: an agent reads,
+searches, creates, routes, updates context, and archives directly in canonical
+files. Mode-gated CLI commands require vault-mode promotion. Todo dual state, coordinated import,
+extraction/dissolution, generated context, backup, cron, sweep, and delegated
+queues remain retained and dormant until the vault returns to full. Minimal
+initialization requires neither Git nor a CLI after creation.
 
 ## Tool control plane and runtime placement
 
@@ -334,8 +324,10 @@ it reads `06_indexes/`. `05_tools/` never teaches the agent how a tool works.
 
 ## .git and .gitignore
 
-The vault IS a git repo. `arpent init` runs `git init`; it does not create a
-commit, because commit authorship and timing remain user-controlled.
+Full mode uses a Git repository. Full `arpent init` and promotion run `git init`;
+they do not create a commit, because commit authorship and timing remain
+user-controlled. Minimal initialization requires no Git and an explicit return
+to minimal may retain an existing dormant `.git` directory.
 `.gitignore` excludes:
 
 - All `*.db` and journal/wal/shm files (binary, non-mergeable, regeneratable)
@@ -355,7 +347,7 @@ Hosting recommendation: local-only initially. If multi-device needed later: self
 ## .agent and .arpent
 
 `.agent` is the compact entry point for any AI agent. It prevents duplicate
-loading when a host Arpent skill is already active and selects context by
+loading when a host Arpent skill is already loaded and selects context by
 operation:
 
 ```markdown
@@ -363,35 +355,45 @@ operation:
 
 Read this file completely, then load only what the operation needs.
 
-1. Do not reload the local skill when an Arpent host skill is active.
-2. Use the active skill's hot path for note, todo, or fleeting capture.
-3. Read COMPASS.md only to classify a less common operation.
-4. Read me.md for interaction preferences and concrete resume.
-5. On resume, read target _context.md, then only needed notes/sources.
-6. Read detailed docs or schemas only for a relevant edge case.
+1. Read the small `.arpent` marker.
+2. Do not reload the local skill when an Arpent host skill is loaded.
+3. Otherwise load the local Arpent skill.
+4. Use the loaded skill's hot path for ordinary work.
+5. Read COMPASS.md only to classify a less common operation.
+6. Read me.md for interaction preferences and concrete resume.
+7. On resume, read target _context.md, then only needed notes/sources.
 
 ## Hard rules
 - Never delete files. Archive.
 - Never fill subjective fields (appreciated, importance). Leave null.
 - Never guess routing. Use 00_inbox/unsure/ with reason.
 - Never dump facts into the vault. Delegated memory is disabled by default and
-  requires explicit user opt-in; the vault is a clean knowledge base.
+  requires full mode plus provider opt-in; the vault is a clean knowledge base.
 - Apply the local confirmation policy to moves and renames before executing.
-- Use the CLI for coordinated state changes when available.
-- Keep external memory disabled until explicit host-level opt-in.
+- In minimal, operate direct-file capabilities and leave coordinated state
+  dormant. In full, use CLI-mediated vault operations.
+- Keep the delegated-memory integration disabled until provider opt-in.
 ```
 
 `.arpent` is a JSON marker file:
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "name": "arpent",
-  "mode": "full"
+  "mode": "minimal",
+  "auto_full": true
 }
 ```
 
-The CLI uses `.arpent` to detect that a directory is an Arpent vault root.
+The CLI uses `.arpent` to detect that a directory is an Arpent vault root. A
+minimal marker with `auto_full: true` records a pending guarded vault-mode
+promotion request. The first mode-gated CLI command triggers the transition,
+which initializes full infrastructure,
+switches the guarded marker, rebuilds deterministic derivatives, and restores
+the exact minimal marker on failure. Seeded dormant files and `.git` may remain
+after a failed reconciliation, leaving the request pending. An explicit return
+to minimal clears `auto_full` and cancels the request.
 
 ## agent_wiki/ - separate scope for agent-authored content
 
@@ -436,12 +438,20 @@ The canonical definitions live in `03_resources/agent_infrastructure/`; `06_inde
 | Agent skill | `agent_skills/<id>/SKILL.md` | Reusable method for accomplishing a task |
 | Workflow | `agent_workflows/<id>/WORKFLOW.md` | Predetermined orchestration of roles, skills, prompts, and capabilities |
 | Simple prompt | `agent_prompts/` | Small reusable instruction without its own execution package |
-| Capability | `capabilities/<id>/CAPABILITY.yaml` | Portable declaration of an available CLI, MCP server, API, or harness plugin |
+| Capability | `capabilities/<id>/CAPABILITY.yaml` | Portable declaration of CLI, MCP, API, or plugin access; not proof of runtime availability |
 | Style/template | `agent_style/`, `agent_templates/` | Reusable presentation rules and output structures |
 
-A capability declaration describes how an agent may address a means of action; it does not contain the implementation or a secret. CLI implementations remain installed executables, MCP servers remain external services, API keys remain in environment variables or a secret manager, and harness plugins remain configured by their harness. Capability manifests store only public connection metadata and references such as `credential_ref: env:OPENAI_API_KEY`.
+A capability declaration describes how an agent may address a means of action;
+it does not contain the implementation or a secret, and does not prove runtime
+availability. Availability also requires that the current vault mode permits
+use, dependencies are satisfied, and host configuration or enablement is present
+where applicable. CLI implementations remain installed executables, MCP servers
+remain external services, API keys remain in environment variables or a secret
+manager, and harness plugins remain configured by their harness. Capability
+manifests store only public connection metadata and references such as
+`credential_ref: env:OPENAI_API_KEY`.
 
-The detailed hierarchy is installed at `06_indexes/docs/architecture/agent-infrastructure.md`.
+The detailed hierarchy is documented at `06_indexes/docs/architecture/agent-infrastructure.md`.
 
 Examples in `agent_infrastructure/agent_skills/`:
 
@@ -484,7 +494,7 @@ This separation answers "is this doc OF Arpent or is this doc Arpent USES?".
 
 ## `_context.md` - per-project and per-area context note
 
-Every `01_projects/<slug>/` and every instrumented `02_areas/<slug>/` carries a `_context.md` at its root. Create a project in either mode with `arpent project create <name> [--area <slug>] [--effort-cadence heavylift|slowburn] [--effort-level low|medium|high]`; this also creates `notes/`, `drafts/`, and `attachments/`. Project creation never creates an area or merges a collision. It happens during init only when explicitly declared by `--structure`; note routing never creates one. The context is the agent's anchor for that project or area and is updated at the end of a working session.
+Every `01_projects/<slug>/` and every instrumented `02_areas/<slug>/` carries a `_context.md` at its root. Full creates a project with `arpent project create <name> [--area <slug>] [--effort-cadence heavylift|slowburn] [--effort-level low|medium|high]`; minimal creates the same `_context.md`, `notes/`, `drafts/`, and `attachments/` directly. Project creation never creates an area or merges a collision. The context is the agent's anchor for that project or area and is updated at the end of a working session.
 
 Inspired by Eliott Meunier's IPCRA practice: each project and "casquette" has a context note maintained by the AI so that any session starts with full, current context instead of re-explaining from zero.
 
@@ -497,8 +507,8 @@ files keep the complete shape:
 ---
 title: arpent_project_context
 id: note-20260419-z
-created: 19-04-2026T10:00:00Z
-modified: 19-04-2026T10:00:00Z
+created: 19-04-2026-10-00
+modified: 19-04-2026-10-00
 description: Living context for the Arpent build project.
 type: note
 project: arpent-build
@@ -532,7 +542,7 @@ What completion means for this project.
 - 14-day real-use validation
 
 ## Working rhythm and time budget
-The user-approved cadence or ritual budget for this project.
+The user-set cadence or ritual budget for this project.
 
 ## Session history
 Timestamped blocks appended by `arpent session end`.
@@ -544,38 +554,38 @@ Rules:
   `status: ongoing`. Both use `author: agent` and `source: generated` (the agent
   maintains them; the user may edit freely).
 - Resume in this order: root `me.md`, this target `_context.md`, then only the
-  specific notes or sources needed. Do not read optional `MEMORY.md` without
-  explicit user opt-in.
+  specific notes or sources needed. Reading optional `MEMORY.md` requires a
+  separate explicit read request.
 - `session end` preserves all body sections and appends its session block.
 - The universal schema is closed during normal use. Users may add/reorder body
   sections and create project files/subfolders, but unsupported frontmatter
   fields are rejected. Schema extension requires coordinated canonical schema,
   order, validation, policy, documentation, and test changes.
-- The static `architecture_template/01_projects/_template_project/_context.md`
-  does not drive the code-generated `project create` template. Edit a created
-  `_context.md` directly for normal use; when developing Arpent, change both the
-  runtime builder and static template deliberately.
+- The seeded project and area context templates drive direct minimal
+  instantiation but do not generate CLI-created contexts. Edit instantiated
+  `_context.md` files directly; when developing Arpent, change both runtime
+  builders and static templates deliberately.
 - It is never swept and never auto-archived. When the project is archived, its `_context.md` goes with it.
 
 ## `MEMORY.md` - optional cross-project operational log
 
-`06_indexes/memory/MEMORY.md` is an optional, human-readable cross-project log.
-It is disabled by default in both modes, fresh vaults do not seed it, and normal
-resume must not read it.
+`06_indexes/memory/MEMORY.md` is an optional, human-readable full-mode
+cross-project log. It is disabled by default, fresh vaults do not seed it, and
+normal resume must not read it.
 
 - The **agentic memory provider** holds canonical facts and traits. Not session flow.
 - **`_context.md`** stores per-project context. Not cross-project session flow.
 - The **memory wiki** holds research scratch. Not a session log.
 
 When the user wants this extra surface, `arpent session end --memory-log`
-creates or updates it for that invocation. Agents must not read it later unless
-the user explicitly asks for or enables that behavior. The pattern was inspired
+records a one-use full-mode write request. Reading it later requires a separate
+explicit read request. The pattern was inspired
 by Eliott's `memory.md` and Hermes's `MEMORY.md`, but it is no longer part of the
 default continuity path.
 
 Format: newest first, with a manual target of roughly 15 entries. The CLI does
-not truncate the log; older entries are pruned during confirmed cleaning
-sessions.
+not truncate the log; older entries are pruned during deliberate cleaning
+sessions under the confirmation policy.
 
 ```markdown
 # MEMORY - Arpent working log
@@ -592,18 +602,18 @@ sessions.
 
 Rules:
 
-- `MEMORY.md` is a plain markdown file, not a database. Its existence alone does not authorize agent reads.
-- It is updated only when `session end --memory-log` is passed.
+- `MEMORY.md` is a plain markdown file, not a database. Its existence does not
+  constitute an explicit read request.
+- It is updated only by a one-use full-mode `session end --memory-log` request.
 - It is disposable operational state, distinct from canonical memory (the provider) and from the memory wiki (research). Prune freely.
 - It holds roughly the last 15 sessions - enough continuity without bloating context. Older entries are pruned during periodic cleaning sessions.
 
 ## The memory zone and the clean-vault boundary
 
 In full mode, `06_indexes/memory/` can gather the optional `MEMORY.md` log and
-the `wiki/` research scratch. Minimal mode does not seed this directory, though
-an explicit `--memory-log` can create the log path. Durable facts and traits
-remain outside Arpent behind an optional host interface. The boundary is
-specified in `memory-layers.md`.
+the `wiki/` research scratch. Minimal retains this directory but does not operate
+it. Full-mode durable facts and traits may remain outside Arpent behind an
+optional host interface. The boundary is specified in `memory-layers.md`.
 
 The principle that governs this zone: the 7 buckets must stay **clean and comprehensible to the user**; `06_indexes/memory/wiki/` is the one sanctioned zone with high tolerance for agent-generated mess and drafts.
 

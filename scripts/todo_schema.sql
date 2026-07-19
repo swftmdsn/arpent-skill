@@ -1,4 +1,4 @@
--- Version 2 schema for 06_indexes/databases/todo.db.
+-- Version 3 schema for 06_indexes/databases/todo.db.
 -- Selection values are tool-defined TEXT keys so the available options can
 -- evolve without a database migration.
 -- Relation columns contain stable Arpent IDs. They are intentionally soft
@@ -21,16 +21,16 @@ CREATE TABLE IF NOT EXISTS todos (
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   CHECK (
     due_date IS NULL OR (
-      length(due_date) = 10
-      AND due_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
-      AND date(due_date) = due_date
+      length(due_date) = 20
+      AND due_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:00Z'
+      AND strftime('%Y-%m-%dT%H:%M:00Z', due_date, '+0 seconds') = due_date
     )
   ),
   CHECK (
     do_date IS NULL OR (
-      length(do_date) = 10
-      AND do_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
-      AND date(do_date) = do_date
+      length(do_date) = 20
+      AND do_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:00Z'
+      AND strftime('%Y-%m-%dT%H:%M:00Z', do_date, '+0 seconds') = do_date
     )
   )
 );
@@ -51,4 +51,4 @@ BEGIN
   SELECT RAISE(ABORT, 'todos.created_at is immutable');
 END;
 
-PRAGMA user_version = 2;
+PRAGMA user_version = 3;

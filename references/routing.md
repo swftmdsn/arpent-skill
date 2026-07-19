@@ -49,9 +49,9 @@ If `project` and `resource` are both set, the note goes to `00_inbox/unsure/` an
 
 If a routing slug points to a missing folder, the note goes to `00_inbox/unsure/`
 with a reason. The user decides whether to create the missing folder or correct
-the slug. An authorized project is created deliberately with `arpent project
-create <name>` in either vault mode; routing never creates one implicitly. Area
-creation remains manual.
+the slug. Full creates a deliberate project with `arpent project create
+<name>`; minimal creates the same canonical structure directly. Routing never
+creates one implicitly. Area creation remains deliberate.
 
 ## Type and status refinements
 

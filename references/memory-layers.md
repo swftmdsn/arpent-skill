@@ -2,7 +2,7 @@
 
 Memory in Arpent is **delegated and modular**, described here at a purely logical level. Arpent does not, by default, keep its own separate log of memories in SQL or text. The job of this document is to make clear - for any agent or human following the system - *what kinds of memory exist*, *where each kind belongs*, and *how the vault relates to memory*. The actual wiring of a memory system to a host runs at the Arpent/host level and is out of scope here; the skill only needs the logical map.
 
-This is a deliberate reversal of the earlier design. The role of the PARA-like vault is to be a **clean, shared, human-and-agent knowledge base** for long-term construction - not a place to dump remembered facts. Remembering (stable traits, discrete facts, cross-session continuity) lives *beside* the vault, in a memory system that acts in synergy with it, without polluting the context the user reads.
+This is a deliberate reversal of the earlier design. The role of the PARA-like vault is to be a **clean, shared, human-and-agent knowledge base** for long-term construction - not a place to dump remembered facts. Opportunistic recall of stable traits and discrete facts lives *beside* the vault, while explicit project continuity remains in `_context.md`. This keeps remembered facts from polluting the context the user reads.
 
 ## The three roles of memory information
 
@@ -18,12 +18,12 @@ The discrimination that matters has not changed - what changed is *where each ki
 | Time-bound commitment that expires | the **agentic memory** (role: buffer) |
 | Unsupervised short/medium-term research | the **memory wiki** (`06_indexes/memory/wiki/`) |
 | Default cross-session operational continuity | project/area **`_context.md`** |
-| Optional cross-project session log | **MEMORY.md** (`06_indexes/memory/MEMORY.md`), only after explicit opt-in |
-| User-approved orientation for agents | **`me.md`** at vault root |
+| Optional cross-project session log | **MEMORY.md** (`06_indexes/memory/MEMORY.md`), only after a one-use full-mode write request |
+| User-provided orientation for agents | **`me.md`** at vault root |
 
 "Profile", "observations" and "buffer" survive as **logical roles**, not as databases Arpent maintains. Where they physically live is the memory system's concern, not the vault's.
 
-`me.md` is a special root file, not a memory store. It is the user's explicit orientation manual for agents: identity, collaboration preferences, current north star, boundaries, and useful links. Agents read it early, may propose edits, and must not rewrite it from inference. Stable traits and observations route to the host's external-memory interface when available.
+`me.md` is a special root file, not a memory store. It is the user's explicit orientation manual for agents: identity, collaboration preferences, current north star, boundaries, and useful links. Agents read it early, may propose edits, and must not rewrite it from inference. Stable traits and observations route to the host's external-memory interface only when the delegated-memory integration is enabled.
 
 ## Where memory can live
 
@@ -32,21 +32,25 @@ synchronize memory providers. The host may expose one external-memory
 interface; that interface owns its persistence and retrieval behavior.
 
 Delegated external memory for `profile`, `observations`, and `buffer` is
-**disabled by default in both minimal and full vault modes**. It becomes active
-only after explicit user opt-in at the host level. The existence of a compatible
-host interface does not by itself authorize reads or writes.
+**disabled by default in both minimal and full vault modes**. The integration
+can be enabled only in full mode after provider opt-in at the host level. The
+existence of a host interface does not enable the integration; minimal retains
+the contracts but never operates it.
 
 ### Delegated agentic memory
 
-When explicitly enabled, a **modular agentic memory system** runs beside Arpent
+When the integration is enabled, a **modular agentic memory system** runs beside Arpent
 on the host, of the kind exemplified by **Hindsight** or **Supermemory**. It can
 be local, cloud, or hybrid. It holds canonical facts, traits, and continuity,
 and brings its own consolidation, decay, contradiction handling, and temporal
 reasoning, exactly the work Arpent would otherwise reimplement by hand.
 
-Arpent directs memory there only when the user has explicitly enabled that host
+Arpent directs memory there only after provider opt-in has enabled that host
 integration. Otherwise, the agent reports that the item was not persisted. It
-does not create a vault note or a local queue as a substitute.
+does not create a vault note or an ad hoc local queue as a substitute. The seeded
+`pending_db_writes.yaml` file is different: full-mode `session end` may record
+explicit deferred observation/trait intent there, but no command flushes it and
+its presence never proves provider persistence. Minimal never appends to it.
 
 ### The memory wiki
 
@@ -63,13 +67,13 @@ facts and traits still belong to the host memory interface.
 
 The most important consequence: **the vault stops being a place where the model logs memories.** The 7 buckets are the clean, shared knowledge base - concepts, projects, areas, references, maps - built up by the user and the agent together for the long term. The agent does not dump facts and observations into the vault; those go to the memory system. This keeps the vault legible and prevents memory churn from polluting the context the user actually reads.
 
-What still lives in the vault: documents (`type: note/concept/journal/reference/...`) - the knowledge being constructed. What leaves the vault for memory: the *remembering* of discrete facts, stable traits, and cross-session state.
+What still lives in the vault: documents (`type: note/concept/journal/reference/...`) and explicit project/area continuity in `_context.md`. What leaves the vault for memory is opportunistic recall of discrete personal facts, stable traits, and time-bound reminders, not the documentary handoff.
 
 ## The "dinner with Claire" example
 
 User says: *"I had dinner with Claire tonight, she said she's vegetarian, and I want to invite her to my cooking event next month."*
 
-With delegated memory available:
+With the delegated-memory integration enabled:
 
 1. **Vault** - a journal note (clean knowledge): `type: journal`, `area: journal`. The human-readable account.
 2. **Agentic memory** - two memory writes, directed to the host memory system: a durable observation (*"Claire is vegetarian"*) and a time-bound item (*"invite Claire to cooking event", expiring next month*). Arpent does **not** keep these itself by default.
@@ -87,16 +91,15 @@ Everything memory-adjacent gathers under one zone, so the rest of the architectu
 └── wiki/         # agentic research scratch
 ```
 
-`MEMORY.md` is disabled by default in full and minimal modes and fresh vaults do
-not seed it. `arpent session end --memory-log` explicitly creates or updates it
-for that invocation. It is disposable working state, distinct from canonical
-memory and the research wiki. Agents must not read it during normal resume or
-later work unless the user explicitly asks for or enables that behavior.
+`MEMORY.md` is disabled by default. In full, `arpent session end --memory-log`
+records a one-use memory-log write request for that invocation. It does not
+permit later reads. The file is disposable working state, distinct from
+canonical memory and the research wiki.
 
 Default continuity lives in each target project or area `_context.md`. Resume by
 reading `me.md`, then that `_context.md`, then only the specific notes or sources
-needed. Minimal mode supports this flow and session closure but does not seed
-the `06_indexes/memory/` tree; its full-only wiki remains unavailable.
+needed. Minimal supports this flow directly in files. It retains the memory tree
+and skills but does not operate them.
 
 ## What is not memory
 
@@ -107,7 +110,8 @@ Infrastructure is not memory: code, schemas, skills, external docs, configuratio
 ## Cross-layer reading
 
 When asked "what do I know about X", search the vault, query the host's
-external-memory interface once when available, and label each result by source:
+external-memory interface once when the integration is enabled, and label each
+result by source:
 
 ```
 "claire"
@@ -116,7 +120,7 @@ external-memory interface once when available, and label each result by source:
   From the memory wiki:     a research page mentioning Claire
 ```
 
-The retrieval *quality* of each store is the store's own business: the vault uses keyword search now and can gain semantic search later; the agentic memory system brings its own retrieval. The skill only needs to know to consult all active sources.
+The retrieval *quality* of each store is the store's own business: the vault uses keyword search now and can gain semantic search later; the agentic memory system brings its own retrieval. The skill only needs to know to consult all enabled sources.
 
 ## When the user says "remember"
 

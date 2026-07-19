@@ -9,7 +9,7 @@ from scripts import vault as vault_mod
 from scripts.vault import init_vault
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 class TokenBudgetTests(unittest.TestCase):
@@ -29,14 +29,24 @@ class TokenBudgetTests(unittest.TestCase):
             "references/contracts/frontmatter.md",
             "references/contracts/routing.md",
             "references/contracts/provenance-and-body.md",
-            "references/adapters/filesystem.md",
+            "references/modes/minimal.md",
         ]
         total = sum(len((ROOT / path).read_bytes()) for path in paths)
         self.assertLessEqual(total, 24 * 1024)
 
+    def test_local_minimal_hot_path_stays_bounded(self):
+        paths = [
+            "architecture_template/.agent",
+            "architecture_template/COMPASS.md",
+            "architecture_template/06_indexes/global_skills/arpent.skill.md",
+            "architecture_template/06_indexes/cli/operations.yaml",
+        ]
+        total = sum(len((ROOT / path).read_bytes()) for path in paths)
+        self.assertLessEqual(total, 16 * 1024)
+
     def test_representative_creation_plans_stay_compact(self):
         with tempfile.TemporaryDirectory() as temporary:
-            note_vault = init_vault(Path(temporary) / "minimal", minimal=True)
+            note_vault = init_vault(Path(temporary) / "full-note", minimal=False)
             note_plan = notes.public_note_new_plan(notes.plan_note_new(
                 note_vault,
                 title="Compact plan",
@@ -81,6 +91,22 @@ class TokenBudgetTests(unittest.TestCase):
         self.assertEqual(
             vault_mod.INDEXING_CONTEXT_DOC_STUB,
             (ROOT / "architecture_template/06_indexes/docs/architecture/indexing-and-context.md").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            vault_mod.ROUTING_DOC_STUB,
+            (ROOT / "architecture_template/06_indexes/docs/architecture/routing.md").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            vault_mod.PROJECT_CONTEXT_TEMPLATE_STUB,
+            (ROOT / "architecture_template/01_projects/_template_project/_context.md").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            vault_mod.AREA_CONTEXT_TEMPLATE_STUB,
+            (ROOT / "architecture_template/02_areas/_context.template.md").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            vault_mod.GITIGNORE_STUB,
+            (ROOT / "architecture_template/.gitignore").read_text(encoding="utf-8"),
         )
 
 

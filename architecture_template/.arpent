@@ -1,5 +1,6 @@
 {
-  "version": 1,
+  "version": 2,
   "name": "arpent",
-  "mode": "full"
+  "mode": "minimal",
+  "auto_full": true
 }

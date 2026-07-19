@@ -26,6 +26,7 @@ from . import frontmatter as fmlib
 from . import operations as operations_mod
 
 MARKER = ".arpent"  # presence of this file marks a vault root
+MARKER_VERSION = 2
 MUTATION_TRANSACTION_PATHS = {
     "06_indexes/logs/note-transaction.json": "a note mutation",
     "06_indexes/logs/note-ingest-transaction.json": "a note ingestion",
@@ -42,33 +43,17 @@ INDEX_EXCLUDED_DIR_PATHS = {
     "06_indexes/logs",
     "06_indexes/secrets",
 }
+_LOCK_STATE = threading.local()
 
-# Minimal mode keeps the complete note contract and deterministic routing while
-# omitting optional modules and their local surfaces.
-MINIMAL_SCAFFOLD = [
-    "00_inbox",
-    "00_inbox/unsure",
-    "01_projects",
-    "02_areas",
-    "03_resources",
-    "04_archives",
-    "05_tools",
-    "06_indexes",
-    "06_indexes/cli",
-    "06_indexes/global_skills",
-    "06_indexes/schemas",
-    "06_indexes/databases",
-    "06_indexes/imports",
-    "06_indexes/logs",
-]
-
-# The 7 buckets + the seed subfolders that full mode creates.
+# Both modes retain the same information and skills. Minimal changes how the
+# agent operates the vault, not what the vault may contain.
 SCAFFOLD = [
     "00_inbox",
     "00_inbox/fleeting",
     "00_inbox/captures",
     "00_inbox/unsure",
     "01_projects",
+    "01_projects/_template_project",
     "02_areas",
     "02_areas/area__perso__todo__active",
     "02_areas/area__perso__todo__active/active",
@@ -117,7 +102,6 @@ RESERVED_RESOURCE_SLUGS = [
 class Vault:
     def __init__(self, root: Path):
         self.root = Path(root).expanduser().resolve()
-        self._lock_state = threading.local()
 
     # ---- discovery ----------------------------------------------------- #
 
@@ -151,18 +135,23 @@ class Vault:
             raise ValueError(f"Invalid .arpent marker: {exc}") from exc
         if (
             not isinstance(content, dict)
-            or set(content) != {"version", "name", "mode"}
+            or set(content) != {"version", "name", "mode", "auto_full"}
             or type(content.get("version")) is not int
-            or content["version"] != 1
+            or content["version"] != MARKER_VERSION
             or content.get("name") != "arpent"
             or content.get("mode") not in {"full", "minimal"}
+            or type(content.get("auto_full")) is not bool
+            or (content.get("mode") == "full" and content.get("auto_full"))
         ):
             raise ValueError("Invalid .arpent marker: expected the current Arpent format.")
         return content
 
     def project_slugs(self):
         base = self.root / "01_projects"
-        return [p.name for p in base.iterdir() if p.is_dir() and not p.is_symlink()] if base.exists() else []
+        return [
+            p.name for p in base.iterdir()
+            if p.is_dir() and not p.is_symlink() and not p.name.startswith("_")
+        ] if base.exists() else []
 
     def area_slugs(self):
         base = self.root / "02_areas"
@@ -337,22 +326,40 @@ class Vault:
     @contextmanager
     def exclusive_lock(self, name: str):
         """Serialize a vault mutation across processes without stale PID locks."""
+        with self._file_lock(name, shared=False):
+            yield
+
+    @contextmanager
+    def shared_lock(self, name: str):
+        """Hold a process-shared read lease; Windows conservatively uses exclusive."""
+        with self._file_lock(name, shared=True):
+            yield
+
+    @contextmanager
+    def _file_lock(self, name: str, *, shared: bool):
         if not re.fullmatch(r"[a-z0-9_-]+", name):
             raise ValueError(f"Invalid vault lock name: {name}")
-        held = getattr(self._lock_state, "held", None)
+        held = getattr(_LOCK_STATE, "held", None)
         if held is None:
-            held = self._lock_state.held = {}
-        if name in held:
-            held[name] += 1
+            held = _LOCK_STATE.held = {}
+        key = (self.root, name)
+        if key in held:
+            state = held[key]
+            if state["shared"] and not shared:
+                raise RuntimeError(
+                    f"Cannot upgrade shared vault lock '{name}' to exclusive."
+                )
+            state["count"] += 1
             try:
                 yield
             finally:
-                held[name] -= 1
+                state["count"] -= 1
             return
         path = self.safe_output_path(f"06_indexes/logs/{name}.lock")
         with path.open("a+b") as stream:
             if fcntl is not None:
-                fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
+                operation = fcntl.LOCK_SH if shared else fcntl.LOCK_EX
+                fcntl.flock(stream.fileno(), operation)
             elif msvcrt is not None:  # pragma: no cover - Windows only
                 stream.seek(0, os.SEEK_END)
                 if stream.tell() == 0:
@@ -361,10 +368,10 @@ class Vault:
                 stream.seek(0)
                 msvcrt.locking(stream.fileno(), msvcrt.LK_LOCK, 1)
             try:
-                held[name] = 1
+                held[key] = {"count": 1, "shared": shared}
                 yield
             finally:
-                held.pop(name, None)
+                held.pop(key, None)
                 if fcntl is not None:
                     fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
                 elif msvcrt is not None:  # pragma: no cover - Windows only
@@ -410,125 +417,6 @@ def raise_walk_error(error: OSError) -> None:
 
 COMPASS_STUB = Path(__file__).with_name("COMPASS.md").read_text(encoding="utf-8")
 
-MINIMAL_COMPASS_STUB = """# COMPASS.md - the path to follow
-
-This is a minimal Arpent vault. Classify the user's intent before locating or
-changing files, read `me.md` early, and use only the installed core capability.
-
-## Available operations
-
-- Capture, read, edit, route, find, and archive ordinary notes.
-- Create projects with canonical local context.
-- Close sessions into project or area `_context.md`; use `--memory-log` only for an explicitly requested optional cross-project log.
-- Inspect status, triage, efforts, health, search, and indexes.
-- Scan, review, validate, and resumably copy external folder trees with `arpent import`.
-- Create and verify logical backups.
-
-Context summaries, todo, tools, cron, sweep, delegated-memory queues, the memory
-wiki, and portable agent-infrastructure modules are not installed in this vault.
-Do not create or simulate them implicitly.
-
-## Routing
-
-Use complete universal frontmatter and deterministic precedence:
-`project > resource > area > inbox`. `project` and `resource` are mutually
-exclusive; `area` may accompany either. Missing or conflicting destinations go
-to `00_inbox/unsure/` with a written reason.
-The schema is closed during normal use: do not invent per-project fields.
-Body sections, project files, and project subfolders remain user-extensible.
-
-## Operating protocol
-
-1. Identify the intent and required destination.
-2. To resume work, read `me.md`, then the target `_context.md`, then only needed notes/sources. Never read optional `MEMORY.md` without explicit user opt-in.
-3. Use the active host skill; otherwise read the compact local skill and only the contract needed.
-4. Read confirmation mode and threshold from `06_indexes/cli/operations.yaml`.
-5. Preview destination, metadata, and side effects only when policy requires it.
-6. Ask for clarification when a user-owned or routing decision is required.
-7. Prefer the Arpent CLI, execute, and verify the resulting path and state.
-8. Close useful work with targeted `arpent session end`; a no-target close needs `--memory-log`. Rebuild indexes after direct changes.
-
-## Copy-paste frontmatter reference
-
-Use this quick reference when a human or agent needs to paste a complete note
-header. Keep the field order intact. Replace placeholders, leave unknown
-optional values as `null`, and never fill `appreciated` or `importance` for the
-user.
-
-```yaml
----
-title: <lowercase_ascii_snake_case>
-id: <type>-<YYYYMMDD>-<letter>
-created: <dd-mm-yyyyTHH:MM:SSZ>
-modified: <dd-mm-yyyyTHH:MM:SSZ>
-
-description: <useful standalone summary or null>
-type: <note|concept|journal|log|checklist|reference|draft|template|meeting|idea|fleeting|linear|integration|angle|production|map|artefact>
-project: <slug or null>
-area: <slug or null>
-resource: <slug or null>
-status: <inbox|maturing|active|stable|ongoing|standby|waiting|to-start|done|stale|archived>
-effort_cadence: <heavylift|slowburn|null>
-effort_level: <low|medium|high|null>
-tags: [<lowercase-hyphen-tag>, <lowercase-hyphen-tag>]
-chosen_location: <one-line placement rationale or null>
-
-source: <manual|generated|imported|captured|conversation|derived>
-link: <URL, path, external id, session id, or null>
-author: <user|agent|imported>
-
-depth: <1|2|3|4|5|null>
-appreciated: null
-importance: null
-pinned: false
-
-expires_at: <dd-mm-yyyyTHH:MM:SSZ or null>
-
-related: []
-relations:
-  - type: <supports|contradicts|depends_on|derived_from|example_of>
-    target: <note_id>
-parent: <note_id or null>
-observations: []
-extracted_to: []
----
-```
-
-Field value summary:
-
-| Field | Allowed shape or values |
-|---|---|
-| `title` | lowercase ASCII `snake_case`; ordinary note filename follows it |
-| `id` | `<type>-<YYYYMMDD>-<letter>`; stable graph anchor |
-| `created`, `modified` | `dd-mm-yyyyTHH:MM:SSZ`, UTC |
-| `description` | useful standalone summary or `null` |
-| `type` | `note`, `concept`, `journal`, `log`, `checklist`, `reference`, `draft`, `template`, `meeting`, `idea`, `fleeting`, `linear`, `integration`, `angle`, `production`, `map`, `artefact` |
-| `project` | project slug or `null`; mutually exclusive with `resource` |
-| `area` | area slug or `null`; may accompany `project` or `resource` as context |
-| `resource` | resource slug or `null`; mutually exclusive with `project` |
-| `status` | `inbox`, `maturing`, `active`, `stable`, `ongoing`, `standby`, `waiting`, `to-start`, `done`, `stale`, `archived` |
-| `effort_cadence` | `heavylift`, `slowburn`, or `null`; active actionables only; never infer |
-| `effort_level` | `low`, `medium`, `high`, or `null`; active actionables only; never infer |
-| `tags` | list of lowercase hyphenated tags, or `[]` |
-| `chosen_location` | one-line placement rationale or `null`; documentary only |
-| `source` | `manual`, `generated`, `imported`, `captured`, `conversation`, `derived` |
-| `link` | `null`, URL, local path, external identifier, or session identifier; required for `captured` and `imported` |
-| `author` | `user`, `agent`, or `imported` |
-| `depth` | `1`, `2`, `3`, `4`, `5`, or `null`; do not score if arbitrary |
-| `appreciated` | `null` for agents; user-only value |
-| `importance` | `null` for agents; user-only value |
-| `pinned` | `false` by default; user may set `true` |
-| `expires_at` | `dd-mm-yyyyTHH:MM:SSZ` or `null`; mostly for buffer items |
-| `related` | list of note IDs for weak/non-qualified links, or `[]` |
-| `relations` | list of `{type, target}` objects; relation type is `supports`, `contradicts`, `depends_on`, `derived_from`, or `example_of` |
-| `parent` | source note ID or `null`; required for extracted child notes |
-| `observations` | memory-provider observation IDs, or `[]` |
-| `extracted_to` | extracted child note IDs, or `[]`; maintained during extraction/dissolution |
-
-Never delete user content, infer subjective fields, guess routing, rewrite
-`me.md` from inference, or report an unavailable capability as successful.
-"""
-
 ARPENT_STUB = """# Arpent Constitution
 
 This vault is an Arpent vault: a filesystem-native personal life OS.
@@ -562,58 +450,38 @@ AGENT_STUB = """# .agent - Arpent vault entry point
 
 Read this file completely. Then load only what the current operation needs.
 
-## Operation loading
+## Start
 
-1. If an Arpent host skill is already active, do not reload the local skill.
-2. For ordinary note, todo, or fleeting capture, use the active skill's hot path.
-3. Otherwise read `COMPASS.md` to select one workflow.
-4. Read `me.md` for user interaction preferences and when resuming work.
-5. On resume, read the target `_context.md`, then only needed notes/sources.
-6. Read detailed docs or schema files only for a relevant edge case.
+1. Read the small `.arpent` marker.
+2. If an Arpent host skill is active, do not reload the local skill.
+3. Otherwise read `06_indexes/global_skills/arpent.skill.md`.
+4. Use the active skill's hot path for ordinary note, todo, or fleeting capture.
+5. Read `COMPASS.md` only to select a less common operation.
+6. Read `me.md` for interaction preferences and when resuming work.
+7. On resume, read target `_context.md`, then only needed notes or sources.
 
-The local confirmation mode and batch threshold live in
-`06_indexes/cli/operations.yaml`. The modes are `always`, `explicit-intent`, and
-`never`. Clarification remains separate from confirmation.
+In `minimal`, use direct-file operations; mode-gated CLI commands require
+vault-mode promotion. In `full`, use CLI-mediated vault operations. If
+`auto_full` is true, the first mode-gated command requests promotion. If the
+confirmation policy requires it, run `arpent mode full --yes` first. An explicit
+return to minimal cancels the pending request.
 
-## Hard rules
+The confirmation policy lives in `06_indexes/cli/operations.yaml`.
+
+## Hard Rules
 
 - Never delete or overwrite user content. Archive.
 - Never fill `appreciated` or `importance`; do not infer effort values.
 - Never guess a missing route; use `00_inbox/unsure/` with a reason.
-- Never invent frontmatter fields, relation types, memory activation, or side effects.
-- Use the CLI for coordinated state changes when available.
-- Keep tool know-how in `06_indexes/`; `05_tools/` is runtime material.
-- Keep dates day-first and note timestamps in UTC.
+- Never invent frontmatter fields, relation types, provider opt-in, or side effects.
+- Write public timestamps as `dd-MM-YYYY-HH-mm` in UTC.
 - Keep binary attachments untouched with separate Markdown companions.
 - Do not rewrite `me.md` from inference.
+- Skills remain retained without necessarily being loaded or executable.
 
-## Continuity
-
-`_context.md` is the default local continuity surface. `MEMORY.md` is optional,
-disabled by default, and read only after explicit user opt-in. External memory
-also requires explicit host-level opt-in.
-"""
-
-MINIMAL_AGENT_STUB = """# .agent - Arpent minimal vault entry point
-
-Read this file completely, then load only what the operation needs. Use the
-active host skill when present; otherwise use the compact local skill. Read
-`COMPASS.md` for less common operations and `me.md` for interaction preferences
-or project/area resume.
-
-The confirmation mode and batch threshold live in
-`06_indexes/cli/operations.yaml`. Apply `always`, `explicit-intent`, or `never`
-without weakening validation or no-overwrite checks.
-
-Use complete universal frontmatter and deterministic routing. Resume from
-`me.md`, then target `_context.md`, then only needed notes/sources. Never delete,
-infer subjective fields, guess routing, invent schema fields, or rewrite
-`me.md` from inference. Binary attachments use separate Markdown companions.
-
-This profile intentionally omits delegated-memory queues, memory wiki, context
-summaries, cron, todo, tools, sweep, and portable agent infrastructure. Capture,
-read, search, route, archive, import, project continuity, and filesystem mode
-remain available.
+`_context.md` is the default local continuity surface. Minimal keeps user-provided
+orientation and context in files. Full-mode external memory requires provider
+opt-in.
 """
 
 MENTAL_MODEL_STUB = """# Arpent Mental Model
@@ -623,26 +491,30 @@ When information arrives, decide which role it plays:
 | Information | Destination |
 |---|---|
 | Long-form content to open, read, and edit | Vault |
-| Stable trait or preference | Delegated memory: profile |
-| Durable fact or observation | Delegated memory: observations |
-| Time-bound reminder or commitment | Delegated memory: buffer |
-| Unsupervised agent research scratch | `06_indexes/memory/wiki/` |
+| User-provided orientation | `me.md` in both modes |
+| Durable readable knowledge | Vault note in both modes |
+| Personal trait or fact for opportunistic recall | Delegated profile/observation only when the full-mode integration is enabled |
+| Time-bound operational context | target `_context.md` in both modes |
+| Time-bound personal reminder | Delegated buffer only when the full-mode integration is enabled |
+| Unsupervised agent research scratch | `06_indexes/memory/wiki/` in full; retained dormant in minimal |
 | Default cross-session operational continuity | project/area `_context.md` |
-| Optional cross-project log | `06_indexes/memory/MEMORY.md`, only after explicit opt-in |
-| User-approved orientation for agents | `me.md` |
+| Optional cross-project log | `06_indexes/memory/MEMORY.md`, only after a one-use full-mode write request |
 
-Delegated-memory destinations are disabled by default in minimal and full vault
-modes. Use them only after explicit user opt-in at the host level.
+Delegated-memory destinations require full mode and provider opt-in. When the
+integration is not enabled, report that provider-bound information was not
+persisted; do not silently substitute a note or local queue.
 
 The vault is not memory. It is the clean shared knowledge base.
 
 `MEMORY.md` is disabled and unseeded by default. Normal resume must not read it;
-use `me.md`, the target `_context.md`, then only the notes/sources needed.
+use `me.md`, the target `_context.md`, then only the notes/sources needed. Reading
+the optional log requires a separate explicit read request.
 """
 
 MEMORY_STUB = """# MEMORY - optional working log
 
-Created only by explicit `session end --memory-log`. Never read without user opt-in.
+Created only by a one-use full-mode `session end --memory-log` write request.
+Reading it later requires a separate explicit request.
 """
 
 USAGE_JOURNAL_STUB = """# Usage Journal
@@ -711,7 +583,7 @@ indexes, and harness-specific configuration.
 | Arpent tool control plane | `06_indexes/` | Skills, CLI contracts, schemas, migrations, registry, documentation, and databases |
 | Tool runtime material | `05_tools/` or the relevant area | Declared artifacts, queues, captures, caches, outputs, and user content |
 | Discovery registry | `06_indexes/agent_infrastructure_index.yaml` | IDs, paths, and relations between portable definitions |
-| Vault tool registry | `06_indexes/tools.yaml` | Installed Arpent sub-tools only |
+| Vault tool registry | `06_indexes/tools.yaml` | Declared Arpent tools and their `planned` or `installed` status |
 | Harness configuration | Outside the vault or generated from portable definitions | Harness-specific activation |
 | Secrets | Environment, keychain, or secret manager | Credentials and private tokens; never committed to the vault |
 
@@ -729,6 +601,11 @@ The capability folder is canonical; the index makes capabilities discoverable.
 Roles and workflows reference capability IDs instead of embedding secrets or
 harness-specific configuration.
 
+A declaration does not make a capability available. Runtime availability also
+requires an implementation, a vault mode that permits use, satisfied
+dependencies, and host configuration or enablement where applicable.
+Unavailable declarations remain retained and dormant.
+
 Vault-wide instructions live in `.agent`, `me.md`, and
 `06_indexes/docs/ARPENT.md`. Automatic injection remains the responsibility of
 the active harness.
@@ -740,6 +617,53 @@ the active harness.
 - Defines portable agent behavior or access: `03_resources/agent_infrastructure/`.
 - Generates discovery indexes: generated index files under `06_indexes/`.
 - Contains a secret or harness-specific runtime setting: outside the vault.
+"""
+
+ROUTING_DOC_STUB = """# Routing
+
+Routing is a pure function of frontmatter.
+
+- `project` set -> `01_projects/<project>/notes/`; use `drafts/` for drafts,
+  `meetings/` for meetings, and `sessions/` for logs
+- `area` set -> the exact area folder, or one unambiguous
+  `area__*__<slug>__*`; meetings/logs use configured subfolders
+- `resource` set -> `03_resources/<resource>/`
+- all three null -> `00_inbox/`, except captured sources go to
+  `00_inbox/captures/`
+- `project + area` -> the project home; `area` remains contextual metadata
+- `resource + area` -> the resource home; `area` remains contextual metadata
+- `project + resource` -> `00_inbox/unsure/` with a reason
+
+Special types may override subfolders:
+
+- `fleeting` -> `00_inbox/fleeting/dd-mm-yyyy.md`
+- `map` -> `03_resources/maps-of-content/`
+- `integration` -> `03_resources/integrations/`
+- `artefact` -> `05_tools/artefacts/`
+- an agent-authored draft without a project -> `03_resources/agent_wiki/drafts/`
+- `linear` source notes archive to `04_archives/linear_notes/` after dissolution
+
+Routing never invents a missing home. Full creates a deliberate project with
+`arpent project create <name>`. Minimal follows the direct project procedure in
+the local Arpent skill.
+
+Triage and transactional ingestion are full-only CLI operations. In minimal,
+inventory inbox files directly, preserve raw sources, and do not claim an atomic
+multi-file disposition. In full, `arpent triage --json` inventories structured,
+text, malformed, and binary items; use reviewed `note edit` or `note ingest`
+plans and report partial batch outcomes honestly.
+
+A binary/non-text source remains byte-for-byte untouched and cannot contain
+YAML. In full, `note ingest --attachment` moves it transactionally to the
+selected home's `attachments/` and creates a separate Markdown companion
+reference note with complete frontmatter and a `link` to the attachment. Without
+a final home, the original remains in inbox and the companion is untriaged.
+
+Minimal archive preserves one non-linear note, sets `status: archived`, updates
+`modified`, adds `archived_at` and `archived_from`, and moves without replacement
+to `04_archives/<YYYY_qN>/<title>.md`. Inspect source and destination immediately
+before the move and verify afterward. Extraction and linear dissolution remain
+full-only because they coordinate multiple notes.
 """
 
 INDEXING_CONTEXT_DOC_STUB = """# Indexing and Context
@@ -805,7 +729,7 @@ schemas, migrations, documentation, and centralized databases. The executable
 CLI package is installed outside the vault.
 
 `05_tools/` is runtime-only. It may contain artifacts, queues, captures,
-caches, and outputs declared by an installed tool's `writes_to`. It must never
+caches, and outputs declared by a tool's `writes_to`. It must never
 contain a `SKILL.md`, schema, migration, creation template, command contract, or
 maintenance instructions.
 
@@ -813,12 +737,17 @@ Area-bound tools normally write user content to `02_areas/<area>/` and may need
 no folder in `05_tools/`. Transversal tools may use `05_tools/<tool>/`, but all
 of their know-how remains in `06_indexes/`.
 
-## Minimal activation contract
+## Minimum tool definition
 
 Every tool starts as `planned` and declares a stable ID, category, skill under
 `06_indexes/global_skills/`, `writes_to`, optional database, ephemeral flag, and
 lifecycle rules. Empty storage and lifecycle values are explicit; future
 commands and directories are not created speculatively.
+
+`planned` and `installed` are registry states only. They do not prove
+implementation, that the current vault mode permits use, configuration
+enablement, dependencies, or runtime availability. The current CLI inspects but
+does not mutate this status.
 
 ## Progressive creation
 
@@ -832,13 +761,15 @@ commands and directories are not created speculatively.
 5. Installation validates paths, commands, storage, and lifecycle.
 6. Policy-governed installation changes the tool to `installed` and creates runtime paths.
 
-Only installed tools may be dispatched, scheduled, or swept. Control-plane
-changes follow the local confirmation policy.
+Installation is one prerequisite for dispatch. Sweep executes only ephemeral
+tools with `status: installed`; cron enablement is separate in `cron.json`.
+Control-plane changes follow the confirmation policy.
 
 ## Maintenance
 
-The agent may maintain runtime content according to an installed skill. Changes
-to skills, commands, storage, schemas, or lifecycle follow that policy.
+The agent may maintain runtime content according to the skill declared by a tool
+with `status: installed`. Changes to skills, commands, storage, schemas, or
+lifecycle follow that policy.
 Database evolution uses migrations; definitions are never copied into runtime
 folders.
 """
@@ -954,7 +885,7 @@ Workflow-specific constraints, decision points, and failure handling.
 CAPABILITY_TEMPLATE_STUB = """id: template-capability
 # Supported kinds: cli, mcp, api, plugin.
 kind: cli
-description: Replace with the action this capability makes available.
+description: Replace with the action this capability is intended to expose.
 connection:
   command: null
   endpoint: null
@@ -965,9 +896,9 @@ requires_confirmation: false
 
 ME_STUB = """# me.md - User Orientation
 
-This file is human-owned. It gives agents a concise, user-approved orientation before they operate the vault.
+This file is human-owned. It gives agents concise, user-provided orientation before they operate the vault.
 
-It is not the delegated memory profile, not an observations log, and not a place for agents to accumulate inferred traits. Agents may propose edits, but should not rewrite this file from inference without explicit user confirmation.
+It is not the delegated memory profile, not an observations log, and not a place for agents to accumulate inferred traits. Agents may propose edits, but should not rewrite this file from inference without an explicit user request.
 
 ## Identity
 
@@ -992,22 +923,146 @@ Write what agents should avoid assuming, changing, or optimizing for.
 - Add links to key projects, areas, maps, or external references.
 """
 
-GITIGNORE_STUB = """.DS_Store
-**/.DS_Store
-node_modules/
-**/node_modules/
-06_indexes/backup/
-06_indexes/imports/
-06_indexes/logs/
+PROJECT_CONTEXT_TEMPLATE_STUB = """---
+title: REPLACE_WITH_SNAKE_CASE_PROJECT_CONTEXT_TITLE
+id: null
+created: REPLACE_WITH_CURRENT_UTC_TIMESTAMP
+modified: REPLACE_WITH_CURRENT_UTC_TIMESTAMP
+description: REPLACE_WITH_PROJECT_SPECIFIC_DESCRIPTION
+type: note
+project: REPLACE_WITH_PROJECT_SLUG
+area: null
+resource: null
+status: active
+effort_cadence: null
+effort_level: null
+tags: [context]
+chosen_location: Maintained at the project root so agents read it before acting.
+
+source: generated
+link: null
+author: agent
+
+depth: null
+appreciated: null
+importance: null
+pinned: false
+
+expires_at: null
+
+related: []
+relations: []
+parent: null
+observations: []
+extracted_to: []
+---
+
+## Vision
+
+## Current state
+
+## Resume here
+
+## Deliverables / definition of done
+
+## Key resources
+
+## Next steps
+
+## Working rhythm and time budget
+
+## Session history
+"""
+
+AREA_CONTEXT_TEMPLATE_STUB = """---
+title: REPLACE_WITH_SNAKE_CASE_AREA_CONTEXT_TITLE
+id: null
+created: REPLACE_WITH_CURRENT_UTC_TIMESTAMP
+modified: REPLACE_WITH_CURRENT_UTC_TIMESTAMP
+description: REPLACE_WITH_AREA_SPECIFIC_DESCRIPTION
+type: note
+project: null
+area: REPLACE_WITH_AREA_SLUG
+resource: null
+status: ongoing
+effort_cadence: null
+effort_level: null
+tags: [context]
+chosen_location: Maintained at the area root so agents read it before acting.
+
+source: generated
+link: null
+author: agent
+
+depth: null
+appreciated: null
+importance: null
+pinned: false
+
+expires_at: null
+
+related: []
+relations: []
+parent: null
+observations: []
+extracted_to: []
+---
+
+## Purpose
+
+## Current state
+
+## Routines
+
+## Key resources
+"""
+
+GITIGNORE_STUB = """# Databases and SQLite runtime files
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Generated or redundant indexes
+06_indexes/backup/*
+!06_indexes/backup/.gitkeep
+06_indexes/imports/*
+!06_indexes/imports/.gitkeep
+06_indexes/logs/*
+!06_indexes/logs/.gitkeep
+!06_indexes/logs/usage-journal.md
 06_indexes/index.json
 06_indexes/sidecar.json
 06_indexes/context_index.json
+
+# Python artifacts
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Node artifacts
+node_modules/
+**/node_modules/
+
+# Heavy or regeneratable tool artifacts
 05_tools/artefacts/*
 !05_tools/artefacts/.gitkeep
+05_tools/*/cache/
+05_tools/*/articles/*/archive.html
+05_tools/*/articles/*/.meta.json
+
+# Secrets
+06_indexes/secrets/
+*.pem
+*.key
+credentials.json
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.obsidian/workspace.json
 """
 
 CRON_STUB = """{
@@ -1095,77 +1150,76 @@ description: Operate an Arpent vault for typed capture, retrieval, routing, proj
 Use for capture, organization, retrieval, routing, archival, project continuity,
 import, and actionable todo work.
 
-## Load progressively
+## Load Progressively
 
-1. Read `.agent` once.
+1. Read `.agent` and the small `.arpent` marker once.
 2. Use the note, todo, or fleeting hot path without loading full documentation.
 3. Read `COMPASS.md` only to classify a less common operation.
-4. Read one relevant document under `06_indexes/docs/architecture/` for an edge
-   case. Use CLI help only when exact syntax is not already known.
+4. Read one relevant detailed document only for an edge case.
+
+## Modes
+
+- `minimal`: use direct-file operations on canonical files; mode-gated CLI
+  commands require vault-mode promotion.
+- `full`: use CLI-mediated vault operations.
+- If minimal has `auto_full: true`, the first mode-gated command requests
+  promotion. Use `arpent mode full --yes` first when the confirmation policy
+  requires it.
 
 ## Capture
 
-- Note: `arpent note new <title> --type <type> ... --json`.
-- Reviewed note: add `--dry-run --json`, then re-run with `--plan-hash`.
-- Todo: `arpent todo add <content> ... --json` when todo is installed.
-- Fleeting: `arpent note new <text> --type fleeting --json`.
+- Full-mode note: `arpent note new <title> --type <type> ... --json`.
+- Exact-plan note: add `--dry-run --json`, then use `--plan-hash`.
+- Full-mode todo: `arpent todo add <content> ... --json`.
+- Full-mode fleeting: `arpent note new <text> --type fleeting --json`.
+- Minimal: read `06_indexes/schemas/frontmatter_policy.yaml`, the routing section
+  of `06_indexes/cli/operations.yaml`, and
+  `06_indexes/docs/architecture/routing.md`; build complete frontmatter, compute
+  the route, create without replacement, and read back the result.
 
-The confirmation policy is in `06_indexes/cli/operations.yaml`:
+Canonical field order: `title, id, created, modified, description, type,
+project, area, resource, status, effort_cadence, effort_level, tags,
+chosen_location, source, link, author, depth, appreciated, importance, pinned,
+expires_at, related, relations, parent, observations, extracted_to`. Use explicit
+`null`, `[]`, and `false` defaults. Generate IDs as
+`<type>-<UTC YYYYMMDD>-<a..z,aa..>` after scanning all existing IDs.
 
-- `always`: require approval before every mutation; use a structured plan when available.
-- `explicit-intent`: direct for explicit bounded requests; preview high-impact or
-  threshold-sized batches.
-- `never`: no second approval; technical checks remain active.
+## Project And Context
+
+- Full: use `arpent project create <name>` and `arpent session end`.
+- Minimal: normalize the project name to lowercase ASCII kebab-case, require the
+  destination to be absent, and reject `aux`, `clock$`, `con`, `nul`, `prn`,
+  `template-project`, `com1..9`, and `lpt1..9`. Create `notes/`, `drafts/`, and
+  `attachments/`, then instantiate `01_projects/_template_project/_context.md`
+  at `01_projects/<slug>/_context.md`. Replace every placeholder, convert the
+  context title to lowercase ASCII snake_case, assign a globally unique note ID
+  and current UTC timestamps, and leave the template itself unchanged.
+- For a missing area context in minimal, instantiate
+  `02_areas/_context.template.md` at the existing area's root with its resolved
+  slug, a snake_case title, unique ID, and current UTC timestamps.
+- On a direct session close, update `modified` and append the timestamped
+  summary, decisions, and next steps without replacing existing body sections.
+
+The confirmation policy is in `06_indexes/cli/operations.yaml`.
 
 ## Method
 
-- Markdown is canonical; use the CLI for coordinated changes when available.
-- In filesystem mode, preserve complete frontmatter, typing, routing, and body,
-  then verify the written file.
+- Markdown is canonical; all ordinary notes use complete frontmatter.
 - Never delete, overwrite, guess routing, invent schema fields, infer subjective
-  fields, or activate memory without opt-in.
+  fields, or use delegated memory without provider opt-in.
 - `project` and `resource` are mutually exclusive; `area` may accompany either.
-- Keep source URLs in `link`, titles in lowercase ASCII `snake_case`, and dates
-  in day-first format.
+- Keep source URLs in `link`, titles in lowercase ASCII `snake_case`, and public
+  timestamps in `dd-MM-YYYY-HH-mm` UTC format.
 - Agent-authored unrequested drafts use `author: agent`, `type: draft`, and the
-  standard lifecycle status; no extra frontmatter field is introduced.
+  standard lifecycle status.
 - Resume from `me.md`, then target `_context.md`, then only needed sources.
-- `MEMORY.md` and external memory require explicit opt-in.
+- Minimal keeps user-provided orientation in `me.md`, work state in `_context.md`, and
+  durable readable material in notes.
+- Skills and full-mode state remain retained; mode-gated state is dormant in
+  minimal.
 
 Report concise paths and outcomes. Do not run status, index, triage, search, or a
 full reread after an ordinary successful capture.
-"""
-
-MINIMAL_ARPENT_SKILL_STUB = """---
-name: arpent
-description: Operate a minimal Arpent vault with deterministic routing, complete frontmatter, and archive-only lifecycle rules.
----
-
-# Arpent Minimal
-
-Use the Arpent CLI or direct filesystem operation for project creation, capture,
-routing, retrieval, indexing, triage/ingestion, reviewed external import, usage
-reporting, session closure, and archival.
-Every note uses the complete universal frontmatter contract. Apply the local
-confirmation policy, never infer subjective fields, never guess a missing route,
-and never delete when archival is possible.
-Language settings: `Primary language: English`; `Adaptive languages: French`.
-Use the primary language by default and adapt to a listed language only when
-explicitly requested or contextually supported by the conversation/source;
-replace the list with `auto` to allow any contextual language. Dates use
-`dd-mm-yyyy`; note-facing UTC timestamps use `dd-mm-yyyyTHH:MM:SSZ`.
-For structured triage, carry `plan_sha256` from `note edit --dry-run --json`
-into `--plan-hash` when applying.
-
-Resume by reading `me.md`, then the target `_context.md`, then only needed
-notes/sources. `session end` maintains target context. `MEMORY.md` is disabled
-and unseeded by default; only `--memory-log` writes it, and later reads require
-explicit user opt-in.
-This profile does not install delegated-memory queues, a memory wiki, context
-summaries, cron, todo, tools, sweep, or portable-agent infrastructure modules.
-Do not invent frontmatter fields; body sections and project files/subfolders are
-extensible. Binary attachments remain byte-for-byte untouched and use separate
-Markdown companion reference notes.
 """
 
 CONTEXT_SUMMARY_SKILL_STUB = """---
@@ -1198,7 +1252,7 @@ summaries. `arpent index` never triggers this skill automatically.
 5. Produce a factual standalone summary of 2-5 sentences and at most 180 words.
 6. Store it with `arpent context set <path> --source-hash <hash-from-pending>
    --stdin --provider <agent-or-model-id>`.
-7. Confirm that the path no longer appears in pending results.
+7. Verify that the path no longer appears in pending results.
 
 ## Output
 
@@ -1338,7 +1392,7 @@ Describe the user-visible result and structured confirmation.
 - Keep all know-how in `06_indexes/`; never place instructions in `05_tools/`.
 - Keep the tool `planned` until commands, storage, paths, and lifecycle validate.
 - Do not add speculative behavior before real usage requires it.
-- Require user confirmation before changing the tool to `installed`.
+- Apply the confirmation policy before changing the tool to `installed`.
 """
 
 TODO_SKILL_STUB = """---
@@ -1376,7 +1430,7 @@ quarterly archives.
 - `todo.db` stores structured fields; Markdown preserves a readable trace.
 - Selection values are configurable text keys, not hard-coded enums.
 - Project, dependency, and assignee fields are stable soft references.
-- Dates use `dd-mm-yyyy`; creation timestamps are automatic and immutable.
+- Due/do timestamps use `dd-MM-YYYY-HH-mm` UTC; creation timestamps are automatic and immutable.
 - Todo records are tool-owned and must be changed through `arpent todo`.
 """
 
@@ -1384,21 +1438,132 @@ PENDING_WRITES_STUB = """version: 0.1.0
 pending: []
 """
 
-FRONTMATTER_POLICY_STUB = """version: 0.3.0
+FRONTMATTER_POLICY_STUB = """version: 0.4.0
 serialization:
   shape: complete_all_fields
   unused_scalar: null
   unused_list: []
+fields:
+  title:
+    filler: user_or_agent
+    required: true
+    format: lowercase_ascii_snake_case
+  id:
+    filler: system
+    required: true
+    immutable: true
+  created:
+    filler: system
+    required: true
+    immutable: true
+    format: dd-MM-YYYY-HH-mm
+  modified:
+    filler: system
+    required: true
+    format: dd-MM-YYYY-HH-mm
+  description:
+    filler: user_or_agent
+    required: false
+    policy: null_when_redundant_with_title_or_body
+  type:
+    filler: user_or_agent
+    required: true
+  project:
+    filler: user_or_agent
+    required: conditional
+    policy: mutually_exclusive_with_resource
+  area:
+    filler: user_or_agent
+    required: conditional
+    policy: may_accompany_project_or_resource_as_context
+  resource:
+    filler: user_or_agent
+    required: conditional
+    policy: mutually_exclusive_with_project
+  status:
+    filler: user_or_agent
+    required: true
+    policy: active_for_actionable_stable_for_knowledge_ongoing_for_evolving
+  effort_cadence:
+    filler: user_or_agent
+    required: false
+    policy: active_actionables_only_never_infer
+  effort_level:
+    filler: user_or_agent
+    required: false
+    policy: active_actionables_only_never_infer
+  tags:
+    filler: user_or_agent
+    required: false
+  chosen_location:
+    filler: user_or_agent
+    required: false
+  source:
+    filler: user_agent_or_system
+    required: true
+  link:
+    filler: user_or_agent
+    required: conditional
+  author:
+    filler: user_agent_or_system
+    required: true
+  depth:
+    filler: user_or_agent
+    required: false
+    range: 1-5
+    policy: detail_level_null_when_not_meaningful
+  appreciated:
+    filler: user_only
+    required: false
+    agent_forbidden: true
+  importance:
+    filler: user_only
+    required: false
+    agent_forbidden: true
+  pinned:
+    filler: user_or_agent
+    required: false
+    default: false
+  expires_at:
+    filler: user_or_agent
+    required: false
+    format: dd-MM-YYYY-HH-mm
+  related:
+    filler: user_or_agent
+    required: false
+  relations:
+    filler: user_or_agent
+    required: false
+    item_shape:
+      type: relation_type
+      target: note_id
+  parent:
+    filler: user_or_agent
+    required: conditional
+  observations:
+    filler: user_agent_or_system
+    required: false
+  extracted_to:
+    filler: user_agent_or_system
+    required: conditional
 subjective_user_only:
   - appreciated
   - importance
 defaults:
+  type: note
+  status: inbox
+  source: manual
+  author: user
+  tags: []
   pinned: false
+  related: []
   relations: []
+  observations: []
+  extracted_to: []
 rules:
-  dates: date values use dd-mm-yyyy; note-facing UTC timestamps use dd-mm-yyyyTHH:MM:SSZ
+  dates: public timestamps use dd-MM-YYYY-HH-mm in UTC; machine-owned values may retain ISO 8601
   routing: project and resource are mutually exclusive homes; area may accompany either as context
-  source_link: warn on mismatch
+  source_link: manual and derived normally use null; captured requires an external URL; imported requires a URL, path, or external identifier; generated and conversation may use an internal reference
   title: ordinary-note filename equals lowercase ASCII snake_case title; reserved system filenames are exceptions; id remains in frontmatter only
   description: null when redundant with title or body
   depth: integer from 1 to 5 when meaningful
@@ -1449,14 +1614,36 @@ enums:
     - production
     - map
     - artefact
+  source:
+    - manual
+    - generated
+    - imported
+    - captured
+    - conversation
+    - derived
+  author:
+    - user
+    - agent
+    - imported
 """
 
 
-def _ensure_marker(vault: Vault, *, mode: str) -> None:
+def _marker_content(mode: str, *, auto_full: bool = False) -> str:
+    if mode not in {"full", "minimal"}:
+        raise ValueError("Vault mode must be 'full' or 'minimal'.")
+    content = {
+        "version": MARKER_VERSION,
+        "name": "arpent",
+        "mode": mode,
+        "auto_full": auto_full if mode == "minimal" else False,
+    }
+    return json.dumps(content, sort_keys=True) + "\n"
+
+
+def _ensure_marker(vault: Vault, *, mode: str, auto_full: bool = False) -> None:
     marker = vault.safe_output_path(MARKER)
     if not marker.exists() and not marker.is_symlink():
-        content = {"version": 1, "name": "arpent", "mode": mode}
-        vault.atomic_create_text(MARKER, json.dumps(content, sort_keys=True) + "\n")
+        vault.atomic_create_text(MARKER, _marker_content(mode, auto_full=auto_full))
         return
 
     content = vault.marker_data()
@@ -1466,6 +1653,19 @@ def _ensure_marker(vault: Vault, *, mode: str) -> None:
             f"Vault is already initialized in {existing_mode} mode; "
             f"refusing an implicit change to {mode} mode."
         )
+
+
+def set_vault_mode(vault: Vault, mode: str) -> bool:
+    """Set an explicit current-format mode without removing any vault state."""
+    desired = json.loads(_marker_content(mode, auto_full=False))
+    with vault.exclusive_lock("mode"):
+        with vault.exclusive_lock("mutations"):
+            current = vault.marker_data()
+            if current == desired:
+                return False
+            vault.refuse_foreign_transactions()
+            vault.atomic_write_text(MARKER, _marker_content(mode, auto_full=False))
+            return True
 
 
 def _initialize_git(root: Path) -> None:
@@ -1486,6 +1686,83 @@ def _initialize_git(root: Path) -> None:
         raise ValueError(f"Cannot initialize Git repository: {detail}")
 
 
+def _seed_vault(vault: Vault) -> None:
+    root = vault.root
+    for rel in SCAFFOLD:
+        vault.safe_ensure_directory(rel)
+
+    _seed(vault, root / "06_indexes/cli/operations.yaml", operations_mod.default_operations_text())
+    _seed(vault, root / "06_indexes/schemas/frontmatter_policy.yaml", FRONTMATTER_POLICY_STUB)
+    _seed(vault, root / "06_indexes/logs/usage-journal.md", USAGE_JOURNAL_STUB)
+    _seed(vault, root / ".agent", AGENT_STUB)
+    _seed(vault, root / "COMPASS.md", COMPASS_STUB)
+    _seed(vault, root / "06_indexes/docs/ARPENT.md", ARPENT_STUB)
+    _seed(vault, root / "06_indexes/docs/mental-model.md", MENTAL_MODEL_STUB)
+    _seed(vault, root / "03_resources/agent_wiki/_README.md", AGENT_WIKI_README_STUB)
+    _seed(vault, root / "06_indexes/docs/architecture/agent-infrastructure.md", AGENT_INFRA_DOC_STUB)
+    _seed(vault, root / "06_indexes/docs/architecture/routing.md", ROUTING_DOC_STUB)
+    _seed(vault, root / "06_indexes/docs/architecture/indexing-and-context.md", INDEXING_CONTEXT_DOC_STUB)
+    _seed(vault, root / "06_indexes/docs/architecture/tools.md", TOOLS_ARCHITECTURE_DOC_STUB)
+    _seed(vault, root / "06_indexes/memory/wiki/SCHEMA.md", WIKI_SCHEMA_STUB)
+    _seed(vault, root / "06_indexes/cron.json", CRON_STUB)
+    _seed(vault, root / "06_indexes/tools.yaml", TOOLS_STUB)
+    _seed(vault, root / "06_indexes/agent_infrastructure_index.yaml", AGENT_INFRA_INDEX_STUB)
+    _seed(vault, root / "06_indexes/pending_db_writes.yaml", PENDING_WRITES_STUB)
+    _seed(
+        vault,
+        root / "06_indexes/schemas/todo_schema.sql",
+        Path(__file__).with_name("todo_schema.sql").read_text(encoding="utf-8"),
+    )
+    _seed(vault, root / "06_indexes/global_skills/arpent.skill.md", ARPENT_SKILL_STUB)
+    _seed(vault, root / "06_indexes/global_skills/todo.skill.md", TODO_SKILL_STUB)
+    _seed(vault, root / "06_indexes/global_skills/context_summary.skill.md", CONTEXT_SUMMARY_SKILL_STUB)
+    _seed(vault, root / "06_indexes/global_skills/reader.skill.md", READER_SKILL_STUB)
+    _seed(vault, root / "06_indexes/global_skills/review.skill.md", REVIEW_SKILL_STUB)
+    _seed(vault, root / "06_indexes/global_skills/z_backup.skill.md", BACKUP_SKILL_STUB)
+    _seed(vault, root / "06_indexes/global_skills/_template_tool.skill.md", TOOL_SKILL_TEMPLATE_STUB)
+    _seed(vault, root / "05_tools/artefacts/.gitkeep", "")
+    _seed(vault, root / "06_indexes/backup/.gitkeep", "")
+    _seed(vault, root / "06_indexes/imports/.gitkeep", "")
+    _seed(vault, root / "06_indexes/logs/.gitkeep", "")
+    _seed(vault, root / "03_resources/agent_infrastructure/_README.md", AGENT_INFRA_README_STUB)
+    _seed(
+        vault,
+        root / "03_resources/agent_infrastructure/agent_roles/_template_agent/AGENT.md",
+        AGENT_ROLE_TEMPLATE_STUB,
+    )
+    _seed(
+        vault,
+        root / "03_resources/agent_infrastructure/agent_skills/_template_skill/SKILL.md",
+        AGENT_SKILL_TEMPLATE_STUB,
+    )
+    _seed(
+        vault,
+        root / "03_resources/agent_infrastructure/agent_workflows/_template_workflow/WORKFLOW.md",
+        AGENT_WORKFLOW_TEMPLATE_STUB,
+    )
+    _seed(
+        vault,
+        root / "03_resources/agent_infrastructure/capabilities/_template_capability/CAPABILITY.yaml",
+        CAPABILITY_TEMPLATE_STUB,
+    )
+    _seed(vault, root / "me.md", ME_STUB)
+    _seed(
+        vault,
+        root / "01_projects/_template_project/_context.md",
+        PROJECT_CONTEXT_TEMPLATE_STUB,
+    )
+    _seed(vault, root / "02_areas/_context.template.md", AREA_CONTEXT_TEMPLATE_STUB)
+    _seed(vault, root / ".gitignore", GITIGNORE_STUB)
+
+
+def prepare_full_mode(vault: Vault) -> None:
+    """Ensure full-mode infrastructure exists without changing the marker."""
+    with vault.exclusive_lock("mutations"):
+        vault.refuse_foreign_transactions()
+        _seed_vault(vault)
+        _initialize_git(vault.root)
+
+
 def init_vault(root: Path, *, minimal: bool = False) -> "Vault":
     root = Path(root).expanduser()
     if root.is_symlink():
@@ -1500,71 +1777,9 @@ def init_vault(root: Path, *, minimal: bool = False) -> "Vault":
     marker_exists = marker.exists() or marker.is_symlink()
     if marker_exists:
         _ensure_marker(vault, mode=mode)
-    _initialize_git(root)
-    for rel in MINIMAL_SCAFFOLD if minimal else SCAFFOLD:
-        vault.safe_ensure_directory(rel)
-
-    _seed(vault, root / "06_indexes/cli/operations.yaml", operations_mod.default_operations_text())
-    _seed(vault, root / "06_indexes/schemas/frontmatter_policy.yaml", FRONTMATTER_POLICY_STUB)
-    _seed(vault, root / "06_indexes/logs/usage-journal.md", USAGE_JOURNAL_STUB)
-    if minimal:
-        _seed(vault, root / ".agent", MINIMAL_AGENT_STUB)
-        _seed(vault, root / "COMPASS.md", MINIMAL_COMPASS_STUB)
-        _seed(
-            vault,
-            root / "06_indexes/global_skills/arpent.skill.md",
-            MINIMAL_ARPENT_SKILL_STUB,
-        )
-    else:
-        _seed(vault, root / ".agent", AGENT_STUB)
-        _seed(vault, root / "COMPASS.md", COMPASS_STUB)
-        _seed(vault, root / "06_indexes/docs/ARPENT.md", ARPENT_STUB)
-        _seed(vault, root / "06_indexes/docs/mental-model.md", MENTAL_MODEL_STUB)
-        _seed(vault, root / "03_resources/agent_wiki/_README.md", AGENT_WIKI_README_STUB)
-        _seed(vault, root / "06_indexes/docs/architecture/agent-infrastructure.md", AGENT_INFRA_DOC_STUB)
-        _seed(vault, root / "06_indexes/docs/architecture/indexing-and-context.md", INDEXING_CONTEXT_DOC_STUB)
-        _seed(vault, root / "06_indexes/docs/architecture/tools.md", TOOLS_ARCHITECTURE_DOC_STUB)
-        _seed(vault, root / "06_indexes/memory/wiki/SCHEMA.md", WIKI_SCHEMA_STUB)
-        _seed(vault, root / "06_indexes/cron.json", CRON_STUB)
-        _seed(vault, root / "06_indexes/tools.yaml", TOOLS_STUB)
-        _seed(vault, root / "06_indexes/agent_infrastructure_index.yaml", AGENT_INFRA_INDEX_STUB)
-        _seed(vault, root / "06_indexes/pending_db_writes.yaml", PENDING_WRITES_STUB)
-        _seed(
-            vault,
-            root / "06_indexes/schemas/todo_schema.sql",
-            Path(__file__).with_name("todo_schema.sql").read_text(encoding="utf-8"),
-        )
-        _seed(vault, root / "06_indexes/global_skills/arpent.skill.md", ARPENT_SKILL_STUB)
-        _seed(vault, root / "06_indexes/global_skills/todo.skill.md", TODO_SKILL_STUB)
-        _seed(vault, root / "06_indexes/global_skills/context_summary.skill.md", CONTEXT_SUMMARY_SKILL_STUB)
-        _seed(vault, root / "06_indexes/global_skills/reader.skill.md", READER_SKILL_STUB)
-        _seed(vault, root / "06_indexes/global_skills/review.skill.md", REVIEW_SKILL_STUB)
-        _seed(vault, root / "06_indexes/global_skills/z_backup.skill.md", BACKUP_SKILL_STUB)
-        _seed(vault, root / "06_indexes/global_skills/_template_tool.skill.md", TOOL_SKILL_TEMPLATE_STUB)
-        _seed(vault, root / "05_tools/artefacts/.gitkeep", "")
-        _seed(vault, root / "03_resources/agent_infrastructure/_README.md", AGENT_INFRA_README_STUB)
-        _seed(
-            vault,
-            root / "03_resources/agent_infrastructure/agent_roles/_template_agent/AGENT.md",
-            AGENT_ROLE_TEMPLATE_STUB,
-        )
-        _seed(
-            vault,
-            root / "03_resources/agent_infrastructure/agent_skills/_template_skill/SKILL.md",
-            AGENT_SKILL_TEMPLATE_STUB,
-        )
-        _seed(
-            vault,
-            root / "03_resources/agent_infrastructure/agent_workflows/_template_workflow/WORKFLOW.md",
-            AGENT_WORKFLOW_TEMPLATE_STUB,
-        )
-        _seed(
-            vault,
-            root / "03_resources/agent_infrastructure/capabilities/_template_capability/CAPABILITY.yaml",
-            CAPABILITY_TEMPLATE_STUB,
-        )
-    _seed(vault, root / "me.md", ME_STUB)
-    _seed(vault, root / ".gitignore", GITIGNORE_STUB)
+    if not minimal:
+        _initialize_git(root)
+    _seed_vault(vault)
     if not marker_exists:
         _ensure_marker(vault, mode=mode)
     return vault

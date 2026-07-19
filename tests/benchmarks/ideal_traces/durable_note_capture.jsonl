@@ -1,0 +1,5 @@
+{"schema_version":1,"type":"trace","scenario_id":"durable_note_capture","provider_usage":null}
+{"type":"request","content":"SYSTEM: Reuse the already-loaded Arpent skill and choose the smallest sufficient hot path.\nUSER: Save this durable note: Cache keys tied to canonical URLs remain valid across display URL changes."}
+{"type":"read","path":".arpent"}
+{"type":"command","command":"arpent note new \"Cache keys tied to canonical URLs remain valid across display URL changes.\" --type note --json","output":"{\"id\":\"note-20260719-d\",\"path\":\"00_inbox/cache_keys_tied_to_canonical_urls_remain_valid_across_display_url_changes.md\",\"type\":\"note\",\"status\":\"inbox\"}","exit_code":0}
+{"type":"final","text":"Created type `note` `note-20260719-d` at `00_inbox/cache_keys_tied_to_canonical_urls_remain_valid_across_display_url_changes.md`; status `inbox`."}

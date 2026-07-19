@@ -28,4 +28,4 @@ Describe the user-visible result and structured confirmation.
 - Keep all know-how in `06_indexes/`; never place instructions in `05_tools/`.
 - Keep the tool `planned` until its paths, commands, storage, and lifecycle validate.
 - Do not add speculative commands or storage before real usage requires them.
-- Require user confirmation before changing the tool to `installed`.
+- Apply the confirmation policy before changing the tool to `installed`.

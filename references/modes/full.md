@@ -1,6 +1,8 @@
-# CLI adapter
+# Full mode
 
-Use the Arpent CLI as the mutation adapter when `arpent --version` succeeds.
+Full mode uses CLI-mediated vault operations. The `.arpent` marker, not mere CLI
+availability, selects this mode. Documentary reads such as `me.md` and
+`_context.md` remain direct file reads.
 
 ## Rules
 
@@ -10,7 +12,7 @@ Use the Arpent CLI as the mutation adapter when `arpent --version` succeeds.
   operation registry before an ordinary single capture.
 - Use `--dry-run --json` only when confirmation policy requires a preview or the
   user explicitly asks for one.
-- Carry the returned `plan_sha256` into the reviewed apply.
+- Carry the returned `plan_sha256` into an exact-plan apply.
 - Prefer versioned JSON results and trust their post-transaction path/hash
   fields instead of rereading full content.
 - Do not run status, triage, index, search, or full note reads as a ritual after

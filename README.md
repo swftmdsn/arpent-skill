@@ -10,7 +10,7 @@ Arpent keeps context, decisions, and knowledge connected, so the work you do tod
 
 ## What Arpent is
 
-Arpent is a local, single-user, filesystem-native personal LifeOS for people who collaborate with changing AI agents. It combines a structured Markdown vault, a deterministic command-line interface, and operating rules that tell agents where to read, where to write, and when to ask.
+Arpent is a local, single-user, filesystem-native personal LifeOS for people who collaborate with changing AI agents. It combines a structured Markdown vault, direct minimal operation, an optional deterministic full-mode CLI, and rules that tell agents where to read, where to write, and when to ask.
 
 The vault is the durable layer: projects, decisions, reusable knowledge, tasks, context, and archives remain in inspectable local files. The CLI applies deterministic operations. AI agents are replaceable operators rather than owners of the system.
 
@@ -23,7 +23,7 @@ Arpent overlaps with note systems, agent memory, and retrieval tools, but it dra
 | Alternative | What it optimizes for | Arpent's position |
 |---|---|---|
 | **Built-in memory in ChatGPT, Claude, and other hosts** | Low-friction personalization and recall inside one product or account | Arpent keeps project state, decisions, sources, and handovers in local files that remain usable when the host, model, or conversation changes. Native memory can still handle host-level personalization. |
-| **[Hindsight](https://github.com/vectorize-io/hindsight), [Supermemory](https://github.com/supermemoryai/supermemory), and other delegated memory providers** | Remembering facts, traits, events, and reminders, with semantic retrieval, consolidation, contradiction handling, or temporal reasoning | These systems are complementary. Arpent keeps work product and explicit operational context in the vault and defines an opt-in boundary for delegated personal recall instead of reimplementing a memory engine. The provider remains optional and replaceable. |
+| **[Hindsight](https://github.com/vectorize-io/hindsight), [Supermemory](https://github.com/supermemoryai/supermemory), and other delegated memory providers** | Remembering facts, traits, events, and reminders, with semantic retrieval, consolidation, contradiction handling, or temporal reasoning | These systems are complementary. Arpent keeps work product and explicit operational context in the vault and defines a provider opt-in boundary for delegated personal recall instead of reimplementing a memory engine. The provider remains optional and replaceable. |
 | **[GBrain](https://github.com/garrytan/gbrain)** | A full agent brain: ingestion, hybrid and vector retrieval, knowledge-graph traversal, cited synthesis, autonomous enrichment, MCP access, and team-scale operation | Choose GBrain when retrieval, synthesis, graph intelligence, or autonomous ingestion is the primary need. Choose Arpent when the primary need is inspectable project administration, deterministic lifecycle and routing, and documentary handover across changing agents. |
 | **Note applications and plain PARA vaults** | Flexible human-authored capture and organization, usually with less operating policy | Arpent adds stable IDs, explicit provenance and lifecycle, deterministic CLI mutations, project context, agent operating rules, and visible uncertainty. The trade-off is more structure and metadata discipline. |
 
@@ -53,17 +53,18 @@ arpent init ~/my-vault
 cd ~/my-vault
 ```
 
-This installs both `arpent` and the shorter `arp` alias. Use `arpent init ~/my-vault --minimal` for the smaller core vault, or start with the full mode shown above.
+This installs both `arpent` and the shorter `arp` alias. Full mode uses these
+commands. For zero-install minimal mode, copy `architecture_template/`, open the
+folder with an agent, and tell it to read `.agent`.
 
-The core loop is:
+An ordinary capture normally needs only:
 
 ```bash
 arpent note new "A question worth exploring"
-arpent status
-arpent triage
-arpent index
-arpent search "question"
 ```
+
+Run `status`, `triage`, `index`, or `search` only when the current task requires
+that view or maintenance pass.
 
 The complete concepts, setup options, workflows, command reference, safety boundaries, limitations, and roadmap follow below.
 
@@ -75,12 +76,14 @@ YOU
  v
 AGENT + ARPENT SKILL
 understands intent, applies rules, asks when needed
- |
- v
-ARPENT CLI
-creates, routes, searches, indexes, and archives
- |
- v
+ |                     |
+ | minimal             | full
+ | direct files        v
+ |                 ARPENT CLI
+ |                 coordinates state
+ |                     |
+ +----------+----------+
+            v
 LOCAL ARPENT VAULT
 projects | areas | resources | todo
 context  | indexes | archives | agent workspaces
@@ -96,10 +99,14 @@ Arpent is easier to understand when its three layers remain separate:
 | Layer | Responsibility | Source of truth |
 |---|---|---|
 | **Vault** | Durable notes, source files, project context, task traces, configuration, and archives | Local files under the vault root |
-| **CLI** | Validation, deterministic routing, atomic mutations, indexing, search, maintenance, and backup | The installed `arpent` package |
-| **Agent operating model** | Interpret natural-language intent, read the right context, propose subjective changes, and invoke the CLI | `.agent`, the installed vault skill, `COMPASS.md`, and host instructions |
+| **CLI** | Full-mode validation, atomic mutations, indexing, search, maintenance, and backup | The installed `arpent` package |
+| **Agent operating model** | Interpret intent, load targeted context, operate files in minimal, or invoke the CLI in full | `.agent`, the vault-local skill, `COMPASS.md`, and host instructions |
 
-The CLI is intentionally non-interactive. It does not understand a natural-language request, conduct a review conversation, or ask for routing clarification. A configured agent can provide that interaction, but the command itself validates its arguments and executes immediately.
+Most CLI commands are intentionally non-interactive. They do not understand a
+natural-language request, conduct a review conversation, or ask for routing
+clarification. `import review` asks semantic folder-placement questions by
+default, and `import apply` may request its final confirmation on a TTY. A
+configured agent can provide the broader interaction around these commands.
 
 ### Source, state, and derivatives
 
@@ -147,7 +154,8 @@ With an agent configured to follow Arpent's operating rules, that can feel like:
 
 > "What has gone stale, and which projects require the most investment?"
 
-These are agent-assisted workflows, not literal CLI commands. The deterministic CLI remains the execution layer beneath them.
+These are agent-assisted workflows, not literal CLI commands. Minimal uses
+direct-file operation; full uses CLI-mediated operation.
 
 ### Vocabulary
 
@@ -161,9 +169,9 @@ These are agent-assisted workflows, not literal CLI commands. The deterministic 
 | **Routing** | Computing a physical path from type, status, and project/area/resource metadata |
 | **Context L0/L1/L2** | Deterministic orientation, optional hash-bound summary, and original source respectively |
 | **Dissolution** | Archiving a linear source after its durable children have been extracted and validated |
-| **Sweep** | Applying configured lifecycle rules to installed ephemeral tools |
-| **Full mode** | Core vault plus context, session, tools, cron, sweep, todo, memory surfaces, and agent infrastructure |
-| **Minimal mode** | Core notes, routing, project creation, project/area `_context.md` session continuity, index, search, health, archive, and backup; no seeded `06_indexes/memory/` |
+| **Sweep** | Applying configured lifecycle rules to ephemeral tools with `status: installed` |
+| **Full mode** | CLI-mediated operation; each capability still requires its implementation, configuration, and other prerequisites |
+| **Minimal mode** | Direct-file operation with the same skills and information retained but mode-gated state dormant |
 
 ## Who it is for
 
@@ -184,7 +192,7 @@ Arpent is probably not the right fit if you want a five-minute filing method, co
 
 Arpent trades hidden application behavior for explicit operation. A useful deployment therefore requires:
 
-- comfort with local files, Markdown, and a command line;
+- comfort with local files and Markdown; full mode additionally uses a command line;
 - willingness to create project and area destinations deliberately;
 - occasional inbox, uncertainty, lifecycle, and backup review;
 - a separate strategy for remote backup or multi-device synchronization;
@@ -206,38 +214,41 @@ Arpent is in active pre-release development. The CLI command surface is tested, 
 | Fleeting capture | Implemented through `note new --type fleeting` |
 | Inventory, keyword search, and progressive context index | Implemented |
 | Explicit L1 summary storage | Implemented; summary generation remains external |
-| Project creation and local project/area session continuity | Implemented in full and minimal modes |
-| Actionable triage and raw-file ingestion | Implemented in full and minimal modes |
-| Local usage v2 events and reports | Implemented in full and minimal modes |
-| Todo workflow | Implemented in full mode with SQLite schema version 2 |
-| Tool registry inspection | Implemented; installation and activation commands are not |
-| Lifecycle sweeps | Implemented for installed ephemeral tools |
+| Project creation and local project/area continuity | CLI-mediated in full; direct-file in minimal |
+| Actionable triage and raw-file ingestion | CLI-mediated in full; direct-file in minimal |
+| Local usage reports and domain-operation events | Full mode; minimal `init` and `mode` may still emit events |
+| Todo workflow | Implemented in full mode with SQLite-backed state |
+| Tool registry inspection | Implemented; tool-status mutation commands are not |
+| Lifecycle sweeps | Implemented for ephemeral tools with `status: installed` |
 | Cron registry execution | Implemented; scheduling daemon is external |
 | Logical snapshots, verification, and restore | Implemented |
 
 ### Current limits
 
 - Arpent is local and single-user. It has no server, authentication, collaboration layer, or built-in sync.
-- Delegated memory is an interface and operating model, disabled by default in
-  both minimal and full vault modes. Hindsight, Supermemory, and other providers
-  require explicit user opt-in at the host level and are not bundled or wired by
-  the CLI.
+- Delegated memory requires full mode. Hindsight, Supermemory, and other
+  providers require provider opt-in at the host level and are not
+  bundled or wired by the CLI. Minimal keeps user-provided orientation, context, and
+  durable readable information in files.
 - Search is keyword-based. Semantic search and cross-provider memory search are not shipped.
-- Todo is the only installed daily-flow tool. Reader, calendar, journal, sport, and CRM commands currently exit as not installed. Fleeting capture works through `note new --type fleeting`; the separate `fleeting` command is only a placeholder.
+- Todo is the only registry tool with `status: installed` in the daily-flow
+  category. Reader is `planned`; calendar, journal, sport, and CRM top-level
+  commands are unavailable placeholders. Fleeting capture is implemented through
+  `note new --type fleeting`; the separate `fleeting` command is unavailable.
 - A fresh vault has no autonomous lifecycle. The seeded cron job is disabled and requires an external scheduler.
 - Backup creates a verified, restorable logical vault snapshot locally or in a chosen filesystem directory. It includes ordinary local logs, including usage events, but is not encrypted, remote, or a backup of external memory and Git history.
 - The CLI has no `area create`, top-level `review`, tool installation, memory
   queue flush, dedicated resume, capture, or production command. Reviewed
   filesystem migration is implemented under `arpent import ...`.
-- `triage` inventories every non-fleeting inbox item and exposes actions, ages, and hashes, but remains non-interactive and does not move files itself. An agent must propose and confirm the plan before applying per-item operations.
+- `triage` inventories every non-fleeting inbox item and exposes actions, ages, and hashes, but remains non-interactive and does not move files itself. An agent proposes the plan, then applies the configured confirmation policy before per-item operations.
 
 This distinction is deliberate: the working core, the agent operating specification, and the roadmap are related, but they are not presented as equally shipped.
 
 ## Install
 
-Arpent requires Python 3.9 or later. Git is also required by `arpent init`,
-which initializes every vault as a repository. From a local checkout of this
-repository:
+Full mode requires Python 3.9 or later and Git. Minimal mode can start by copying
+the complete template with neither dependency. To install the CLI from a local
+checkout:
 
 ```bash
 python3 -m pip install -e .
@@ -277,7 +288,9 @@ arpent --version
 arpent --help
 ```
 
-`git` must be available on `PATH` when `arpent init` runs. Arpent does not create the first commit or configure a remote.
+`git` must be available on `PATH` for full initialization or promotion. Minimal
+initialization requires neither Git nor a later CLI. Arpent does not create the
+first commit or configure a remote.
 
 ### Agent-host installation is separate
 
@@ -293,9 +306,9 @@ The first command to know is `init`:
 arpent init ~/my-vault
 ```
 
-`arpent init` creates the full scaffold and initializes it as a Git repository.
-Use `arpent init ~/my-vault --minimal` for the core only; the exact capability
-difference is listed under [Full versus minimal mode](#full-versus-minimal-mode).
+`arpent init` creates a full vault and initializes it as a Git repository. Use
+`arpent init ~/my-vault --minimal` to create the same durable scaffold and skills
+for direct-file operation without initializing Git.
 
 `init` does not create your projects or areas unless they are explicitly declared
 with `--structure <file.json|file.md>`. A structure file may independently list
@@ -435,8 +448,8 @@ roots and assigns one of six inherited roles:
 
 For explicit non-interactive review, use `--accept-suggestions` with an optional
 `--minimum-confidence 0..1`. Lower-confidence folders stay unresolved and make
-validation fail. `review --yes` skips only the final "mark complete" question;
-it does not answer folder questions. Choosing Skip leaves that folder unresolved,
+validation fail. `review --yes` supplies confirmation only for the final "mark
+complete" question; it does not answer folder questions. Choosing Skip leaves that folder unresolved,
 and an interrupted review checkpoints decisions already made. Existing decisions
 are retained on later reviews. The plan is ordinary strict JSON and can also be
 edited directly before its review is marked complete.
@@ -457,7 +470,7 @@ components folded into generated titles.
 Every item is atomic, but the batch may partially succeed. Existing or internally
 duplicated destinations are reported and never overwritten. Durable state under
 `06_indexes/imports/<import-id>/` makes application resumable, binds progress to
-the reviewed execution hash, retries failures, and verifies recorded destination,
+the execution-plan hash, retries failures, and verifies recorded destination,
 attachment, and retained-inbox hashes before skipping completed items. `status`
 reports this recorded-output verification; it does not rehash the external source
 or rescan the inventory, and returns nonzero when outputs are missing or changed.
@@ -465,15 +478,16 @@ If a destination was deleted, apply can recreate it. If it still exists but its
 recorded hash changed, apply refuses to overwrite it and reports a collision that
 must be inspected explicitly. Structure creation happens before file processing and is
 reported separately, including when all later file imports fail. `apply` follows
-the local policy: `always` and `explicit-intent` require the reviewed boundary,
-while `never` skips a second approval. Unattended reviewed application uses
-`--yes`. See
+the confirmation policy: `always` requires a checkpoint, `explicit-intent`
+requires one for high-impact or threshold-sized work, and `never` skips the
+second checkpoint. Unattended confirmed application uses `--yes`. See
 [`import-and-migration.md`](references/import-and-migration.md) for the complete format,
 safety, and recovery contract.
 
 The JSON dry-run exposes a `plan_sha256` bound to both folder decisions and the
 current routing contract. Carry it into `--plan-hash` when apply must be tied to
-that exact reviewed execution topology. It is not a fresh source snapshot. Run
+that exact execution topology. It proves plan identity, not human review, and is
+not a fresh source snapshot. Run
 `validate --sources` immediately before apply when all scanned sources should be
 rehashed first; actual apply still verifies each source again immediately before
 copying it, and a later changed item can fail after earlier items have succeeded.
@@ -491,11 +505,22 @@ arpent init [path] [--minimal] [--structure FILE]
 - The target and scaffold paths must not be symlinks.
 - Existing user files are not replaced; only missing seed files are added.
 - `--structure` accepts a UTF-8 `.json` object or `.md` heading lists and may contain any subset of `areas`, `resources`, and `projects`.
-- `.arpent` records marker version `1`, name `arpent`, and mode `full` or `minimal`.
-- Re-initialization is idempotent only for the same mode and current marker format.
-- Initializing a full vault over a minimal vault, or the reverse, is refused rather than treated as a migration.
-- `git init` runs, but Arpent neither stages files nor creates a commit.
-- The todo database is not created during initialization; the first todo operation creates and validates it.
+- `.arpent` records the vault identity, mode (`full` or `minimal`), and pending
+  automatic vault-mode promotion request in `auto_full`. The copied starter sets
+  it to `true`; a newly created `arpent init --minimal` marker sets it to `false`.
+  Re-running init preserves the current value.
+- Re-initialization is idempotent only for the same mode. Existing operation contracts are preserved rather than overwritten.
+- Change modes explicitly with `arpent mode full` or `arpent mode minimal`.
+  After an explicit minimal choice sets `auto_full: false`, only `init` and
+  `mode` remain available through the CLI. A copied starter with
+  `auto_full: true` instead requests guarded promotion before its first
+  mode-gated CLI command by seeding missing infrastructure, initializing Git,
+  and rebuilding indexes; the confirmation policy may require
+  `arpent mode full --yes` first.
+- `git init` runs only for full mode; Arpent neither stages files nor creates a commit.
+- The todo database is created lazily. `todo add --dry-run` does not create it;
+  a first `todo list`, `todo show`, or applied todo mutation may create and
+  validate it.
 - Validation catches known structure errors before a new scaffold is published,
   but init is not a whole-filesystem transaction. An unexpected Git, I/O, or
   concurrent failure can leave a partial target that should be inspected before retrying.
@@ -506,20 +531,22 @@ arpent init [path] [--minimal] [--structure FILE]
 |---|---:|---:|
 | Seven buckets, `.arpent`, `.agent`, `COMPASS.md`, and `me.md` | Yes | Yes |
 | Universal frontmatter and routing contracts | Yes | Yes |
-| Note, archive, status, triage, health | Yes | Yes |
-| Inventory, keyword search, backup | Yes | Yes |
-| Deliberate project creation | Yes | Yes |
-| Project/area `_context.md` and `session end` | Yes | Yes |
-| Triage JSON, note edit dry-run, and raw ingestion | Yes | Yes |
-| Reviewed external filesystem import | Yes | Yes |
-| Local usage v2 events, report, and qualitative journal | Yes | Yes |
+| All skills, contracts, schemas, and documentation retained | Yes | Yes |
+| Direct note capture, routing, search, project/context updates | Through CLI | Through files |
+| Mode-gated CLI commands | Yes | Require vault-mode promotion |
+| Generated index, keyword search, and backup commands | Yes | No |
+| Transactional project, note, session, and import operations | Yes | No |
+| Usage reports and domain-operation events | Yes | No; `init` and `mode` may still emit events |
 | Progressive context commands | Yes | No |
 | Delegated-memory observation/trait queue on `session end` | Yes | No |
-| Tool registry, cron, and lifecycle sweep | Yes | No |
+| Tool registry definitions retained | Yes | Yes |
+| Cron and lifecycle-sweep execution | Yes | No |
 | SQLite todo flow | Yes | No |
-| Portable agent infrastructure templates | Yes | No |
+| Portable agent infrastructure templates | Yes | Yes |
 
-Minimal mode reduces optional modules, not local continuity or the note schema. Structured notes still carry the complete visible, user-readable frontmatter contract with empty values represented by `null`, `[]`, or `false`.
+Minimal mode reduces dependencies, not retained information or the note schema.
+Structured notes still carry the complete visible frontmatter contract. Skills
+and state remain retained; mode-gated state is dormant until full mode returns.
 
 ### Vault discovery
 
@@ -551,7 +578,9 @@ ARPENT_VAULT_ROOT="$HOME/my-vault" arpent health
 | `arpent --help` | See the available command groups |
 | `arpent <command> --help` | See the flags and accepted values for one command |
 | `arpent init <path>` | Create an Arpent vault at the chosen path |
-| `arpent init <path> --minimal` | Create only the core vault, contracts, skill, and index support |
+| `arpent init <path> --minimal` | Create the complete direct-file vault without Git |
+| `arpent mode show` | Show the current mode |
+| `arpent mode full|minimal` | Switch mode without deleting skills or vault state |
 | `cd <path>` | Enter the vault; commands also work from its descendant directories |
 | `arpent project create "<name>"` | Deliberately create a normalized project, complete `_context.md`, and working folders |
 | `arpent note new "..."` | Capture a structured note, initially in the inbox unless routing metadata is supplied |
@@ -559,7 +588,7 @@ ARPENT_VAULT_ROOT="$HOME/my-vault" arpent health
 | `arpent triage [--json] [--json-page]` | Inventory inbox items and available edit/ingest/leave dispositions |
 | `arpent index` | Build or refresh inventory, search, and context indexes |
 | `arpent search "..."` | Search indexed structured notes by keyword |
-| `arpent session end --project <slug> --summary "..."` | Close into target local context in either mode; add `--memory-log` only for the optional cross-project log |
+| `arpent session end --project <slug> --summary "..."` | Full-mode transactional context close; minimal updates `_context.md` directly |
 | `arpent usage report` | Inspect privacy-preserving command metrics and current triage age |
 | `arpent todo add "..."` | Create a task with SQLite state and a readable Markdown trace |
 | `arpent todo list [--json-page]` | List current tasks with optional bounded pages |
@@ -568,7 +597,7 @@ ARPENT_VAULT_ROOT="$HOME/my-vault" arpent health
 
 ### Read command output correctly
 
-Arpent prints human-readable output by default. Commands exposing `--json`, such as `triage`, `note new`, `note edit --dry-run`, `note ingest --dry-run`, `todo add`, `usage report`, `health`, `context pending`, `todo list`, `todo show`, and `sweep status`, are preferable for scripts. Collection commands also expose `--json-page`, `--limit`, `--cursor`, and `--all`; content reads expose `--json-page`, `--max-bytes`, `--cursor`, and `--full`. Every page reports totals, a snapshot hash, completeness, and continuation. Exit code `0` means the command completed; validation, trust, consistency, or partial failures return a nonzero exit.
+Arpent prints human-readable output by default. Commands exposing `--json`, such as `triage`, `note new`, `note edit --dry-run`, `note ingest --dry-run`, `todo add`, `usage report`, `health`, `context pending`, `todo list`, `todo show`, and `sweep status`, are preferable for scripts. Paginated collections are available for triage, efforts, search, context pending, note find, todo list, and import dry-run previews through `--json-page`, `--limit`, `--cursor`, and `--all`. `note read` and context L2 reads expose hash-bound UTF-8 content pages through `--json-page`, `--max-bytes`, `--cursor`, and `--full`. Every page reports totals or content size, a snapshot or content hash, completeness, and continuation. `import apply --json-page` is dry-run-only; real apply uses `--json`. Exit code `0` means the command completed; validation, trust, consistency, or partial failures return a nonzero exit.
 
 ## Common workflows
 
@@ -583,7 +612,14 @@ arpent note new "Investigate cache invalidation" \
   --body "Which cache keys remain valid after the URL cutover?"
 ```
 
-The command prints the new stable ID. Keep that ID for future mutations; filenames can change, but IDs are the identity layer.
+On immediate application, the command prints the new stable ID. Keep that ID
+for future mutations; filenames can change, but IDs are the identity layer. If
+the confirmation policy requires a second checkpoint, the first invocation
+returns a preview and plan hash
+instead. `note new` and `todo add` can also emit a non-mutating structured plan
+with `--dry-run --json`; re-run the same arguments with
+`--plan-hash <plan_sha256>` to bind application to the exact metadata, body, ID,
+and destination. A changed allocation or route requires a fresh preview.
 
 Use `--stdin` when the body is multiline or generated by another command:
 
@@ -596,7 +632,7 @@ Finish the input with EOF in the terminal. If both a non-empty `--body` and `--s
 ### Triage the inbox
 
 ```bash
-arpent triage --json
+arpent triage --json-page --limit 50
 arpent note edit <id> --project migration --area work --dry-run --json
 arpent note ingest 00_inbox/raw-notes.txt --title "Raw notes" \
   --project migration --dry-run --json
@@ -606,10 +642,11 @@ arpent note ingest 00_inbox/raw-notes.txt --title "Raw notes" \
 
 The agent-mediated plan/apply protocol is:
 
-1. Inventory with `arpent triage --json`.
+1. Inventory with `arpent triage --json-page --limit 50` and follow
+   `next_cursor` until `complete_result` is true.
 2. Build one combined proposal covering every item, including explicit leaves.
 3. Preview structured notes with `arpent note edit <id> ... --dry-run --json` and raw files with `arpent note ingest ... --dry-run --json`.
-4. Show complete before/after frontmatter, source and destination, body-change state, warnings, and all known side effects when the local confirmation policy requires review.
+4. Show complete before/after frontmatter, source and destination, body-change state, warnings, and all known side effects when the confirmation policy requires a second checkpoint.
 5. Apply the announced per-item commands, then re-run triage to verify.
 6. Report every applied, skipped, and failed item. Each item is atomic, but a batch is sequential per-item transactions and may partially succeed.
 
@@ -625,7 +662,7 @@ arpent note route <id> --project migration --area work
 arpent note route <id>
 ```
 
-Use `note edit` when changing content and routing together. `--inbox` cannot be combined with routing flags. For a reviewed plan/apply pass, carry `plan_sha256` from the JSON dry run into `--plan-hash` so source or routing-topology changes force a fresh review:
+Use `note edit` when changing content and routing together. `--inbox` cannot be combined with routing flags. For an exact-plan apply, carry `plan_sha256` from the JSON dry run into `--plan-hash` so source or routing-topology changes force a fresh preview:
 
 ```bash
 arpent note edit <id> \
@@ -665,7 +702,10 @@ Fleeting capture appends to `00_inbox/fleeting/dd-mm-yyyy.md` using UTC. Entries
 
 ### Create and use project context
 
-Create projects deliberately in either full or minimal mode. Human input is normalized to a lowercase ASCII kebab-case slug and shown when it differs; collisions fail rather than acquiring a silent suffix:
+Create projects deliberately in both modes. The commands below are the full-mode
+path; minimal creates the same files directly. Human input is normalized to a
+lowercase ASCII kebab-case slug and collisions fail rather than acquiring a
+silent suffix:
 
 ```bash
 arpent project create "Migration Site" \
@@ -687,6 +727,17 @@ arpent session end \
 
 `project create` creates `01_projects/<slug>/_context.md` with the complete universal frontmatter field set plus `notes/`, `drafts/`, and `attachments/`. Its context body starts with Vision, Current state, Resume here, Deliverables / definition of done, Key resources, Next steps, Working rhythm and time budget, and Session history. Area and effort metadata are optional. The command does not create an area, index, stage, commit, or tool state, and never merges into an existing project.
 
+In minimal, use the seeded
+`01_projects/_template_project/_context.md` without modifying the template
+itself. Reject reserved project names, require the destination to be absent,
+create `notes/`, `drafts/`, and `attachments/`, then replace every placeholder
+with a lowercase ASCII snake_case context title, globally unique note ID,
+current UTC timestamps, project slug, and optional existing area. For an
+existing area that has no context yet, instantiate
+`02_areas/_context.template.md` at that area's root with the same complete-field
+discipline. These templates are dormant infrastructure and are not indexed as
+ordinary notes before instantiation.
+
 To resume project work, read files rather than invoking a synthetic command:
 
 1. Read root `me.md` for human-owned orientation.
@@ -694,14 +745,12 @@ To resume project work, read files rather than invoking a synthetic command:
 3. Load only the specific notes, indexes, or source material the work requires.
 
 Normal resume must not read `06_indexes/memory/MEMORY.md`. That optional log is
-disabled by default and may be read only when the user explicitly asks for or
-enables it.
+disabled by default and requires an explicit memory-log read request.
 
-`session end` updates the target `_context.md` by default in both modes. Every
-context it creates or updates has the complete universal frontmatter field set;
-existing body sections are preserved and its timestamped block is appended.
-`--memory-log` explicitly opts that invocation into creating or updating
-`06_indexes/memory/MEMORY.md`.
+In full, `session end` transactionally updates target `_context.md`. In minimal,
+the agent applies the same context update directly and verifies the file. The
+`--memory-log` flag requires full mode and records a one-use memory-log write
+request for that invocation. It does not permit later reads.
 
 ```bash
 arpent session end \
@@ -715,23 +764,26 @@ context while area remains contextual metadata. A no-target close requires an
 explicit sink: `--memory-log`, or in full mode at least one observation/trait.
 In full mode only, supplied observations and traits are also appended to
 `06_indexes/pending_db_writes.yaml`; Arpent currently ships no command to flush
-this queue into an external memory provider. Minimal mode rejects those flags
-before any mutation and never creates that queue.
+this queue into an external memory provider. The queue file is seeded in both
+modes, but minimal rejects those flags before mutation and never appends to or
+operates the queue.
 
 ### Manage a todo from capture to archive
 
-Todo is available only in full mode. The first todo command creates and validates `06_indexes/databases/todo.db`.
+Todo is available only in full mode. Its database is created lazily;
+`todo add --dry-run` leaves it absent, while reads and applied mutations may
+initialize and validate it.
 
 ```bash
 arpent todo add "Validate migration plan" \
   --priority high \
-  --due 2026-07-12 \
+  --due 12-07-2026-17-00 \
   --duration 30m \
   --project migration
 
 arpent todo list
 arpent todo show <todo-id>
-arpent todo defer <todo-id> --to 2026-07-15
+arpent todo defer <todo-id> --to 15-07-2026-09-30
 arpent todo block <todo-id> --on <object-id>
 arpent todo edit <todo-id> --clear-dependency
 arpent todo done <todo-id>
@@ -749,7 +801,8 @@ arpent note extract <linear-id> \
   --type concept \
   --title "Actionability gradient" \
   --resource concepts \
-  --body "A useful framework becomes more valuable as its next action becomes clearer."
+  --body "A useful framework becomes more valuable as its next action becomes clearer." \
+  --yes
 
 arpent note dissolve <linear-id> --yes
 ```
@@ -766,23 +819,26 @@ Full mode can store explicit summaries without making indexing depend on an AI p
 
 ```bash
 arpent index
-arpent context pending --json
-arpent context show 01_projects/migration --level l2
+arpent context pending --json-page --limit 100
+arpent context show 01_projects/migration --level l2 \
+  --json-page --limit 200
 arpent context set 01_projects/migration \
   --summary "Migration project, current constraints, decisions, and open work." \
   --source-hash <hash-from-pending> \
   --provider <agent-id>
-arpent context pending
+arpent context pending --json-page --limit 100
 ```
 
 The safe protocol is:
 
 1. Rebuild the index.
-2. Read `context pending` and retain the returned source hash.
-3. Load L2 for the exact item requiring a summary.
+2. Page through `context pending` and retain the returned source hash.
+3. Load only the same-hash L2 chunks needed for the exact item.
 4. Produce the summary outside the indexer.
 5. Store it with the same hash.
-6. Confirm that the item is no longer pending.
+6. Confirm that the item is no longer pending. Follow `next_cursor` until
+   `complete_result` is true before claiming a complete set or source; use
+   `--all` or `--full` only when complete output is genuinely required.
 
 `context set` checks the indexed and current live semantic hashes so a summary cannot silently attach to changed content. Replacing a fresh L1 summary requires `--force`. `--stdin` can replace `--summary` for multiline input. L1 can be absent or stale; L0 and L2 remain usable.
 
@@ -805,13 +861,20 @@ The health input/output ratio is diagnostic, not a score: `captured` and `import
 
 ```bash
 arpent usage report
-arpent usage report --since 2026-07-01
-arpent usage report --since 2026-07-01 --json
+arpent usage report --since 01-07-2026-00-00
+arpent usage report --since 01-07-2026-00-00 --json
 ```
 
-The append-only local `06_indexes/logs/usage.log` accepts historical unversioned v1 records and writes versioned v2 command events without rewriting history. V2 records capture categorical outcomes, success/failure, duration, counts, effective note types/status transitions, and opaque correlation IDs where needed. Writes are locked, complete-line, and best effort so telemetry cannot break a domain command; malformed or truncated records are skipped and counted.
+The append-only local `06_indexes/logs/usage.log` records categorical outcomes,
+success/failure, duration, counts, effective note types/status transitions, and
+opaque correlation IDs where needed. Writes are locked, complete-line, and best
+effort so telemetry cannot break a domain command; malformed or truncated
+records are skipped and counted.
 
-`usage report` covers command counts and failures, active days, p50/p95 duration where v2 data exists, captures, ingestions, project creations, semantically typed productions, session closes and close duration, effective note types, status transitions, malformed lines, and the current inbox count/oldest age/age buckets. It reports v1/v2 coverage rather than pretending historical events contain v2 detail.
+`usage report` covers command counts and failures, active days, p50/p95 duration,
+captures, ingestions, project creations, semantically typed productions, session
+closes and close duration, effective note types, status transitions, malformed
+lines, and the current inbox count, oldest age, and age buckets.
 
 All telemetry remains in the vault. Events never include note bodies, titles, summaries, URLs, search queries, filesystem paths, project/area names, error text, or command-line payloads. Local does not necessarily mean unsynchronized: the vault itself may be in a synced folder, and the current logical backup includes ordinary logs such as `usage.log`.
 
@@ -821,29 +884,34 @@ Resume is documentary reading, so automatic metrics cannot know that a resume st
 
 ```bash
 arpent sweep ephemeral --dry-run
-arpent sweep ephemeral
+arpent sweep ephemeral --yes
 arpent sweep status
 ```
 
-Sweeps affect only installed ephemeral tools with explicit lifecycle rules. Permanent content and active states are protected.
+Sweeps affect only ephemeral tools with `status: installed` and explicit lifecycle rules. Permanent content and active states are protected.
 
 `--dry-run` prevents note/database lifecycle changes, but still writes operational usage, sweep log, lock state, and a summary. Review `sweep status --json` after either a preview or a real run. Rules can mark content stale, archive terminal content, archive with a SQLite trace, or propose deletion for review; they cannot silently delete protected knowledge.
 
 ### Operate with an AI agent
 
-A newly initialized vault gives an agent a local reading order:
+A newly initialized vault gives an agent a progressive reading order:
 
-1. `.agent` identifies the directory as an agent-operated Arpent vault.
-2. `COMPASS.md` explains how to classify intent and select an operation.
-3. `06_indexes/global_skills/arpent.skill.md` defines the compact mechanics.
-4. `06_indexes/docs/` explains architecture and policy in depth.
-5. `me.md` stores human-owned orientation, preferences, boundaries, and current direction and should be read early.
+1. Read `.agent` and the small `.arpent` marker.
+2. Reuse an active Arpent host skill; otherwise load the vault-local skill once.
+3. Use the note, todo, or fleeting hot path directly for ordinary work.
+4. Read `COMPASS.md` only to select a less common operation.
+5. Read `me.md` for interaction preferences or resume, then the target
+   `_context.md` and only the notes, sources, or detailed contract required.
 
 For a concrete resume, follow [the project context reading order](#create-and-use-project-context).
 
-Tell a new agent to read `.agent` before acting. The expected operating protocol is to identify intent, inspect relevant context, apply the local `always`, `explicit-intent`, or `never` confirmation policy, invoke the CLI, and report the result. The CLI enforces mechanical invariants; the agent remains responsible for subjective interpretation and clarification.
+Tell a new agent to read `.agent` before acting. It reads `.arpent`, loads only
+the current hot path, applies local confirmation policy, and uses files in
+minimal or the CLI in full.
 
-If the CLI is unavailable, source files remain readable, but safe mutation becomes more limited. Do not manually emulate todo dual state, extraction, dissolution, sweep, context-summary, backup, or delegated-queue transactions. The repository's [`ingestion-and-degraded-mode.md`](references/ingestion-and-degraded-mode.md) documents direct ordinary-note work and the default `_context.md` close fallback; optional `MEMORY.md` writes still require explicit user opt-in.
+[`minimal-mode.md`](references/minimal-mode.md) defines safe direct-file work.
+Minimal never emulates todo dual state, extraction, dissolution, sweep,
+context-summary, backup, import, or delegated-queue transactions.
 
 ---
 
@@ -877,17 +945,17 @@ The vault is organized by utility, not topic:
 
 ### The vault marker
 
-The root contains a strict JSON marker:
-
-```json
-{
-  "version": 1,
-  "name": "arpent",
-  "mode": "full"
-}
-```
-
-All three fields are validated. `mode` must be `full` or `minimal`; changing it manually does not install or remove modules and can leave the vault inconsistent.
+The root contains a strict JSON marker recording the Arpent identity, the current
+mode, and the pending `auto_full` promotion request. Use
+`arpent mode full|minimal` rather than
+editing it manually. The copied starter uses `auto_full: true`, while
+a newly created `arpent init --minimal` marker records `false`. Re-running init
+preserves the current value. With `auto_full: true`, the first mode-gated CLI
+command requests promotion, which seeds missing infrastructure, initializes Git,
+and rebuilds indexes. If reconciliation fails, Arpent restores the exact minimal
+marker and leaves the request pending for a later retry. Newly seeded dormant
+files and `.git` may remain. An explicit return to minimal cancels the request by
+setting `auto_full` to `false`.
 
 ### Structured note anatomy
 
@@ -897,8 +965,8 @@ Every ordinary Arpent note has readable Markdown plus complete, visible, user-re
 ---
 title: Actionability gradient
 id: concept-20260710-a
-created: 10-07-2026T10:00:00Z
-modified: 10-07-2026T10:00:00Z
+created: 10-07-2026-10-00
+modified: 10-07-2026-10-00
 
 description: A framework becomes more useful as its next action becomes clearer.
 type: concept
@@ -947,7 +1015,9 @@ The CLI writes empty optional values explicitly. Some fields, including `appreci
 
 `note`, `concept`, `journal`, `log`, `checklist`, `reference`, `draft`, `template`, `meeting`, `idea`, `fleeting`, `linear`, `integration`, `angle`, `production`, `map`, and `artefact`.
 
-Type establishes the default status: maps start `ongoing`, concepts start `maturing`, fleeting notes and ideas start `inbox`, and other types default to `inbox` unless `--status` is given.
+Type establishes the default status: maps start `ongoing`; concepts and drafts
+start `maturing`; fleeting notes and ideas start `inbox`; other types default to
+`inbox` unless `--status` is given.
 
 #### Accepted lifecycle statuses
 
@@ -960,7 +1030,8 @@ Status describes lifecycle; it does not always imply a physical move. In particu
 - Sources: `manual`, `generated`, `imported`, `captured`, `conversation`, `derived`.
 - Authors: `user`, `agent`, `imported`.
 - `--tags` accepts a comma-separated list.
-- Provenance/link inconsistencies produce warnings during creation rather than blocking the note.
+- `source: captured` expects an absolute HTTP(S) URL in `link`; a missing or
+  non-HTTP(S) value warns during creation rather than blocking the note.
 
 ### Deterministic routing
 
@@ -1025,7 +1096,10 @@ Arpent separates four concerns that are often conflated:
 - `06_indexes/memory/MEMORY.md` is an optional cross-project log, disabled and unread by default, not a complete personal memory database.
 - `06_indexes/memory/wiki/` is agentic research scratch with raw sources and interlinked pages, separate from the clean knowledge base.
 
-Stable personal facts, traits, and reminders may be delegated to an external host memory interface only after explicit opt-in. Arpent does not bundle, select, or synchronize that provider. The queue written by `session end` is inspectable local intent, not proof that an external provider received it.
+Stable personal facts, traits, and reminders may be delegated to an external
+host memory interface only in full mode after provider opt-in. Arpent does not
+bundle, select, or synchronize that provider. The queue written by `session end`
+is inspectable local intent, not proof that an external provider received it.
 
 When deciding where information belongs, ask what role it plays: work product belongs in the vault, current execution state belongs in `_context.md`, user orientation belongs in `me.md`, an explicitly requested cross-project log may use `MEMORY.md`, and provider-managed personal recall remains outside the vault.
 
@@ -1040,6 +1114,9 @@ Installed ephemeral tools can declare lifecycle rules. Sweeps can preview and ap
 Arpent treats multi-file changes as transactions:
 
 - mutations acquire filesystem locks under `06_indexes/logs/`;
+- mode-gated CLI commands hold a shared mode lease, while promotion and mode
+  changes require the exclusive lease, so `mode minimal` waits for active CLI
+  work and a stale auto-promotion cannot override a newer explicit choice;
 - note moves use no-replace semantics;
 - notes, todos, sessions, and sweeps use recovery journals;
 - unfinished foreign transactions block overlapping mutation instead of being ignored;
@@ -1059,7 +1136,10 @@ Important scope and freshness rules:
 - `search.db` stores a source signature; when the vault changes or the database is unreadable, search falls back to a live scan instead of serving stale results;
 - run `arpent index` after changes to restore indexed search speed and refresh the other derivatives;
 - the inventory itself remains broader and includes folders, attachments, binaries, and symlinks without following symlinks.
-- FTS5 returns at most 50 ranked matches and combines whitespace-delimited terms;
+- FTS5 computes the complete matching set in deterministic rank/path/ID order
+  and combines whitespace-delimited terms. Human output shows the first 50; use
+  `--json-page` with its cursor, or `--json-page --all`, for complete structured
+  output;
 - the live fallback performs a case-insensitive substring match on the whole query, so edge-case results can differ from indexed search;
 - `arpent note find <query>` uses the same backend with different presentation.
 
@@ -1082,7 +1162,7 @@ Indexing is a consistency pass rather than a background watcher. It acquires a l
 
 Run `arpent index`:
 
-- after a batch of direct filesystem changes;
+- after a batch of direct-file changes;
 - before generating L1 summaries;
 - when search repeatedly uses live fallback;
 - after restoring a snapshot;
@@ -1094,7 +1174,10 @@ Ordinary CLI note changes do not require immediate indexing for correctness beca
 
 Configuration is explicit and currently edited as files:
 
-- `06_indexes/cli/operations.yaml` mirrors the packaged contract; only its explicit `routing_overrides` mapping refines routes;
+- `06_indexes/cli/operations.yaml` mirrors the packaged operation,
+  confirmation, and routing contract. `confirmation.policy` and
+  `bulk_threshold` control confirmation behavior; only the explicit
+  `routing_overrides` mapping refines routes;
 - `06_indexes/tools.yaml` declares tools and lifecycle rules;
 - `06_indexes/cron.json` declares scheduled jobs and notification behavior;
 - `06_indexes/schemas/frontmatter_policy.yaml` documents the seeded frontmatter policy.
@@ -1109,15 +1192,16 @@ validation, policy, documentation, and tests together.
 
 ### Configuration authority
 
-The packaged CLI parser remains authoritative for command syntax. `operations.yaml` declares operation inventory and routing contracts, but does not dynamically create `argparse` flags. If documentation, a vault mirror, and `arpent --help` disagree, inspect the installed package version and treat the executable behavior as current.
+The packaged CLI parser remains authoritative for command syntax. `operations.yaml` declares operation inventory and routing contracts, but does not dynamically create `argparse` flags. If documentation, a vault mirror, and `arpent --help` disagree, treat the installed executable behavior as current.
 
 Do not edit generated index files by hand. Configuration edits should remain reviewable source changes, followed by the command that consumes them. Re-running `arpent init` will add a missing seed but will not overwrite a customized existing configuration.
 
-The static `architecture_template/01_projects/_template_project/_context.md`
-does not currently control the code-generated `project create` template. In
-normal use, edit each created `_context.md` directly. When developing Arpent,
-change both the runtime builder and static template if the generated design is
-meant to change.
+The seeded `01_projects/_template_project/_context.md` and
+`02_areas/_context.template.md` drive direct minimal instantiation. They do not
+generate the CLI's project/context bodies, so Arpent developers must update both
+the runtime builders and static templates when the generated design changes. In
+normal use, edit each instantiated `_context.md` directly and leave the dormant
+templates unchanged.
 
 ### Tool registry
 
@@ -1127,36 +1211,59 @@ arpent tools list --category knowledge --status installed
 arpent tools show todo
 ```
 
-Filters are exact values from `06_indexes/tools.yaml`. `tools show` prints the selected declaration as sorted JSON. An installed tool skill must resolve to a real file under `06_indexes/global_skills/`; runtime material under `05_tools/` and symlink escapes are rejected.
+Filters are exact values from `06_indexes/tools.yaml`. `tools show` prints the
+selected declaration as sorted JSON. For a tool with `status: installed`, the
+declared skill must resolve to a real file under `06_indexes/global_skills/`;
+runtime material under `05_tools/` and symlink escapes are rejected.
 
-The default full vault declares `context_summary` and `todo` as installed. Reader, review, and backup-related tool definitions can be present as planned registry entries without corresponding installed command groups. Registry presence alone does not make a capability executable.
+`planned` and `installed` are declared registry states, not availability claims.
+A capability is available only when it is implemented, permitted by the current
+mode, has its prerequisites, and is enabled where required. The current CLI does
+not change tool status.
+
+The default full vault declares `context_summary` and `todo` with
+`status: installed`. Reader, review, and backup-related tool definitions can be
+present as `planned` registry entries without corresponding implemented command
+groups. Registry presence alone does not make a capability executable.
 
 ### Cron execution model
 
-Arpent does not run a daemon. Cron commands are an explicit local-code trust
-boundary, and an external scheduler must invoke them. Preview and execution use:
+Arpent does not run a daemon. Cron commands cross an explicit local-code
+execution boundary, and an external scheduler must invoke them. Preview and
+execution use:
 
 ```bash
 # Show what is due without launching local code.
 arpent cron run --tick --dry-run
 
-# Execute due trusted jobs.
-arpent cron run --tick --allow-local-code
+# Execute due jobs that declare local code.
+arpent cron run --tick --allow-local-code --yes
 ```
 
-An enabled job must declare `"trust": "local-code"`; its command runs with the
-user's permissions and inherited environment, so only enable jobs from a vault
-you fully trust. Jobs have a bounded timeout and concurrent ticks are serialized.
+An enabled job must include the local-code declaration `"trust": "local-code"`;
+this marker is not verified trust. `--allow-local-code` is the separate execution
+enablement, and the confirmation policy may additionally require `--yes`. The
+command runs with the invoking user's OS permissions and inherited environment,
+so only enable jobs from a vault you control. Jobs have a bounded timeout and
+concurrent ticks are serialized.
+The parent tick and its child jobs retain a shared mode lease, so an explicit
+mode change waits until active cron work completes.
 
 For example, a Unix cron installation can run the tick every minute from the vault root:
 
 ```cron
-* * * * * cd /absolute/path/to/vault && /absolute/path/to/arpent cron run --tick --allow-local-code
+* * * * * cd /absolute/path/to/vault && /absolute/path/to/arpent cron run --tick --allow-local-code --yes
 ```
 
 The built-in schedule matcher uses UTC and supports `*` or comma-separated exact integers in the five standard fields. It does not implement ranges or step syntax. `--tick` is mandatory. Each enabled job needs a unique ID, a non-empty command, and a timeout from 1 to 86400 seconds; the default timeout is 300 seconds.
 
-Arpent/`arp` jobs run through the installed package with `ARPENT_VAULT_ROOT` set. External commands are tokenized and launched directly from the vault root with the inherited environment; they do not run through an implicit shell. Real local-code execution is disabled on Windows.
+Arpent/`arp` jobs run through the installed package with `ARPENT_VAULT_ROOT` set.
+Jobs may not recursively invoke `cron`, run `init`, or change vault mode; direct
+alias, executable-path, and `python ... -m scripts.cli` spellings are normalized
+before this validation. External commands are tokenized and launched directly
+from the vault root with the inherited environment; they do not run through an
+implicit shell. Do not hide Arpent control commands inside an explicit shell
+wrapper. Real local-code execution is disabled on Windows.
 
 The runner serializes concurrent ticks, records `last_started` before dispatch, and records `last_run` only after success. A failed or interrupted job is not replayed in the same minute. One failed job makes the overall tick nonzero after results have been processed. Notifications can go to stdout, `06_indexes/logs/cron.log`, or nowhere according to configuration.
 
@@ -1174,7 +1281,7 @@ different local filesystem directory. A snapshot contains:
 - every SQLite database detected in the vault through SQLite's consistent backup
   API, including `todo.db`;
 - preserved symlinks without following or copying their external targets;
-- a versioned manifest, exact payload inventory, SHA-256 checksums, and SQLite
+- a manifest, exact payload inventory, SHA-256 checksums, and SQLite
   integrity results.
 
 Rebuildable `index.json`, `sidecar.json`, and `search.db` outputs, runtime locks,
@@ -1189,7 +1296,7 @@ Verify and restore with:
 
 ```bash
 arpent backup verify <snapshot>
-arpent backup restore <snapshot> --to <new-directory>
+arpent backup restore <snapshot> --to <new-directory> --yes
 ```
 
 Verification rejects missing, altered, additional, unsafe, or corrupt content.
@@ -1221,9 +1328,13 @@ Avoid manually moving or editing todo records. Todo mutations check that SQLite 
 
 ## Command reference
 
+Except for `init` and `mode`, this is the full-mode command surface. Minimal
+uses direct-file operation for supported work.
+
 | Command | Purpose |
 |---|---|
 | `init [path] [--minimal] [--structure FILE]` | Scaffold a vault and optionally seed declared Areas, Resources, and projects |
+| `mode show|full|minimal` | Inspect or change operation mode without deleting vault state |
 | `import scan/suggest/review/validate/summary/apply/status` | Plan, confirm, copy, and resume an external filesystem migration |
 | `status` | Count ID-bearing notes by bucket and status |
 | `triage [--json|--json-page]` | Inventory inbox items with kinds, ages, hashes, and available dispositions |
@@ -1242,19 +1353,20 @@ Avoid manually moving or editing todo records. Todo mutations check that SQLite 
 | `note read <id> [--json-page] [--full]` | Print a note or retrieve hash-bound content pages |
 | `note find <query> [--json-page]` | Find structured notes using the same index and fallback behavior as `search` |
 | `note status <id> <status> [--yes]` | Change a note's lifecycle status |
-| `note extract <linear-id> [--yes]` | Extract a typed child from a linear working note |
+| `note extract <linear-id> --type <type> --title <title> [--yes]` | Extract a typed child from a linear working note |
 | `note dissolve <linear-id> [--yes]` | Validate children and archive a decomposed linear source |
 | `archive <id> [--yes]` | Archive one note by ID without deleting its history |
-| `todo add [--dry-run] [--json] [--plan-hash <hash>]` | Plan or create a SQLite-backed task and Markdown trace |
-| `todo list/show [--json-page]` | Inspect current tasks and complete/paginated views |
+| `todo add <content> [--dry-run] [--json] [--plan-hash <hash>]` | Plan or create a SQLite-backed task and Markdown trace |
+| `todo list [--json-page]` / `todo show [--json]` | Inspect current tasks and complete/paginated views |
 | `todo edit/done/defer/block [--yes]` | Update task fields and lifecycle state |
-| `todo archive <id>` | Archive a completed task while retaining its SQLite row |
-| `context pending/show/set` | Inspect bounded L0/L1/L2 context and maintain explicit summaries |
-| `session end [--yes]` | Update local project/area continuity; queue delegated writes only in full mode |
-| `usage report [--since <dd-mm-yyyy>] [--json]` | Report local v2 command metrics and current triage age |
+| `todo archive <id> [--yes]` | Archive a completed task while retaining its SQLite row |
+| `context pending/show [--json-page]` / `context set [--yes]` | Inspect bounded L0/L1/L2 context and maintain explicit summaries |
+| `session end --summary <text> [--yes]` | Update local project/area continuity; queue delegated writes only in full mode |
+| `usage report [--since <dd-MM-YYYY-HH-mm>] [--json]` | Report local command metrics and current triage age |
 | `tools list/show` | Inspect the tool registry |
-| `sweep ephemeral/status [--yes]` | Preview, apply, and inspect configured lifecycle sweeps |
-| `cron run --tick [--dry-run] [--allow-local-code] [--yes]` | Preview or explicitly authorize due jobs from the cron registry |
+| `sweep ephemeral [--dry-run] [--yes]` | Preview or apply configured lifecycle sweeps |
+| `sweep status [--json]` | Inspect the latest completed lifecycle sweep |
+| `cron run --tick [--dry-run] [--allow-local-code] [--yes]` | Preview due jobs or enable execution of declared local code, with confirmation when required |
 
 Run `arpent <command> --help` for full flags and accepted values.
 
@@ -1263,13 +1375,15 @@ Run `arpent <command> --help` for full flags and accepted values.
 ```text
 arpent --version
 arpent init [path] [--minimal] [--structure FILE]
+arpent mode show [--json]
+arpent mode full|minimal [--yes] [--json]
 arpent status
-arpent triage [--json]
-arpent efforts
+arpent triage [--json|--json-page] [--limit N] [--cursor TOKEN] [--all]
+arpent efforts [--json-page] [--limit N] [--cursor TOKEN] [--all]
 arpent health [--json]
-arpent index
-arpent search <query>
-arpent usage report [--since <ISO-date-or-timestamp>] [--json]
+arpent index [--yes]
+arpent search <query> [--json-page] [--limit N] [--cursor TOKEN] [--all]
+arpent usage report [--since <dd-MM-YYYY-HH-mm>] [--json]
 ```
 
 `status`, `triage`, `efforts`, and `health` scan live files. `usage report` combines local event history with current triage state. `index` rebuilds derivatives. `search` selects current FTS5 state or live fallback automatically.
@@ -1292,14 +1406,18 @@ arpent import apply <plan>
   [--plan-hash HASH]
   [--stop-on-error]
   [--json]
+  [--json-page]
+  [--limit N]
+  [--cursor TOKEN]
+  [--all]
 arpent import status <plan> [--json]
 ```
 
-| Command | Vault requirement | Full/minimal |
+| Command | Vault requirement | Mode |
 |---|---|---:|
-| `scan`, `suggest`, `review`, `summary` | None | Mode-independent |
-| `validate` | None; adds destination compatibility checks when a vault is discovered | Both |
-| `apply`, `status` | A discovered vault | Both |
+| `scan`, `suggest`, `review`, `summary` | None | Outside a vault or in full; a discovered minimal vault first promotes or refuses |
+| `validate` | None; adds destination compatibility checks when a vault is discovered | Outside a vault or in full; a discovered minimal vault first promotes or refuses |
+| `apply`, `status` | A discovered vault | Full only |
 
 `summary` inspects the plan and inventory but does not replace `validate`.
 `validate --sources` verifies the inventory, review, and current external hashes;
@@ -1312,7 +1430,9 @@ so automation need not infer failure solely from human text.
 For JSON-only automation, use `review --accept-suggestions --json`. Use
 `apply --yes --json` when the local policy requires confirmation; `never` accepts
 `apply --json` directly. Interactive review intentionally prints questions.
-Dry-run JSON never prompts.
+Dry-run JSON never prompts. `--json-page`, its cursors, and `--all` are accepted
+only with `apply --dry-run`; real apply returns one JSON report without previews
+through `--json`.
 
 | Command | JSON fields |
 |---|---|
@@ -1337,9 +1457,13 @@ arpent project create <name>
   [--area SLUG]
   [--effort-cadence heavylift|slowburn]
   [--effort-level low|medium|high]
+  [--yes]
 ```
 
-The human name normalizes to a lowercase ASCII kebab-case folder slug. The command creates `_context.md`, `notes/`, `drafts/`, and `attachments/`, refuses collisions, and works identically in full and minimal modes. `--area` must resolve to one existing unambiguous area; project creation never creates the area implicitly.
+The human name normalizes to a lowercase ASCII kebab-case folder slug. In full,
+the command creates `_context.md`, `notes/`, `drafts/`, and `attachments/` and
+refuses collisions. Minimal creates the same files directly. `--area` must
+resolve to one existing unambiguous area.
 
 ### Create a note
 
@@ -1360,18 +1484,28 @@ arpent note new <title>
   [--chosen-location TEXT]
   [--body TEXT]
   [--stdin]
+  [--dry-run]
+  [--plan-hash HASH]
+  [--json]
 ```
 
 Defaults are `type: note`, `source: manual`, and `author: user`; status depends on type. `--tags` is comma-separated. Creation validates enums, generates a stable ID, writes full frontmatter, computes the route, and refuses destination overwrite. `--chosen-location` records user intent but does not replace the deterministic router.
 
+`--dry-run --json` emits the same structured plan used by application without
+creating a note. When review is required, repeat the same arguments with
+`--plan-hash <plan_sha256>`; changed metadata, body, ID allocation, or routing
+invalidates the plan.
+
 ### Read and find notes
 
 ```text
-arpent note read <id>
-arpent note find <query>
+arpent note read <id> [--json-page] [--max-bytes N] [--cursor TOKEN] [--full]
+arpent note find <query> [--json-page] [--limit N] [--cursor TOKEN] [--all]
 ```
 
-`note read` prints title, type, status, path, and body. `note find` uses the same backend and freshness rules as top-level `search`.
+`note read` prints title, type, status, path, and body; structured reads return
+hash-bound UTF-8 body pages. `note find` uses the same backend, freshness rules,
+and collection pagination as top-level `search`.
 
 ### Edit a note
 
@@ -1400,6 +1534,7 @@ arpent note edit <id>
   [--stdin]
   [--dry-run]
   [--json]
+  [--plan-hash HASH]
 ```
 
 No flags prints `No changes requested.` A title edit can rename the file; routing-relevant edits can move it. Clear flags win over their corresponding set values, while project/resource and inbox/routing conflicts are rejected. Body replacement happens when `--body` or `--stdin` is supplied. `--dry-run` shows complete before/after frontmatter, source/destination, body-change state, reason, and warnings without domain mutation; `--json` exposes that plan. Existing notes cannot be converted to fleeting, and dissolved linear sources are immutable.
@@ -1419,6 +1554,7 @@ arpent note ingest <inbox-path>
   [--source-hash SHA256]
   [--dry-run]
   [--json]
+  [--yes]
 ```
 
 The source must be a vault-relative file under `00_inbox/`. Text and malformed frontmatter become the full body of a complete structured note. A binary/non-UTF-8 file remains byte-for-byte untouched and cannot contain YAML; `--attachment` moves it transactionally to the selected home's `attachments/` and creates a separate Markdown companion reference note with complete universal frontmatter whose `link` points to the attachment. Without a final home, the original stays in inbox and the companion is untriaged. Dry-run reports exact paths, metadata, warnings, source kind/hash, and whether the result is fully triaged. Applying with `--source-hash` refuses a changed source.
@@ -1426,9 +1562,9 @@ The source must be a vault-relative file under `00_inbox/`. Text and malformed f
 ### Route, change status, and archive
 
 ```text
-arpent note route <id> [--project SLUG] [--area SLUG] [--resource SLUG]
-arpent note status <id> <status>
-arpent archive <id>
+arpent note route <id> [--project SLUG] [--area SLUG] [--resource SLUG] [--yes]
+arpent note status <id> <status> [--yes]
+arpent archive <id> [--yes]
 ```
 
 `note route` replaces, rather than merges, all routing fields. `note status` changes lifecycle metadata and applies a status route only when one exists. `archive` is the ordinary-note archival operation: it records archived metadata and moves the note to the current quarterly archive. These commands reject todo IDs; linear sources use dissolution rather than ordinary archival.
@@ -1447,11 +1583,12 @@ arpent note extract <linear-id>
   [--inbox]
   [--body TEXT | --stdin]
   [--after EXACT_PASSAGE]
+  [--yes]
 
 arpent note dissolve <linear-id> [--yes]
 ```
 
-The extracted child can use any installed note type except fleeting. `--inbox` cannot accompany another route. A missing body defaults to the child title. Dissolution always requires an eligible source status and validated child lineage; `--yes` is required when the local confirmation mode requires approval.
+The extracted child can use any supported note type except fleeting. `--inbox` cannot accompany another route. A missing body defaults to the child title. Dissolution always requires an eligible source status and validated child lineage; `--yes` is required when the confirmation policy requires confirmation.
 
 ### Context reference
 
@@ -1462,14 +1599,24 @@ arpent context pending
   [--kind folder|note|text]
   [--path RELATIVE_PATH]
   [--json]
+  [--json-page]
+  [--limit N]
+  [--cursor TOKEN]
+  [--all]
 
 arpent context show <path> [--level l0|l1|l2]
+  [--json-page]
+  [--limit N]
+  [--max-bytes N]
+  [--cursor TOKEN]
+  [--full]
 
 arpent context set <path>
   (--summary TEXT | --stdin)
   --source-hash HASH
   [--provider ID]
   [--force]
+  [--yes]
 ```
 
 `pending` lists missing or stale L1 summaries and can filter by exact kind or path prefix. `show` defaults to L0; L2 returns full source text, direct folder-child JSON, or metadata for unsupported files. `set` defaults the provider to `agent`, rejects empty input and stale hashes, and requires `--force` to replace a fresh summary.
@@ -1482,8 +1629,8 @@ Todo commands require full mode.
 arpent todo add <content>
   [--priority KEY]
   [--status active|waiting|done]
-  [--due dd-mm-yyyy]
-  [--do dd-mm-yyyy]
+  [--due dd-MM-YYYY-HH-mm]
+  [--do dd-MM-YYYY-HH-mm]
   [--duration KEY]
   [--project ID]
   [--depends-on ID]
@@ -1491,24 +1638,31 @@ arpent todo add <content>
   [--frequency KEY]
   [--list-order KEY]
   [--assignee ID]
+  [--dry-run]
+  [--plan-hash HASH]
+  [--json]
 
 arpent todo list
   [--status active|waiting|done]
   [--include-archived]
   [--json]
+  [--json-page]
+  [--limit N]
+  [--cursor TOKEN]
+  [--all]
 
 arpent todo show <id> [--json]
 ```
 
-Dates are strict calendar dates in `dd-mm-yyyy` form. Priority, duration, project, dependency, frequency, ordering, and assignee are non-empty free-form keys or soft references. `todo list` defaults to active and waiting items; ask explicitly for done or archived records.
+Due/do values are strict UTC timestamps in `dd-MM-YYYY-HH-mm` form. Priority, duration, project, dependency, frequency, ordering, and assignee are non-empty free-form keys or soft references. `todo list` defaults to active and waiting items; ask explicitly for done or archived records.
 
 ```text
 arpent todo edit <id>
   [--content TEXT]
   [--priority KEY | --clear-priority]
   [--status active|waiting|done]
-  [--due dd-mm-yyyy | --clear-due]
-  [--do dd-mm-yyyy | --clear-do]
+  [--due dd-MM-YYYY-HH-mm | --clear-due]
+  [--do dd-MM-YYYY-HH-mm | --clear-do]
   [--duration KEY | --clear-duration]
   [--project ID | --clear-project]
   [--depends-on ID | --clear-dependency]
@@ -1516,14 +1670,15 @@ arpent todo edit <id>
   [--frequency KEY | --clear-frequency]
   [--list-order KEY | --clear-list-order]
   [--assignee ID | --clear-assignee]
+  [--yes]
 
-arpent todo done <id>
-arpent todo defer <id> --to dd-mm-yyyy
-arpent todo block <id> --on <object-id>
-arpent todo archive <id>
+arpent todo done <id> [--yes]
+arpent todo defer <id> --to dd-MM-YYYY-HH-mm [--yes]
+arpent todo block <id> --on <object-id> [--yes]
+arpent todo archive <id> [--yes]
 ```
 
-Content edits rename the Markdown trace. Dependencies may reference any object ID except the task itself. `block` sets both dependency and waiting state. `defer` changes the do date, not the due date. Todo schema validation is strict; Arpent refuses foreign, incomplete, obsolete, or manually altered database layouts rather than attempting an implicit migration.
+Content edits rename the Markdown trace. Dependencies may reference any object ID except the task itself. `block` sets both dependency and waiting state. `defer` changes the do timestamp, not the due timestamp. Todo schema validation is strict and refuses foreign, incomplete, or manually altered layouts.
 
 ### Session reference
 
@@ -1537,9 +1692,12 @@ arpent session end
   [--memory-log]
   [--observation TEXT ...]
   [--trait TEXT ...]
+  [--yes]
 ```
 
-Decision, next-step, observation, and trait flags are repeatable. Project and area are independently optional, but a no-target close requires `--memory-log` or full-mode observation/trait queue writes. Target context is the default transaction-journaled continuity sink in both modes. `--memory-log` explicitly creates or updates the optional log for that invocation; agents must not read it later without user opt-in. Observation/trait queue writes are full-only; minimal mode rejects those flags before mutation.
+Decision, next-step, observation, and trait flags are repeatable in full. Target
+context is the default transaction-journaled full-mode sink. Minimal updates the
+target `_context.md` directly and does not operate delegated queues.
 
 ### Tools, sweep, and cron reference
 
@@ -1549,10 +1707,10 @@ These groups require full mode.
 arpent tools list [--category VALUE] [--status VALUE]
 arpent tools show <name>
 
-arpent sweep ephemeral [--dry-run]
+arpent sweep ephemeral [--dry-run] [--yes]
 arpent sweep status [--json]
 
-arpent cron run --tick [--dry-run] [--allow-local-code]
+arpent cron run --tick [--dry-run] [--allow-local-code] [--yes]
 ```
 
 `sweep status` reads the latest valid summary event and tolerates malformed prior JSONL lines. Sweep failures are reported as partial results and return nonzero. Real cron dispatch requires `--allow-local-code`; dry-run does not.
@@ -1560,16 +1718,17 @@ arpent cron run --tick [--dry-run] [--allow-local-code]
 ### Backup reference
 
 ```text
-arpent backup [--destination DIRECTORY]
+arpent backup [--destination DIRECTORY] [--yes]
 arpent backup verify <snapshot>
-arpent backup restore <snapshot> --to <new-directory>
+arpent backup restore <snapshot> --to <new-directory> [--yes]
 ```
 
 The default parent is `06_indexes/backup/`. A custom destination may be outside the vault but cannot be another arbitrary directory inside it. Creation and restore publish atomically from staging. Verification checks the manifest checksum and structure, exact payload membership, file sizes and SHA-256 hashes, safe paths, symlink shape, and SQLite integrity.
 
 ### Placeholder commands
 
-The following parsers exist so planned command names fail clearly, but the tools are not installed:
+The following parsers are unavailable placeholders that fail clearly. Their
+presence does not set `status: installed` or make a capability available:
 
 ```text
 arpent fleeting [args...]
@@ -1588,8 +1747,8 @@ is the implemented migration-specific review flow.
 
 | Operation | Important write behavior |
 |---|---|
-| Any parsed vault-scoped command when a vault is known | Best-effort append of a privacy-allowlisted v2 success or failure event to `06_indexes/logs/usage.log` |
-| `note edit --dry-run` or `note ingest --dry-run` | Leaves domain files unchanged but can append usage/lock state |
+| Any telemetry-eligible full-mode vault command, plus `init` and `mode` | Best-effort append of a privacy-allowlisted success or failure event to `06_indexes/logs/usage.log` |
+| `note new/edit/ingest --dry-run` or `todo add --dry-run` | Leaves domain files unchanged but can append usage/lock state; todo creation preview does not create `todo.db` |
 | `import scan` | Writes the requested plan and unique sibling inventory; never changes source files; normal non-overlapping vault telemetry may append |
 | `import suggest/review` | Rewrites only the plan; never changes source files; normal non-overlapping vault telemetry may append |
 | `import apply --dry-run` | Leaves import destinations and resumable state unchanged; vault-scoped usage telemetry may still append |
@@ -1597,17 +1756,20 @@ is the implemented migration-specific review flow.
 | `todo list` or `todo show` on first use | May create and validate `todo.db` |
 | `index` | Replaces generated inventory, sidecar, search, and context outputs |
 | `context set` | Updates `context_index.json` |
-| `cron --dry-run` | Can emit configured notification/audit output |
-| `sweep --dry-run` | Writes sweep log, usage, lock state, and summary |
+| `cron run --tick --dry-run` | Can emit configured notification/audit output |
+| `sweep ephemeral --dry-run` | Writes sweep log, usage, lock state, and summary |
 | `backup` | Creates a snapshot and temporary staging state |
 
-The CLI reads `confirmation.mode` and `bulk_threshold` from the vault operation
-contract. `always` requires reviewed plans or `--yes`; `explicit-intent` runs
-bounded targeted commands directly but confirms high-impact and threshold-sized
-work; `never` skips the second approval. Validation, stale-plan, collision,
-confinement, and no-overwrite checks remain active in every mode. `import review`
+The CLI reads `confirmation.policy` and `bulk_threshold` from the vault operation
+contract. `always` requires a preview-bound plan or `--yes` for every registered
+domain change; `explicit-intent` runs bounded commands directly but confirms
+high-impact and threshold-sized work; `never` skips additional confirmation.
+Validation, stale-plan, collision, confinement, and no-overwrite checks remain
+active under every policy. Direct CLI invocation is presumed explicit and
+bounded; agents establish that condition before invoking it. `import review`
 still asks semantic folder-placement questions because those are clarifications,
-not confirmation prompts.
+not confirmation prompts. Fresh contracts use `explicit-intent` with a
+`bulk_threshold` of `5`.
 
 ## Roadmap
 

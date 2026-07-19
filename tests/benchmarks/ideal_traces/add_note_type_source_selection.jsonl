@@ -1,0 +1,9 @@
+{"schema_version":1,"type":"trace","scenario_id":"add_note_type_source_selection","provider_usage":null}
+{"type":"request","content":"SYSTEM: For product changes, inspect complete authoritative documents and implementation together.\nUSER: I want to add a new note type called hypothesis. Inspect the authoritative files that would need coordinated changes and report the change surface; do not edit anything."}
+{"type":"read","path":"SKILL.md"}
+{"type":"read","path":"references/appendices/complete-reference-index.md"}
+{"type":"read","path":"references/frontmatter.md"}
+{"type":"read","path":"scripts/operations.yaml"}
+{"type":"read","path":"scripts/frontmatter.py"}
+{"type":"read","path":"tests/tests/test_capture_contract.py"}
+{"type":"final","text":"The change starts in packaged `scripts/operations.yaml`, where `routing.types` is authoritative for accepted note types and any default or route override belongs beside it. `references/frontmatter.md` defines the complete type and validation contract; `scripts/frontmatter.py` shows canonical parsing and serialization assumptions. The CLI validation and routing consumers must be traced from that registry, and `tests/tests/test_capture_contract.py` plus routing/CLI tests need acceptance, rejection, serialization, and destination cases. Installed vault registries are mirrors or overlays, not the primary edit. No files were changed."}

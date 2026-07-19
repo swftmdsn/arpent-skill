@@ -33,5 +33,5 @@ quarterly archives.
 - `todo.db` stores structured fields; Markdown preserves a readable trace.
 - Selection values are configurable text keys, not hard-coded enums.
 - Project, dependency, and assignee fields are stable soft references.
-- Dates use `dd-mm-yyyy`; creation timestamps are automatic and immutable.
+- Due/do timestamps use `dd-MM-YYYY-HH-mm` UTC; creation timestamps are automatic and immutable.
 - Todo records are tool-owned and must be changed through `arpent todo`.

@@ -11,7 +11,7 @@ from . import frontmatter
 from . import notes
 from . import projects
 from . import routing
-from .vault import MINIMAL_SCAFFOLD, SCAFFOLD
+from .vault import SCAFFOLD
 
 
 SECTIONS = ("areas", "resources", "projects")
@@ -55,11 +55,7 @@ def apply_structure(vault, structure: dict) -> dict:
     }
     with vault.exclusive_lock("mutations"):
         vault.refuse_foreign_transactions()
-        preflight_structure(
-            vault.root,
-            structure,
-            minimal=vault.marker_data()["mode"] == "minimal",
-        )
+        preflight_structure(vault.root, structure)
         for section, bucket in (("areas", "02_areas"), ("resources", "03_resources")):
             for item in structure[section]:
                 relpath = f"{bucket}/{item['slug']}"
@@ -86,10 +82,10 @@ def apply_structure(vault, structure: dict) -> dict:
     return results
 
 
-def preflight_structure(root: Path, structure: dict, *, minimal: bool) -> None:
+def preflight_structure(root: Path, structure: dict) -> None:
     """Validate destinations and Area references without changing the target."""
     root = Path(root)
-    scaffold = MINIMAL_SCAFFOLD if minimal else SCAFFOLD
+    scaffold = SCAFFOLD
     available_areas = {
         Path(relpath).name
         for relpath in scaffold

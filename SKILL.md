@@ -5,22 +5,26 @@ description: Operate an Arpent vault for typed capture, todo, retrieval, routing
 
 # Arpent
 
-Arpent is a filesystem-native personal operating system. Markdown is canonical;
-the CLI adds deterministic routing, transactions, SQLite-backed tools, indexes,
-and recovery. Operate with the smallest sufficient context.
+Arpent is a filesystem-native personal operating system. Markdown is canonical.
+Minimal uses direct-file operation; full uses CLI-mediated routing,
+transactions, SQLite-backed tools, indexes, and recovery. Operate with the
+smallest sufficient context.
 
 ## Start
 
-1. Read `references/workflows/COMPASS.md` only when the operation is not already
+1. Locate the vault and read its small `.arpent` marker before choosing how to act.
+2. Read `references/workflows/COMPASS.md` only when the operation is not already
    clear from the hot paths below.
-2. Locate a vault only when reading or changing vault state.
-3. With the CLI, let the command apply and report the local confirmation policy.
-   In filesystem mode, or before planning a batch, read it from
-   `06_indexes/cli/operations.yaml`. An older contract without the section uses
-   `always`.
-4. Use `references/adapters/cli.md` when the CLI is available; otherwise use
-   `references/adapters/filesystem.md`.
-5. Load one detailed workflow or contract only when the operation needs it.
+3. In full mode, let the command apply and report the local confirmation policy.
+   In minimal mode, or before planning a batch, read it from
+   `06_indexes/cli/operations.yaml`.
+4. Read `references/modes/full.md` in full mode or
+   `references/modes/minimal.md` in minimal mode.
+5. If a minimal marker sets `auto_full: true`, the first mode-gated CLI command
+   requests guarded vault-mode promotion. When the confirmation policy requires
+   it, run `arpent mode full --yes` first. An explicit return to minimal cancels
+   the pending request.
+6. Load one detailed workflow or contract only when the operation needs it.
 
 Do not read the root README, complete architecture, full COMPASS, or all
 references for an ordinary capture.
@@ -53,7 +57,7 @@ arpent note new <same arguments> --dry-run --json
 arpent note new <same arguments> --plan-hash <plan_sha256> --json
 ```
 
-Filesystem capture: build complete canonical frontmatter, compute the route,
+Minimal capture: build complete canonical frontmatter, compute the route,
 create without replacement, then read back and verify. Detailed procedure:
 `references/workflows/capture-note.md`.
 
@@ -67,9 +71,10 @@ assignee.
 arpent todo add <content> [options] --json
 ```
 
-Use `--dry-run --json` then `--plan-hash` when policy requires review. Todo's
-coordinated SQLite and Markdown state uses the CLI. Without it, offer an ordinary
-inbox capture and identify it as untracked. Detailed procedure:
+Use `--dry-run --json` then `--plan-hash` when the confirmation policy requires
+a second checkpoint. Todo's coordinated SQLite and Markdown state requires full
+mode. In minimal mode, offer
+an ordinary inbox capture and identify it as untracked. Detailed procedure:
 `references/workflows/capture-todo.md`.
 
 ### Fleeting
@@ -81,7 +86,7 @@ arpent note new <text> --type fleeting --json
 ```
 
 The stream lives at `00_inbox/fleeting/dd-mm-yyyy.md`, with `## HH:MM` entries
-and no per-entry frontmatter or ID. In filesystem mode, preserve the existing
+and no per-entry frontmatter or ID. In minimal mode, preserve the existing
 daily file and append one verified block. Detailed procedure:
 `references/workflows/capture-fleeting.md`.
 
@@ -89,14 +94,19 @@ daily file and append one verified block. Detailed procedure:
 
 The local `confirmation` contract supports:
 
-| Mode | Behavior |
+| Policy | Behavior |
 |---|---|
-| `always` | Require approval before every mutation; use a structured plan when available. |
-| `explicit-intent` | Execute an explicit bounded request directly; confirm high-impact operations, expanded side effects, and batches at or above `bulk_threshold`. |
-| `never` | Never ask for a second approval; keep every technical validation and safety check. |
+| `always` | Require confirmation before every registered domain change; use a structured preview when available. |
+| `explicit-intent` | Execute an explicit bounded request directly; confirm high-impact operations and batches at or above `bulk_threshold`. |
+| `never` | Never ask for additional confirmation; keep every technical validation and safety check. |
 
 Clarification is not confirmation. Ask for missing meaning when needed. In
 `never`, do not pause merely to restate a valid plan.
+
+A direct CLI invocation is presumed to express a bounded request. Agents must
+establish that intent before invoking it; the CLI does not infer intent from
+natural language. A preview supports inspection, and a plan hash binds an exact
+generated plan, but neither proves human review nor grants permission.
 
 ## Other Operations
 
@@ -111,7 +121,8 @@ Clarification is not confirmation. Ask for missing meaning when needed. In
 | Search, index, or use L0/L1/L2 | `references/indexing-and-context.md` |
 | Tools, cron, sweep, backup | `references/tools-and-cron.md` |
 | Decide vault vs memory | `references/memory-layers.md` |
-| Operate without CLI | `references/adapters/filesystem.md` |
+| Operate in minimal mode | `references/modes/minimal.md` |
+| Operate in full mode | `references/modes/full.md` |
 | Change Arpent itself or study every edge case | `references/appendices/complete-reference-index.md` |
 
 ## Writing Rules
@@ -131,7 +142,8 @@ Clarification is not confirmation. Ask for missing meaning when needed. In
 - Use complete canonical frontmatter for every ordinary note.
 - Never fill `appreciated` or `importance`; `pinned` defaults to `false`.
 - Never infer missing effort cadence or level.
-- Dates use `dd-mm-yyyy`; note timestamps use `dd-mm-yyyyTHH:MM:SSZ` UTC.
+- Public timestamps use `dd-MM-YYYY-HH-mm` in UTC. The daily fleeting filename
+  remains the explicit date-only exception.
 - Titles and filenames use lowercase ASCII `snake_case`; IDs remain metadata.
 - Use only declared relation types.
 - Preserve IDs, creation dates, user-owned fields, and body sections on edits.
@@ -145,10 +157,12 @@ The full field order and policies are in
 - Never silently choose between plausible destinations.
 - Never invent a missing project, area, resource, field, relation type, memory
   destination, or successful side effect.
-- Never bypass the CLI for a coordinated operation when it is available.
+- Never replace a CLI-mediated full-mode operation with direct file mutation.
 - Keep binary files byte-for-byte intact and use separate Markdown companions.
 - Keep tool know-how in `06_indexes/`; `05_tools/` is runtime material only.
-- External memory is disabled until the user explicitly enables a host provider.
+- Minimal mode keeps user-provided orientation in `me.md`, working state in
+  `_context.md`, and durable readable information in notes. Full-mode external
+  memory remains disabled until provider opt-in at the host level.
 - `me.md` is human-owned; do not rewrite it from inference.
 
 ## Output Discipline

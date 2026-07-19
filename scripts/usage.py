@@ -110,13 +110,19 @@ def append_usage(
         if session_id and re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", session_id):
             event["session_id"] = session_id
 
-        path = vault.safe_output_path(USAGE_RELPATH)
-        line = json.dumps(event, sort_keys=True, separators=(",", ":")) + "\n"
-        with vault.exclusive_lock("usage"):
-            with path.open("a", encoding="utf-8") as stream:
-                stream.write(line)
-                stream.flush()
-                os.fsync(stream.fileno())
+        with vault.shared_lock("mode"):
+            if (
+                vault.marker_data()["mode"] == "minimal"
+                and getattr(args, "command", None) != "mode"
+            ):
+                return
+            path = vault.safe_output_path(USAGE_RELPATH)
+            line = json.dumps(event, sort_keys=True, separators=(",", ":")) + "\n"
+            with vault.exclusive_lock("usage"):
+                with path.open("a", encoding="utf-8") as stream:
+                    stream.write(line)
+                    stream.flush()
+                    os.fsync(stream.fileno())
     except BaseException:
         return
 
@@ -349,17 +355,14 @@ def parse_since(value) -> datetime:
     elif isinstance(value, date):
         parsed = datetime.combine(value, datetime_time.min, tzinfo=timezone.utc)
     elif isinstance(value, str):
-        text = value.strip()
-        for pattern in ("%d-%m-%Y", "%d-%m-%YT%H:%M:%SZ"):
-            try:
-                parsed = datetime.strptime(text, pattern).replace(tzinfo=timezone.utc)
-                break
-            except ValueError:
-                continue
-        else:
-            raise ValueError("--since must use dd-mm-yyyy or dd-mm-yyyyTHH:MM:SSZ")
+        try:
+            parsed = fmlib.parse_note_timestamp(value)
+        except ValueError as exc:
+            raise ValueError(
+                f"--since must use {fmlib.NOTE_TIMESTAMP_LABEL} (UTC)"
+            ) from exc
     else:
-        raise ValueError("--since must use dd-mm-yyyy or dd-mm-yyyyTHH:MM:SSZ")
+        raise ValueError(f"--since must use {fmlib.NOTE_TIMESTAMP_LABEL} (UTC)")
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
@@ -369,6 +372,12 @@ def _usage_root(args) -> Path | None:
     if getattr(args, "command", None) == "init":
         return Path(args.path).expanduser().resolve()
     vault = Vault.find()
+    if (
+        vault
+        and vault.marker_data()["mode"] == "minimal"
+        and getattr(args, "command", None) != "mode"
+    ):
+        return None
     if vault and getattr(args, "command", None) == "import":
         try:
             if getattr(args, "import_cmd", None) == "scan":
@@ -401,6 +410,7 @@ def _command_name(args) -> str:
     for attr in (
         "note_cmd", "project_cmd", "context_cmd", "backup_cmd", "session_cmd",
         "tools_cmd", "cron_cmd", "sweep_cmd", "todo_cmd", "usage_cmd", "import_cmd",
+        "mode_cmd",
     ):
         value = getattr(args, attr, None)
         if value:

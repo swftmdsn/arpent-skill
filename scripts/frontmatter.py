@@ -40,6 +40,8 @@ KEY_ORDER = [
 ]
 
 RELATION_TYPES = ["supports", "contradicts", "depends_on", "derived_from", "example_of"]
+NOTE_TIMESTAMP_FORMAT = "%d-%m-%Y-%H-%M"
+NOTE_TIMESTAMP_LABEL = "dd-MM-YYYY-HH-mm"
 
 
 def now_iso() -> str:
@@ -48,10 +50,10 @@ def now_iso() -> str:
 
 
 def format_note_timestamp(value: datetime) -> str:
-    """Format a user-facing note timestamp with the date written day-first."""
+    """Format a user-facing note timestamp at UTC minute precision."""
     if value.tzinfo is None:
         raise ValueError("note timestamp must include a timezone")
-    return value.astimezone(timezone.utc).strftime("%d-%m-%YT%H:%M:%SZ")
+    return value.astimezone(timezone.utc).strftime(NOTE_TIMESTAMP_FORMAT)
 
 
 def now_note_timestamp() -> str:
@@ -64,7 +66,7 @@ def parse_note_timestamp(value: str) -> datetime:
     if not isinstance(value, str) or not value.strip():
         raise ValueError("note timestamp must be a non-empty string")
     text = value.strip()
-    for pattern in ("%d-%m-%YT%H:%M:%SZ", "%d-%m-%Y"):
+    for pattern in (NOTE_TIMESTAMP_FORMAT, "%d-%m-%YT%H:%M:%SZ", "%d-%m-%Y"):
         try:
             parsed = datetime.strptime(text, pattern).replace(tzinfo=timezone.utc)
             break

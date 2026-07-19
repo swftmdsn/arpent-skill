@@ -11,7 +11,7 @@ indexes, and harness-specific configuration.
 | Arpent tool control plane | `06_indexes/` | Skills, CLI contracts, schemas, migrations, registry, documentation, and databases |
 | Tool runtime material | `05_tools/` or the relevant area | Declared artifacts, queues, captures, caches, outputs, and user content |
 | Discovery registry | `06_indexes/agent_infrastructure_index.yaml` | IDs, paths, and relations between portable definitions |
-| Vault tool registry | `06_indexes/tools.yaml` | Installed Arpent sub-tools only |
+| Vault tool registry | `06_indexes/tools.yaml` | Declared Arpent tools and their `planned` or `installed` status |
 | Harness configuration | Outside the vault or generated from portable definitions | OpenCode, Claude Code, or other harness-specific activation |
 | Secrets | Environment, keychain, or secret manager | Credentials and private tokens; never committed to the vault |
 
@@ -41,10 +41,15 @@ standard sections are `Trigger`, `Input`, `Steps`, `Output`, and `Method`.
 
 ### Capability
 
-`capabilities/<id>/CAPABILITY.yaml` declares a means of action available to an
-agent. Supported kinds are `cli`, `mcp`, `api`, and `plugin`. A declaration may
-contain a public endpoint, command name, or harness configuration reference,
-but never a credential value.
+`capabilities/<id>/CAPABILITY.yaml` declares a means of action an agent may use.
+Supported kinds are `cli`, `mcp`, `api`, and `plugin`. A declaration may contain
+a public endpoint, command name, or harness configuration reference, but never
+a credential value.
+
+A declaration makes a capability discoverable, not available. Runtime
+availability additionally requires an implementation, a vault mode that permits
+use, satisfied dependencies, and host configuration or enablement where
+applicable. Unavailable declarations remain retained and dormant.
 
 Capabilities and the index are complementary:
 

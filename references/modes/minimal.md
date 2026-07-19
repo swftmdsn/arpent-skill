@@ -1,8 +1,9 @@
-# Filesystem adapter
+# Minimal mode
 
-Filesystem mode is the transparent Arpent path: inspect and manipulate the
+Minimal mode is Arpent's direct-file path: inspect and manipulate the
 canonical Markdown tree directly while preserving typing, categories, routing,
-frontmatter, and visible uncertainty.
+frontmatter, and visible uncertainty. Mode-gated CLI commands require vault-mode
+promotion before they can run.
 
 ## Everyday operations
 
@@ -26,12 +27,18 @@ frontmatter, and visible uncertainty.
 7. Read back the result and verify path, frontmatter, and body.
 8. Leave generated indexes alone; they can be rebuilt from canonical files.
 
+For ordinary capture, load `../contracts/frontmatter.md`,
+`../contracts/routing.md`, and `../contracts/provenance-and-body.md`. A copied
+zero-install vault uses its local `06_indexes/schemas/frontmatter_policy.yaml`
+and `06_indexes/cli/operations.yaml` instead. Generate IDs as
+`<type>-<UTC YYYYMMDD>-<a..z,aa..>` after scanning every existing frontmatter ID.
+
 For an operation that depends on coordinated database or multi-file state, say:
 
-> Attention: this feature is not supported in filesystem mode because it needs
+> Attention: this feature is not supported in minimal mode because it needs
 > coordinated database or multi-file state. The current files remain readable
-> and unchanged; use the CLI adapter for that operation.
+> and unchanged; switch the vault to full mode for that operation.
 
-This message describes an execution boundary, not a failed attempt. Continue to
-offer the useful filesystem actions that remain available, such as capture,
+This message describes a mode boundary, not a failed attempt. Continue to offer
+the useful direct-file actions that remain available, such as capture,
 reading, searching, routing, or preserving the source in inbox.

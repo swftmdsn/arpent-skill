@@ -1,0 +1,9 @@
+{"schema_version":1,"type":"trace","scenario_id":"cold_global_comprehension","provider_usage":null}
+{"type":"request","content":"SYSTEM: Follow Arpent's loaded operating contract and inspect only authoritative context.\nUSER: Read Arpent globally and explain its architecture, operating modes, source-of-truth boundaries, and memory boundary before recommending where to start."}
+{"type":"read","path":"SKILL.md"}
+{"type":"read","path":"references/appendices/complete-reference-index.md"}
+{"type":"read","path":"references/architecture.md"}
+{"type":"read","path":"references/memory-layers.md"}
+{"type":"claim","text":"Arpent is filesystem-native and keeps Markdown as its durable source of truth."}
+{"type":"claim","text":"Minimal mode uses direct-file operation; full mode uses CLI-mediated operation."}
+{"type":"final","text":"Arpent is a filesystem-native continuity layer: canonical Markdown and original attachments are the durable source of truth, while indexes and most databases are rebuildable or coordinated derivatives. Minimal uses direct-file operation on the same typed vault; full uses CLI-mediated locking, routing, transactions, search, todo state, import, and recovery. The agent layer interprets intent but does not own the data. Optional external memory has a separate provider opt-in boundary and is not automatic recall infrastructure. Start with the compact skill and vault marker for ordinary work, then load only the operation-specific contract; use the complete reference index plus implementation when changing Arpent itself."}

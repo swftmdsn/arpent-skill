@@ -11,7 +11,7 @@
 | `conversation` | `null` or a session identifier |
 | `derived` | `null` |
 
-The CLI reports mismatches as warnings. Filesystem mode surfaces the same
+Full mode reports mismatches as warnings. Minimal mode surfaces the same
 warning before writing. Captured material without an external URL should use a
 source value that describes its actual origin rather than a fabricated link.
 

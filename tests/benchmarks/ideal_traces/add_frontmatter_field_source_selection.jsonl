@@ -1,0 +1,9 @@
+{"schema_version":1,"type":"trace","scenario_id":"add_frontmatter_field_source_selection","provider_usage":null}
+{"type":"request","content":"SYSTEM: For product changes, inspect complete authoritative documents and implementation together.\nUSER: I want to add a universal frontmatter field named confidence. Inspect the authoritative contract, implementation, and tests and explain the coordinated change surface; do not edit yet."}
+{"type":"read","path":"SKILL.md"}
+{"type":"read","path":"references/appendices/complete-reference-index.md"}
+{"type":"read","path":"references/frontmatter.md"}
+{"type":"read","path":"references/contracts/frontmatter.md"}
+{"type":"read","path":"scripts/frontmatter.py"}
+{"type":"read","path":"tests/tests/test_capture_contract.py"}
+{"type":"final","text":"Universal frontmatter is a closed schema, so this is a coordinated contract change rather than a template-only addition. Update the complete policy in `references/frontmatter.md` and its compact contract, then add `confidence` in the intended canonical order in `scripts/frontmatter.py` `KEY_ORDER` and every validation/default construction path. Verify parser and serializer round trips, unknown-key behavior, edits, ingestion, project context, and canonical output in capture-contract and CLI tests. Generated or seeded policy copies should follow the authoritative implementation instead of leading it. No files were changed."}

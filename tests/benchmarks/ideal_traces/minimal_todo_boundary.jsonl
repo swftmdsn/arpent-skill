@@ -1,0 +1,7 @@
+{"schema_version":1,"type":"trace","scenario_id":"minimal_todo_boundary","provider_usage":null}
+{"type":"request","content":"SYSTEM: Respect coordinated-state boundaries in a minimal Arpent vault.\nUSER: Add a tracked todo in this minimal vault: renew the insurance policy."}
+{"type":"read","path":".arpent"}
+{"type":"read","path":"SKILL.md"}
+{"type":"read","path":"references/workflows/capture-todo.md"}
+{"type":"read","path":"references/modes/minimal.md"}
+{"type":"final","text":"Attention: this feature is not supported in minimal mode because it needs coordinated database or multi-file state. The current files remain readable and unchanged; switch the vault to full mode for a tracked todo. I can instead preserve “renew the insurance policy” as an untracked inbox note if easy capture is the priority."}

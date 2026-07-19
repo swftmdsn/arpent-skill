@@ -110,7 +110,7 @@ Interactive `review` asks for each uncovered folder role, destination name, and
 optional contextual Area for projects. `apply` follows the vault confirmation
 policy. Under `always` or `explicit-intent`, import is high-impact and requires
 the reviewed apply boundary. Under `never`, it proceeds without a second
-approval. A reviewed non-interactive application uses:
+confirmation. A reviewed non-interactive application uses:
 
 ```bash
 arpent import apply legacy-plan.json --yes
@@ -158,7 +158,8 @@ migration strategy.
 - Partial failures are reported honestly and return a nonzero CLI status.
 - No external AI provider or format-specific connector is used.
 
-The import pipeline is available in full and minimal vaults. It does not rewrite
+The coordinated import pipeline is full-only. Minimal preserves external sources
+and may capture individual files without claiming a transaction. Import does not rewrite
 links between imported documents, preserve arbitrary source folder trees as vault
 folders, infer subjective frontmatter, or provide Obsidian/Notion/application
 connectors in this phase.

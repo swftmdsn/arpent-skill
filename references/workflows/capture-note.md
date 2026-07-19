@@ -4,8 +4,8 @@
 
 Use for readable knowledge: a thought, idea, meeting, source, journal entry,
 reference, observation, draft, concept, integration, map, or production.
-Actions belong in todo; durable facts or traits belong only in explicitly
-enabled host memory.
+Actions belong in todo in full mode. In minimal, user-provided orientation belongs in
+`me.md`, work state in `_context.md`, and durable readable material in notes.
 
 ## Decide
 
@@ -19,7 +19,7 @@ enabled host memory.
    otherwise use the provenance table in
    `../contracts/provenance-and-body.md`.
 
-## CLI path
+## Full path
 
 For an explicit bounded capture under `explicit-intent`, or any capture under
 `never`, create directly:
@@ -28,7 +28,7 @@ For an explicit bounded capture under `explicit-intent`, or any capture under
 arpent note new <title> --type <type> [routing/provenance options] --body <body> --json
 ```
 
-When policy requires review:
+When the confirmation policy requires a second checkpoint:
 
 ```text
 arpent note new <same arguments> --dry-run --json
@@ -36,12 +36,13 @@ arpent note new <same arguments> --plan-hash <plan_sha256> --json
 ```
 
 Present the returned frontmatter, destination, warnings, and side effects once.
-The plan binds the durable ID, semantic metadata, body hash, and destination;
-`apply_generated_fields` identifies timestamps assigned by the transaction and
-returned in the final result. Do not reconstruct defaults manually and do not
-reread the created note merely to verify it.
+The plan hash binds the durable ID, semantic metadata, body hash, and
+destination; it does not prove human review. `apply_generated_fields` identifies
+timestamps assigned by the transaction and returned in the final result. Do not
+reconstruct defaults manually and do not reread the created note merely to
+verify it.
 
-## Filesystem path
+## Minimal path
 
 1. Read the complete frontmatter and routing contracts.
 2. Build all canonical fields in canonical order.

@@ -7,8 +7,8 @@ Every vault note follows the universal frontmatter contract in:
 Rules:
 
 - Same fields, same order.
-- Dates use `dd-mm-yyyy`; note-facing UTC timestamps use `dd-mm-yyyyTHH:MM:SSZ`. Legacy ISO timestamps remain readable during migration.
-- Note language is governed by the primary/adaptive settings in the installed Arpent skill, not by a frontmatter field.
+- Public timestamps use `dd-MM-YYYY-HH-mm` in UTC. Legacy day-first and ISO timestamps remain readable during migration.
+- Note language is governed by the primary/adaptive settings in the vault-local Arpent skill, not by a frontmatter field.
 - The schema is closed during normal use. Unsupported per-project fields are rejected. Users may freely add/reorder body sections and create project files/subfolders. Extending the schema requires coordinated canonical schema, order, validation, policy, documentation, and test changes.
 - `project` and `resource` are mutually exclusive homes; `area` may accompany either as context.
 - `appreciated` and `importance` are user-only.

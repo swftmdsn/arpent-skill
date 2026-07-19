@@ -13,10 +13,11 @@ explanations, examples, edge cases, and design rationale:
 | Lifecycle, archive, linear notes, sessions | `../lifecycle.md` |
 | Indexing and L0/L1/L2 context | `../indexing-and-context.md` |
 | CLI tools, cron, sweep, backup | `../tools-and-cron.md` |
-| Direct filesystem operation and ingestion | `../ingestion-and-degraded-mode.md` |
+| Main CLI command cheatsheet | `../cheatsheet.md` |
+| Minimal direct-file operation and ingestion | `../minimal-mode.md` |
 | External import and migration | `../import-and-migration.md` |
 | Current product surface and examples | `../../README.md` |
-| Complete installed runtime router | `../../scripts/COMPASS.md` |
+| Historical complete-router rationale | `complete-COMPASS.md` |
 | Orchestration summary | `../arpent-use.md` |
 | CLI/filesystem capability comparison | `../assurance/capability-matrix.md` |
 

@@ -2,33 +2,34 @@
 
 Read this file completely. Then load only what the current operation needs.
 
-## Operation loading
+## Start
 
-1. If an Arpent host skill is already active, do not reload the local skill.
-2. For ordinary note, todo, or fleeting capture, use the active skill's hot path.
-3. Otherwise read `COMPASS.md` to select one workflow.
-4. Read `me.md` for user interaction preferences and when resuming work.
-5. On resume, read the target `_context.md`, then only needed notes/sources.
-6. Read detailed docs or schema files only for a relevant edge case.
+1. Read the small `.arpent` marker.
+2. If an Arpent host skill is active, do not reload the local skill.
+3. Otherwise read `06_indexes/global_skills/arpent.skill.md`.
+4. Use the active skill's hot path for ordinary note, todo, or fleeting capture.
+5. Read `COMPASS.md` only to select a less common operation.
+6. Read `me.md` for interaction preferences and when resuming work.
+7. On resume, read target `_context.md`, then only needed notes or sources.
 
-The local confirmation mode and batch threshold live in
-`06_indexes/cli/operations.yaml`. The modes are `always`, `explicit-intent`, and
-`never`. Clarification remains separate from confirmation.
+In `minimal`, use direct-file operations; mode-gated CLI commands require
+vault-mode promotion. In `full`, use CLI-mediated vault operations. If
+`auto_full` is true, the first mode-gated command requests promotion. If the
+confirmation policy requires it, run `arpent mode full --yes` first. An explicit
+return to minimal cancels the pending request.
 
-## Hard rules
+The confirmation policy lives in `06_indexes/cli/operations.yaml`.
+
+## Hard Rules
 
 - Never delete or overwrite user content. Archive.
 - Never fill `appreciated` or `importance`; do not infer effort values.
 - Never guess a missing route; use `00_inbox/unsure/` with a reason.
 - Never invent frontmatter fields, relation types, memory activation, or side effects.
-- Use the CLI for coordinated state changes when available.
-- Keep tool know-how in `06_indexes/`; `05_tools/` is runtime material.
-- Keep dates day-first and note timestamps in UTC.
+- Write public timestamps as `dd-MM-YYYY-HH-mm` in UTC.
 - Keep binary attachments untouched with separate Markdown companions.
 - Do not rewrite `me.md` from inference.
+- Skills remain retained without necessarily being loaded or executable.
 
-## Continuity
-
-`_context.md` is the default local continuity surface. `MEMORY.md` is optional,
-disabled by default, and read only after explicit user opt-in. External memory
-also requires explicit host-level opt-in.
+`_context.md` is the default local continuity surface. Minimal keeps approved
+orientation and context in files. Full-mode external memory remains opt-in.

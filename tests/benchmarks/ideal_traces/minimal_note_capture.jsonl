@@ -1,0 +1,11 @@
+{"schema_version":1,"type":"trace","scenario_id":"minimal_note_capture","provider_usage":null}
+{"type":"request","content":"SYSTEM: In minimal mode, preserve the complete filesystem contract without mode-gated CLI commands.\nUSER: In this minimal vault, capture a note titled Offline insight with body Files remain the durable source of truth."}
+{"type":"read","path":".arpent"}
+{"type":"read","path":"SKILL.md"}
+{"type":"read","path":"references/modes/minimal.md"}
+{"type":"read","path":"references/contracts/frontmatter.md"}
+{"type":"read","path":"references/contracts/routing.md"}
+{"type":"read","path":"references/contracts/provenance-and-body.md"}
+{"type":"write","path":"00_inbox/offline_insight.md","content":"---\ntitle: offline_insight\nid: note-20260719-a\ncreated: 19-07-2026T14:32:00Z\nmodified: 19-07-2026T14:32:00Z\ndescription: null\ntype: note\nproject: null\narea: null\nresource: null\nstatus: inbox\neffort_cadence: null\neffort_level: null\ntags: []\nchosen_location: null\nsource: conversation\nlink: null\nauthor: user\ndepth: null\nappreciated: null\nimportance: null\npinned: false\nexpires_at: null\nrelated: []\nrelations: []\nparent: null\nobservations: []\nextracted_to: []\n---\n\nFiles remain the durable source of truth.\n"}
+{"type":"read","path":"00_inbox/offline_insight.md"}
+{"type":"final","text":"Created `note-20260719-a` at `00_inbox/offline_insight.md`; type `note`, status `inbox`, and verified the direct-file result."}

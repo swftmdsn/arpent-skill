@@ -21,11 +21,6 @@ def end_session(vault, *, project=None, area=None, summary, decisions=None,
     next_steps = next_steps or []
     observations = observations or []
     traits = traits or []
-    mode = vault.marker_data()["mode"]
-    if mode == "minimal" and (observations or traits):
-        raise ValueError(
-            "--observation and --trait require a full vault with delegated-memory queues"
-        )
     if not project and not area and not memory_log and not observations and not traits:
         raise ValueError(
             "session end needs --project or --area; use --memory-log only when the "

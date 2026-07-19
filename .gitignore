@@ -15,5 +15,3 @@ __pycache__/
 # Local-only directories
 /build/
 /development/*
-!/development/MANIFEST.md
-!/development/token-consumption-before-after.md

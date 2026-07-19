@@ -1219,6 +1219,13 @@ def archive_note(vault: Vault, note_id: str):
 def validate_frontmatter_values(fm: dict) -> None:
     """Validate enum fields that can be edited after note creation."""
     _reject_unsupported_frontmatter_fields(fm)
+    for field in ("created", "modified", "expires_at", "archived_at"):
+        value = fm.get(field)
+        if value is not None:
+            try:
+                fmlib.parse_note_timestamp(value)
+            except ValueError as exc:
+                raise ValueError(f"{field} must be a valid UTC timestamp") from exc
     if fm.get("type") not in routing.TYPES:
         raise ValueError(f"unknown type '{fm.get('type')}'. Valid: {', '.join(routing.TYPES)}")
     if fm.get("status") not in routing.STATUSES:

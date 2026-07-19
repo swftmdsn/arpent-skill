@@ -8,6 +8,7 @@ import signal
 import shlex
 import subprocess
 import sys
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -121,8 +122,16 @@ def _command_argv(command: str) -> tuple[list[str], bool]:
     parts = shlex.split(command)
     if not parts:
         return [], False
-    if parts[0] in ("arpent", "arp"):
+    executable_name = Path(parts[0]).name.lower()
+    if executable_name in {"arpent", "arp", "arpent.exe", "arp.exe"}:
         return [sys.executable, "-m", "scripts.cli", *parts[1:]], True
+    if Path(parts[0]).stem.lower().startswith("python"):
+        try:
+            module_flag = parts.index("-m", 1)
+        except ValueError:
+            module_flag = -1
+        if module_flag >= 1 and parts[module_flag + 1:module_flag + 2] == ["scripts.cli"]:
+            return [sys.executable, "-m", "scripts.cli", *parts[module_flag + 2:]], True
     return parts, False
 
 
@@ -158,22 +167,38 @@ def _validate_job(job) -> None:
     if not isinstance(command, str) or not command.strip():
         raise ValueError(f"Cron job '{job_id}' must have a non-empty command.")
     try:
-        argv, _ = _command_argv(command)
+        argv, internal = _command_argv(command)
     except ValueError as exc:
         raise ValueError(f"Cron job '{job_id}' has invalid command quoting: {exc}") from exc
     if not argv:
         raise ValueError(f"Cron job '{job_id}' must have a non-empty command.")
+    if internal and len(argv) > 3 and argv[3] in {"cron", "init", "mode"}:
+        raise ValueError(
+            f"Cron job '{job_id}' cannot recursively run cron, initialize a vault, "
+            "or change vault mode."
+        )
     timeout = job.get("timeout_seconds", DEFAULT_TIMEOUT_SECONDS)
     if isinstance(timeout, bool) or not isinstance(timeout, int) or not 1 <= timeout <= 86400:
         raise ValueError(f"Cron job '{job_id}' timeout_seconds must be between 1 and 86400.")
 
 
 def _persist_registry(vault, relpath, data, *, expected_text, conflict_message):
-    if vault.safe_source_path(relpath).read_text(encoding="utf-8") != expected_text:
-        raise ValueError(conflict_message)
-    updated = json.dumps(data, indent=2) + "\n"
-    vault.atomic_write_text(relpath, updated)
-    return updated
+    with _full_mode_mutation(vault):
+        if vault.safe_source_path(relpath).read_text(encoding="utf-8") != expected_text:
+            raise ValueError(conflict_message)
+        updated = json.dumps(data, indent=2) + "\n"
+        vault.atomic_write_text(relpath, updated)
+        return updated
+
+
+@contextmanager
+def _full_mode_mutation(vault):
+    """Protect cron-owned writes without locking out internal CLI jobs."""
+    with vault.shared_lock("mode"):
+        if vault.marker_data()["mode"] != "full":
+            raise ValueError("Cron stopped because the vault is no longer in full mode.")
+        with vault.exclusive_lock("mutations"):
+            yield
 
 
 def _is_due(job: dict, now: datetime) -> bool:
@@ -215,9 +240,10 @@ def _notify(vault, job: dict, message: str) -> None:
     if channel == "stdout":
         print(message)
     elif channel == "file":
-        log = vault.safe_output_path("06_indexes/logs/cron.log")
-        with log.open("a", encoding="utf-8") as f:
-            f.write(message + "\n")
+        with _full_mode_mutation(vault):
+            log = vault.safe_output_path("06_indexes/logs/cron.log")
+            with log.open("a", encoding="utf-8") as f:
+                f.write(message + "\n")
 
 
 def _iso(dt: datetime) -> str:

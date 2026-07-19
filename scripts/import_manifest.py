@@ -330,11 +330,7 @@ def validate_plan(plan_path: Path, plan: dict, *, vault=None,
         structure = structure_from_plan(plan)
         normalized = init_structure.validate_structure(structure)
         if vault is not None:
-            init_structure.preflight_structure(
-                vault.root,
-                normalized,
-                minimal=vault.marker_data()["mode"] == "minimal",
-            )
+            init_structure.preflight_structure(vault.root, normalized)
     except (OSError, ValueError) as exc:
         errors.append(f"invalid declared destinations: {exc}")
 

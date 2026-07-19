@@ -28,7 +28,7 @@ class InitStructureTests(unittest.TestCase):
             }), encoding="utf-8")
 
             structure = init_structure.load_structure(source)
-            vault = init_vault(root / "vault", minimal=True)
+            vault = init_vault(root / "vault", minimal=False)
             first = init_structure.apply_structure(vault, structure)
 
             self.assertEqual(first["areas"]["created"], ["personal_life"])
@@ -96,7 +96,7 @@ class InitStructureTests(unittest.TestCase):
             structure = init_structure._validate_structure({"projects": ["Website refresh"]})
 
             with self.assertRaisesRegex(ValueError, "is not canonical"):
-                init_structure.preflight_structure(root, structure, minimal=True)
+                init_structure.preflight_structure(root, structure)
 
     def test_incomplete_existing_project_context_is_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -111,11 +111,11 @@ class InitStructureTests(unittest.TestCase):
             structure = init_structure._validate_structure({"projects": ["Website refresh"]})
 
             with self.assertRaisesRegex(ValueError, "incomplete context frontmatter"):
-                init_structure.preflight_structure(root, structure, minimal=True)
+                init_structure.preflight_structure(root, structure)
 
     def test_equivalent_structured_area_reference_is_idempotent(self):
         with tempfile.TemporaryDirectory() as temporary:
-            vault = init_vault(Path(temporary) / "vault", minimal=True)
+            vault = init_vault(Path(temporary) / "vault", minimal=False)
             vault.safe_ensure_directory("02_areas/area__perso__health__active")
             projects.create_project(vault, "Fitness plan", area="health")
             structure = init_structure._validate_structure({

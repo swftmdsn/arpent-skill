@@ -1,7 +1,7 @@
 id: template-capability
 # Supported kinds: cli, mcp, api, plugin.
 kind: cli
-description: Replace with the action this capability makes available.
+description: Replace with the action this capability is intended to expose.
 connection:
   command: null
   endpoint: null

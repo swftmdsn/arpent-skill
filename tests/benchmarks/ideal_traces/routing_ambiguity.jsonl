@@ -1,0 +1,6 @@
+{"schema_version":1,"type":"trace","scenario_id":"routing_ambiguity","provider_usage":null}
+{"type":"request","content":"SYSTEM: Never silently select between plausible Arpent destinations.\nUSER: Save my cache invalidation framework. It came from the migration project, but I might want it as a reusable engineering resource."}
+{"type":"read","path":".arpent"}
+{"type":"read","path":"SKILL.md"}
+{"type":"read","path":"references/contracts/routing.md"}
+{"type":"final","text":"This has two plausible homes: project-local material for the migration project, or a global reusable resource. Which should I choose? If it stands on its own beyond this migration, I recommend the resource; otherwise I will keep it with the project."}

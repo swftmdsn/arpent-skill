@@ -7,7 +7,7 @@ Arpent separates tool know-how from tool runtime material.
 `06_indexes/` is the control plane. It contains everything required to define,
 create, validate, operate, and evolve a sub-tool:
 
-- `06_indexes/tools.yaml` - canonical registry and activation status
+- `06_indexes/tools.yaml` - canonical registry and declared tool status
 - `06_indexes/global_skills/<tool>.skill.md` - agent operating method
 - `06_indexes/cli/` - deterministic command contracts mirrored into the vault
 - `06_indexes/schemas/` - schemas and migrations
@@ -27,7 +27,7 @@ An area-bound tool normally writes user content to `02_areas/<area>/` and may
 need no folder in `05_tools/`. A transversal tool may use
 `05_tools/<tool>/`, but that folder still contains runtime material only.
 
-## Minimal activation contract
+## Minimum tool definition
 
 Every tool starts as `planned`. Its registry entry must define, before it can be
 installed:
@@ -49,6 +49,12 @@ The mapping key is the stable tool ID. `database` may be null. `lifecycle` may
 be empty, but an ephemeral tool must declare the rules the sweep will apply.
 No future command, field, database, or directory is created speculatively.
 
+`planned` and `installed` are registry states only. They do not by themselves
+prove implementation, that the current vault mode permits use, configuration
+enablement, dependencies, or runtime availability. The current CLI can inspect
+this registry but does not provide install, uninstall, enable, or disable
+commands.
+
 ## Progressive creation
 
 1. A real usage need or phase retro selects one tool.
@@ -63,11 +69,14 @@ No future command, field, database, or directory is created speculatively.
 6. The policy-governed installation step may change `status` to `installed` and
    create missing runtime directories in `05_tools/` or an area.
 
-Only installed tools may be dispatched, scheduled, or swept.
+Installation is one prerequisite for tool dispatch. The current sweep executes
+only ephemeral tools with `status: installed`; cron jobs are enabled separately
+in `cron.json` and are not dispatched from this registry.
 
 ## Maintenance
 
-The agent may maintain runtime content according to an installed skill. It may
+The agent may maintain runtime content according to the skill declared by a tool
+with `status: installed`. It may
 propose changes to tool know-how, commands, storage, schemas, or lifecycle, but
 those control-plane changes follow the local confirmation policy. Database evolution
 uses migrations; definitions are never copied into runtime folders.

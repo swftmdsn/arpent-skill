@@ -1,4 +1,5 @@
 # Arpent Date Format
 
-Write user-facing dates as `dd-mm-yyyy` and note-facing UTC timestamps as
-`dd-mm-yyyyTHH:MM:SSZ`. Machine-owned logs may retain ISO 8601 internally.
+Write public timestamps as `dd-MM-YYYY-HH-mm` in UTC. Machine-owned logs and
+sortable storage may retain ISO 8601 internally. Fleeting filenames remain
+daily `dd-mm-yyyy.md` containers with `HH:MM` entry headings.

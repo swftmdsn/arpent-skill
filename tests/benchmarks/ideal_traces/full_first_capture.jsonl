@@ -1,0 +1,7 @@
+{"schema_version":1,"type":"trace","scenario_id":"full_first_capture","provider_usage":null}
+{"type":"request","content":"SYSTEM: Follow Arpent's loaded operating contract and preserve a stable conversation prefix.\nUSER: Capture a note titled Cache invalidation question with the body Which cache keys survive the URL cutover?"}
+{"type":"read","path":".arpent"}
+{"type":"read","path":"SKILL.md"}
+{"type":"read","path":"references/modes/full.md"}
+{"type":"command","command":"arpent note new \"Cache invalidation question\" --type note --body \"Which cache keys survive the URL cutover?\" --json","output":"{\"id\":\"note-20260719-a\",\"path\":\"00_inbox/cache_invalidation_question.md\",\"type\":\"note\",\"status\":\"inbox\"}","exit_code":0}
+{"type":"final","text":"Created `note-20260719-a` at `00_inbox/cache_invalidation_question.md`; type `note`, status `inbox`."}

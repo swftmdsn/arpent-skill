@@ -20,9 +20,9 @@ cannot install, uninstall, enable, or disable tools yet.
 
 All tool know-how is centralized in `06_indexes/`: skills, CLI contracts,
 schemas, migrations, documentation, registry entries, and databases.
-`05_tools/` is runtime-only and is created from an installed tool's
+`05_tools/` is runtime-only and may be created from a tool's declared
 `writes_to`; it never contains `SKILL.md` or maintenance instructions. The full
-contract is installed at `06_indexes/docs/architecture/tools.md`.
+contract is documented at `06_indexes/docs/architecture/tools.md`.
 
 Implemented commands:
 
@@ -35,39 +35,42 @@ arpent tools show <name>
 
 Current seed entries:
 
-- `context_summary` - installed, explicit-only AI generation of cached L1 summaries
-- `todo` - installed daily-flow tool backed by `todo.db` and Markdown lifecycle records
+- `context_summary` - `status: installed`, explicit-only AI generation of cached L1 summaries
+- `todo` - `status: installed`, daily-flow tool backed by `todo.db` and Markdown lifecycle records
 - `reader` - transversal, planned, writes to `05_tools/reader/`
 - `review` - transversal, planned, writes to `05_tools/review/`
 - `z_backup` - transversal, planned, writes to `06_indexes/backup/`
 
-`planned` entries describe proposed boundaries only. Their runtime directories
-are not created until explicit installation changes the tool to `installed`.
+`planned` entries describe proposed boundaries only. `planned` and `installed`
+are registry states, not availability claims. The current CLI does not change
+tool status or create runtime directories through an installation command.
 
-`fleeting`, `reader`, `calendar`, `sport`, `journal`, and `crm` are not installed
-commands. Their top-level CLI stubs exist only to fail clearly with "not installed".
+`fleeting`, `reader`, `calendar`, `sport`, `journal`, and `crm` top-level commands
+are unavailable placeholders. Their parser presence is not a tool-status or
+runtime-availability claim.
 
 ## Todo
 
-The installed todo tool stores structured properties in
+The todo tool with `status: installed` stores structured properties in
 `06_indexes/databases/todo.db` and readable lifecycle records under
 `02_areas/area__perso__todo__active/<status>/`. The database is initialized
 lazily from the schema packaged with the installed CLI. The copy at
 `06_indexes/schemas/todo_schema.sql` is a reviewable seed, not runtime authority.
 
-The runtime accepts only the packaged schema version 2. Existing databases with
-another or unversioned schema are rejected rather than migrated.
+The runtime uses packaged schema version 3. A valid v2 database is migrated
+automatically, with existing date-only values interpreted as UTC midnight.
+Other, unversioned, incomplete, or altered schemas are rejected.
 
 ```bash
 arpent todo add "<content>" [--priority <key>] [--status active|waiting|done]
-  [--due dd-mm-yyyy] [--do dd-mm-yyyy] [--duration <key>]
+  [--due dd-MM-YYYY-HH-mm] [--do dd-MM-YYYY-HH-mm] [--duration <key>]
   [--project <id>] [--depends-on <id>]
   [--optional] [--frequency <key>] [--list-order <key>] [--assignee <id>]
 arpent todo list [--status active|waiting|done] [--include-archived] [--json]
 arpent todo show <id> [--json]
 arpent todo edit <id> [field options and matching --clear-* flags]
 arpent todo done <id>
-arpent todo defer <id> --to dd-mm-yyyy
+arpent todo defer <id> --to dd-MM-YYYY-HH-mm
 arpent todo block <id> --on <object-id>
 arpent todo archive <id>
 ```
@@ -112,11 +115,12 @@ arpent cron run --tick --allow-local-code
 The runner reads enabled jobs from `06_indexes/cron.json`, checks whether each
 job is due for the current minute, then executes the configured command.
 
-`command` is trusted local code, not a declarative Arpent operation. It runs
-with the current user's permissions and inherited environment. Every enabled
-job must therefore declare `"trust": "local-code"`, and every non-dry tick must
-also receive the out-of-vault `--allow-local-code` CLI confirmation; never
-enable a job from an untrusted or merely synced vault. `timeout_seconds` must remain
+`command` is local code, not a declarative Arpent operation. It runs with the
+invoking user's OS permissions and inherited environment. Every enabled job must
+carry the unverified local-code declaration `"trust": "local-code"`. Every
+non-dry tick separately requires execution enablement with `--allow-local-code`;
+the confirmation policy may also require `--yes`. Never enable a job from a
+vault you do not control. `timeout_seconds` must remain
 between 1 and 86400 and defaults to 300. Arpent serializes ticks so the same due
 minute cannot be dispatched concurrently. A durable `last_started` claim is
 written before launch, so a crash cannot replay the same job in the same
@@ -168,7 +172,7 @@ arpent sweep ephemeral
 arpent sweep ephemeral --dry-run
 arpent sweep status [--json]
 arpent health [--json]
-arpent usage report [--since <ISO-date-or-timestamp>] [--json]
+arpent usage report [--since <dd-MM-YYYY-HH-mm>] [--json]
 ```
 
 `arpent backup` snapshots all durable vault files and consistent copies of
@@ -185,7 +189,8 @@ verifies the result, and never merges with an existing vault. Local snapshots
 are unencrypted and do not include delegated memory, Git history, or external
 files.
 
-`arpent sweep ephemeral` reads every installed tool marked `ephemeral: true`,
+`arpent sweep ephemeral` reads every tool with `status: installed` and
+`ephemeral: true`,
 scans its `writes_to` roots, and applies the first due lifecycle rule to each
 frontmatter note. `active`, `stable`, `ongoing`, linear notes, maps, and
 `_context.md` are always protected. Automatic transitions may only target

@@ -1,0 +1,7 @@
+{"schema_version":1,"type":"trace","scenario_id":"todo_capture","provider_usage":null}
+{"type":"request","content":"SYSTEM: Route execution and tracking intent through Arpent's todo workflow.\nUSER: Remind me to send the signed lease tomorrow at 09:00 UTC (20-07-2026-09-00); I need to track it until it is done."}
+{"type":"read","path":".arpent"}
+{"type":"read","path":"SKILL.md"}
+{"type":"read","path":"references/workflows/capture-todo.md"}
+{"type":"command","command":"arpent todo add \"send the signed lease\" --do 20-07-2026-09-00 --json","output":"{\"id\":\"todo-20260719-a\",\"status\":\"active\",\"do\":\"20-07-2026-09-00\",\"path\":\"02_areas/area__perso__todo__active/active/todo-20260719-a.md\"}","exit_code":0}
+{"type":"final","text":"Created `todo-20260719-a`, status `active`, scheduled for `20-07-2026-09-00`."}
