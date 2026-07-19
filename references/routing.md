@@ -67,13 +67,14 @@ add a second table here.
 
 ## Triage behavior
 
-`arpent triage [--json]` inventories every non-fleeting inbox item without
+`arpent triage [--json-page --limit 50]` inventories every non-fleeting inbox item without
 moving it. JSON output classifies structured notes, raw text, malformed
 frontmatter, and binary files independently and includes safe previews, age,
 source hash, reason, and available `edit`, `ingest`, or `leave` actions. It does
 not silently repair ambiguous frontmatter or act as a second routing engine.
 
-An agent builds one complete plan and asks once. Preview structured mutations
+An agent exhausts the cursor or uses `--all`, builds one complete plan, and
+applies the local confirmation policy once. Preview structured mutations
 with `arpent note edit <id> ... --dry-run --json`; preview raw-file conversion
 with `arpent note ingest <inbox-path> --title <title> ... --dry-run --json`.
 Carry the structured edit's `plan_sha256` into `--plan-hash` when applying.

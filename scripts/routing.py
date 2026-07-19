@@ -73,6 +73,7 @@ class Route:
     filename: str                # e.g. "reunion_lancement.md"
     reason: str | None = None    # set when routed to 00_inbox/unsure/
     append: bool = False         # True for fleeting (append-only day file)
+    entry_time: str | None = None  # applied HH:MM for an append-only entry
 
     @property
     def relpath(self) -> str:

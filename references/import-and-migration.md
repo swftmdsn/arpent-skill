@@ -107,8 +107,10 @@ rather than a hard-coded folder assumption.
 ## Confirmation and unattended operation
 
 Interactive `review` asks for each uncovered folder role, destination name, and
-optional contextual Area for projects. `apply` prints the summary and asks one
-final confirmation. Non-interactive application must be explicit:
+optional contextual Area for projects. `apply` follows the vault confirmation
+policy. Under `always` or `explicit-intent`, import is high-impact and requires
+the reviewed apply boundary. Under `never`, it proceeds without a second
+approval. A reviewed non-interactive application uses:
 
 ```bash
 arpent import apply legacy-plan.json --yes

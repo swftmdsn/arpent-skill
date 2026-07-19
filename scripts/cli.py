@@ -11,6 +11,9 @@ Implemented commands:
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
+import hashlib
 import json
 import sqlite3
 import sys
@@ -25,6 +28,7 @@ from . import import_executor as import_executor_mod
 from . import import_manifest as import_manifest_mod
 from . import init_structure as init_structure_mod
 from . import notes as notes_mod
+from . import operations as operations_mod
 from . import projects as projects_mod
 from . import routing
 from . import session as session_mod
@@ -39,11 +43,221 @@ __version__ = "0.1.0"
 FULL_MODE_COMMANDS = {"context", "tools", "cron", "sweep", "todo"}
 
 
+def _positive_int(value):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("must be a positive integer") from exc
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return parsed
+
+
+def _encode_cursor(payload: dict) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(encoded).decode("ascii").rstrip("=")
+
+
+def _decode_cursor(token: str) -> dict:
+    try:
+        padded = token + "=" * (-len(token) % 4)
+        value = json.loads(base64.urlsafe_b64decode(padded).decode("utf-8"))
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError, binascii.Error) as exc:
+        raise ValueError("Invalid pagination cursor.") from exc
+    if not isinstance(value, dict):
+        raise ValueError("Invalid pagination cursor.")
+    return value
+
+
+def _json_sha256(value) -> str:
+    encoded = json.dumps(
+        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _counts(items, key):
+    result = {}
+    for item in items:
+        value = str(item.get(key) or "unknown")
+        result[value] = result.get(value, 0) + 1
+    return dict(sorted(result.items()))
+
+
+def _page_items(items, *, view, limit, cursor=None, all_items=False,
+                query=None, summary=None, snapshot_items=None) -> dict:
+    """Return a complete, snapshot-bound JSON page without silent truncation."""
+    if all_items and cursor:
+        raise ValueError("--all cannot be combined with --cursor.")
+    query = query or {}
+    snapshot_material = items if snapshot_items is None else snapshot_items
+    if len(snapshot_material) != len(items):
+        raise ValueError("Pagination snapshot material must match the item count.")
+    snapshot_sha = _json_sha256(snapshot_material)
+    query_sha = _json_sha256(query)
+    start = 0
+    if cursor:
+        decoded = _decode_cursor(cursor)
+        if decoded.get("view") != view or decoded.get("query_sha256") != query_sha:
+            raise ValueError("Pagination cursor does not match this query.")
+        if decoded.get("snapshot_sha256") != snapshot_sha:
+            raise ValueError("Pagination cursor is stale; rerun the query from the first page.")
+        start = decoded.get("offset")
+        if type(start) is not int or start < 0 or start > len(items):
+            raise ValueError("Invalid pagination cursor offset.")
+    end = len(items) if all_items else min(len(items), start + limit)
+    has_more = end < len(items)
+    next_cursor = None
+    if has_more:
+        next_cursor = _encode_cursor({
+            "view": view,
+            "query_sha256": query_sha,
+            "snapshot_sha256": snapshot_sha,
+            "offset": end,
+        })
+    global_summary = {"total": len(items), **(summary or {})}
+    return {
+        "format": "arpent-page",
+        "version": 1,
+        "view": view,
+        "query": query,
+        "snapshot": {"sha256": snapshot_sha},
+        "summary": global_summary,
+        "page": {
+            "first_ordinal": start + 1 if end > start else None,
+            "last_ordinal": end if end > start else None,
+            "returned": end - start,
+            "limit": None if all_items else limit,
+            "has_more": has_more,
+            "next_cursor": next_cursor,
+            "complete_result": start == 0 and not has_more,
+        },
+        "items": items[start:end],
+    }
+
+
+def _page_text(text: str, *, view, path, max_bytes, cursor=None, full=False,
+               metadata=None) -> dict:
+    """Return one UTF-8-safe, source-hash-bound text page."""
+    if full and cursor:
+        raise ValueError("--full cannot be combined with --cursor.")
+    raw = text.encode("utf-8")
+    content_sha = hashlib.sha256(raw).hexdigest()
+    start = 0
+    if cursor:
+        decoded = _decode_cursor(cursor)
+        if decoded.get("view") != view or decoded.get("path") != path:
+            raise ValueError("Content cursor does not match this source.")
+        if decoded.get("content_sha256") != content_sha:
+            raise ValueError("Content cursor is stale; reload the source from the beginning.")
+        start = decoded.get("offset")
+        if type(start) is not int or start < 0 or start > len(raw):
+            raise ValueError("Invalid content cursor offset.")
+    end = len(raw) if full else min(len(raw), start + max_bytes)
+    if not full and end < len(raw) and end > start:
+        lower_bound = start + max(1, (end - start) // 2)
+        paragraph = raw.rfind(b"\n\n", lower_bound, end)
+        line = raw.rfind(b"\n", lower_bound, end)
+        if paragraph >= lower_bound:
+            end = paragraph + 2
+        elif line >= lower_bound:
+            end = line + 1
+    while end > start:
+        try:
+            chunk = raw[start:end].decode("utf-8")
+            break
+        except UnicodeDecodeError:
+            end -= 1
+    else:
+        end = min(len(raw), start + 1)
+        while end <= len(raw):
+            try:
+                chunk = raw[start:end].decode("utf-8")
+                break
+            except UnicodeDecodeError:
+                end += 1
+        else:  # pragma: no cover - input was produced by encoding valid text
+            raise ValueError("Cannot advance UTF-8 content pagination.")
+    has_more = end < len(raw)
+    next_cursor = None
+    if has_more:
+        next_cursor = _encode_cursor({
+            "view": view,
+            "path": path,
+            "content_sha256": content_sha,
+            "offset": end,
+        })
+    return {
+        "format": "arpent-content-page",
+        "version": 1,
+        "view": view,
+        "path": path,
+        "source": {
+            "content_sha256": content_sha,
+            "total_bytes": len(raw),
+            **(metadata or {}),
+        },
+        "page": {
+            "start_byte": start,
+            "end_byte_exclusive": end,
+            "returned_bytes": end - start,
+            "has_more": has_more,
+            "next_cursor": next_cursor,
+            "complete_result": start == 0 and not has_more,
+            "starts_with_line_fragment": start > 0 and raw[start - 1:start] != b"\n",
+            "ends_with_line_fragment": has_more and raw[end - 1:end] != b"\n",
+        },
+        "content": chunk,
+    }
+
+
+def _add_page_arguments(parser, *, default_limit):
+    parser.add_argument("--json-page", action="store_true", help="emit a versioned bounded JSON page")
+    parser.add_argument("--limit", type=_positive_int, default=default_limit)
+    parser.add_argument("--cursor", default=None)
+    parser.add_argument("--all", action="store_true", help="emit the complete filtered result")
+
+
+def _validate_page_arguments(args, *, default_limit):
+    if args.json_page:
+        return
+    if args.cursor or args.all or args.limit != default_limit:
+        sys.exit("--limit, --cursor, and --all require --json-page.")
+
+
+def _validate_content_page_arguments(args, *, default_bytes, default_limit=None):
+    if args.json_page:
+        return
+    changed = args.cursor or args.full or args.max_bytes != default_bytes
+    if default_limit is not None:
+        changed = changed or args.limit != default_limit
+    if changed:
+        sys.exit("--max-bytes, --limit, --cursor, and --full require --json-page.")
+
+
 def _need_vault() -> Vault:
     v = Vault.find()
     if v is None:
         sys.exit("Not inside an Arpent vault (no .arpent marker found). Run `arpent init`.")
     return v
+
+
+def _confirmation_required(vault: Vault, operation: str, *, count=1) -> bool:
+    operations_path = vault.operations_path()
+    relpath = operations_path.relative_to(vault.root).as_posix()
+    safe_path = vault.safe_source_path(relpath)
+    return operations_mod.requires_confirmation(operation, count=count, path=safe_path)
+
+
+def _require_confirmation_flag(args, vault: Vault, operation: str, *, count=1,
+                               message=None) -> None:
+    try:
+        required = _confirmation_required(vault, operation, count=count)
+    except ValueError as exc:
+        sys.exit(str(exc))
+    approved = getattr(args, "yes", False) or getattr(args, "backup_yes", False)
+    if required and not approved:
+        sys.exit(message or "Confirmation policy requires approval; re-run with --yes.")
 
 
 def _enforce_vault_mode(args) -> None:
@@ -210,12 +424,18 @@ def cmd_import_summary(args):
 
 def cmd_import_apply(args):
     vault = _need_vault()
-    if args.json and not args.dry_run and not args.yes:
-        sys.exit("Import apply --json requires --yes for JSON-only output.")
+    _validate_page_arguments(args, default_limit=50)
+    if args.json_page and not args.dry_run:
+        sys.exit("Import --json-page is available for dry-run previews; use --json for apply results.")
     try:
         path, plan = import_manifest_mod.load_plan(Path(args.plan))
         summary = import_manifest_mod.summarize_plan(path, plan)
-        if not args.dry_run and not args.yes:
+        confirmation_required = _confirmation_required(
+            vault, "import_apply", count=max(1, summary.get("files", 1)),
+        )
+        if (args.json or args.json_page) and not args.dry_run and confirmation_required and not args.yes:
+            sys.exit("Import apply --json requires --yes for JSON-only output.")
+        if not args.dry_run and confirmation_required and not args.yes:
             if not sys.stdin.isatty():
                 sys.exit("Import apply requires --yes when no interactive terminal is available.")
             _print_import_summary(summary)
@@ -231,7 +451,7 @@ def cmd_import_apply(args):
             plan,
             dry_run=args.dry_run,
             stop_on_error=args.stop_on_error,
-            include_previews=args.json,
+            include_previews=args.json or args.json_page,
             expected_execution_hash=args.plan_hash,
         )
     except (EOFError, OSError, ValueError) as exc:
@@ -250,7 +470,22 @@ def cmd_import_apply(args):
         ),
         count=counts.get("planned", 0) if args.dry_run else counts.get("applied", 0),
     )
-    if args.json:
+    if args.json_page:
+        try:
+            page = _page_items(
+                report.get("previews") or [],
+                view="import-preview",
+                limit=args.limit,
+                cursor=args.cursor,
+                all_items=args.all,
+                query={"plan_sha256": report.get("plan_sha256")},
+                summary={"counts": report.get("counts") or {}, "failures": len(report.get("failures") or [])},
+            )
+        except ValueError as exc:
+            sys.exit(str(exc))
+        page["report"] = {key: value for key, value in report.items() if key != "previews"}
+        print(json.dumps(page, indent=2, ensure_ascii=False, sort_keys=True))
+    elif args.json:
         print(json.dumps(report, indent=2, sort_keys=True))
     else:
         label = "Import preview" if args.dry_run else "Import result"
@@ -312,6 +547,7 @@ def cmd_status(args):
 
 def cmd_index(args):
     v = _need_vault()
+    _require_confirmation_flag(args, v, "index")
     try:
         idx = index_mod.build_index(v)
     except (OSError, ValueError) as exc:
@@ -329,10 +565,26 @@ def cmd_index(args):
 
 def cmd_context_pending(args):
     v = _need_vault()
+    _validate_page_arguments(args, default_limit=100)
     try:
         rows = context_mod.pending_summaries(v, kind=args.kind, prefix=args.path)
     except (OSError, ValueError) as exc:
         sys.exit(str(exc))
+    if args.json_page:
+        try:
+            page = _page_items(
+                rows,
+                view="context-pending",
+                limit=args.limit,
+                cursor=args.cursor,
+                all_items=args.all,
+                query={"kind": args.kind, "path": args.path},
+                summary={"by_kind": _counts(rows, "kind"), "by_status": _counts(rows, "status")},
+            )
+        except ValueError as exc:
+            sys.exit(str(exc))
+        print(json.dumps(page, indent=2, ensure_ascii=False, sort_keys=True))
+        return
     if args.json:
         print(json.dumps(rows, indent=2, ensure_ascii=False))
         return
@@ -346,6 +598,7 @@ def cmd_context_pending(args):
 
 def cmd_context_set(args):
     v = _need_vault()
+    _require_confirmation_flag(args, v, "context_set")
     summary = sys.stdin.read() if args.stdin else args.summary
     try:
         entry = context_mod.set_summary(
@@ -364,6 +617,7 @@ def cmd_context_set(args):
 
 def cmd_context_show(args):
     v = _need_vault()
+    _validate_content_page_arguments(args, default_bytes=32 * 1024, default_limit=200)
     try:
         entry = context_mod.get_entry(v, args.path)
         normalized = context_mod.normalize_path(args.path)
@@ -384,12 +638,49 @@ def cmd_context_show(args):
 
     l2 = entry.get("l2") or {}
     if entry.get("kind") == "folder":
+        if args.json_page:
+            children = l2.get("children") or []
+            try:
+                page = _page_items(
+                    children,
+                    view="context-l2-folder",
+                    limit=args.limit,
+                    cursor=args.cursor,
+                    all_items=args.full,
+                    query={"path": normalized},
+                    summary={"source_hash": entry.get("source_hash")},
+                )
+            except ValueError as exc:
+                sys.exit(str(exc))
+            print(json.dumps(page, indent=2, ensure_ascii=False, sort_keys=True))
+            return
         print(json.dumps(l2, indent=2, ensure_ascii=False))
         return
     if entry.get("kind") in {"note", "text"}:
         try:
             source = v.safe_source_path(normalized)
-            print(source.read_text(encoding="utf-8"), end="")
+            text = source.read_text(encoding="utf-8")
+            if args.json_page:
+                live_semantic_hash = index_mod.current_context_hash(
+                    v, normalized, entry.get("kind"),
+                )
+                page = _page_text(
+                    text,
+                    view="context-l2-source",
+                    path=normalized,
+                    max_bytes=args.max_bytes,
+                    cursor=args.cursor,
+                    full=args.full,
+                    metadata={
+                        "kind": entry.get("kind"),
+                        "indexed_semantic_sha256": entry.get("source_hash"),
+                        "live_semantic_sha256": live_semantic_hash,
+                        "index_fresh": live_semantic_hash == entry.get("source_hash"),
+                    },
+                )
+                print(json.dumps(page, indent=2, ensure_ascii=False, sort_keys=True))
+            else:
+                print(text, end="")
         except (OSError, UnicodeDecodeError, ValueError) as exc:
             sys.exit(f"Cannot load L2 source '{normalized}': {exc}")
         return
@@ -398,6 +689,7 @@ def cmd_context_show(args):
 
 def cmd_triage(args):
     v = _need_vault()
+    _validate_page_arguments(args, default_limit=50)
     try:
         items = views.triage_items(v)
     except ValueError as exc:
@@ -405,6 +697,24 @@ def cmd_triage(args):
     usage_mod.set_result(
         args, subject_kind="triage", outcome="triaged", changed=False, count=len(items),
     )
+    if args.json_page:
+        try:
+            page = _page_items(
+                items,
+                view="triage",
+                limit=args.limit,
+                cursor=args.cursor,
+                all_items=args.all,
+                summary={"by_kind": _counts(items, "kind"), "by_type": _counts(items, "type")},
+                snapshot_items=[
+                    {key: value for key, value in item.items() if key != "age_seconds"}
+                    for item in items
+                ],
+            )
+        except ValueError as exc:
+            sys.exit(str(exc))
+        print(json.dumps(page, indent=2, ensure_ascii=False, sort_keys=True))
+        return
     if args.json:
         print(json.dumps(items, indent=2, ensure_ascii=False))
         return
@@ -425,7 +735,22 @@ def cmd_triage(args):
 
 def cmd_efforts(args):
     v = _need_vault()
+    _validate_page_arguments(args, default_limit=100)
     rows = views.efforts(v)
+    if args.json_page:
+        try:
+            page = _page_items(
+                rows,
+                view="efforts",
+                limit=args.limit,
+                cursor=args.cursor,
+                all_items=args.all,
+                summary={"by_group": _counts(rows, "group"), "by_kind": _counts(rows, "kind")},
+            )
+        except ValueError as exc:
+            sys.exit(str(exc))
+        print(json.dumps(page, indent=2, ensure_ascii=False, sort_keys=True))
+        return
     if not rows:
         print("No active actionables.")
         return
@@ -445,21 +770,40 @@ def cmd_efforts(args):
 
 def cmd_search(args):
     v = _need_vault()
+    _validate_page_arguments(args, default_limit=50)
     hits = views.search(v, args.query)
     usage_mod.set_result(
         args, subject_kind="search", outcome="searched", changed=False, count=len(hits),
     )
+    if args.json_page:
+        try:
+            page = _page_items(
+                hits,
+                view="search",
+                limit=args.limit,
+                cursor=args.cursor,
+                all_items=args.all,
+                query={"query": args.query},
+                summary={"by_backend": _counts(hits, "backend")},
+            )
+        except ValueError as exc:
+            sys.exit(str(exc))
+        print(json.dumps(page, indent=2, ensure_ascii=False, sort_keys=True))
+        return
     if not hits:
         print(f"No vault matches for '{args.query}'.")
         return
     print(f"{len(hits)} match(es) in the vault:\n")
-    for h in hits:
+    for h in hits[:50]:
         print(f"  {h['id']}  {h['title']}")
         print(f"      {h['path']}")
+    if len(hits) > 50:
+        print(f"\nShowing 50 of {len(hits)}. Use --json-page to continue or --json-page --all.")
 
 
 def cmd_backup(args):
     v = _need_vault()
+    _require_confirmation_flag(args, v, "backup_create")
     try:
         result = backup_mod.create_backup(v, destination=args.destination)
     except (OSError, ValueError, sqlite3.Error) as exc:
@@ -490,6 +834,10 @@ def cmd_backup_verify(args):
 
 def cmd_backup_restore(args):
     try:
+        verified = backup_mod.verify_backup(args.snapshot)
+        source_vault = Vault(Path(verified["snapshot_path"]) / backup_mod.PAYLOAD_NAME)
+        source_vault.marker_data()
+        _require_confirmation_flag(args, source_vault, "backup_restore")
         result = backup_mod.restore_backup(args.snapshot, args.to)
     except (OSError, ValueError, sqlite3.Error) as exc:
         sys.exit(str(exc))
@@ -499,26 +847,48 @@ def cmd_backup_restore(args):
 
 def cmd_note_new(args):
     v = _need_vault()
+    body = _read_body(args)
+    if args.type == "fleeting" and not body:
+        body = args.title
     try:
-        fm = notes_mod.build_frontmatter(
-            v, title=args.title, ntype=args.type, status=args.status,
+        plan = notes_mod.plan_note_new(
+            v, title=args.title, ntype=args.type, body=body, status=args.status,
             project=args.project, area=args.area, resource=args.resource,
             tags=_split_tags(args.tags), source=args.source, author=args.author,
             description=args.description, link=args.link,
             chosen_location=args.chosen_location,
             effort_cadence=args.effort_cadence,
             effort_level=args.effort_level,
+            expected_plan_hash=args.plan_hash,
         )
     except ValueError as e:
         sys.exit(str(e))
-
-    body = _read_body(args)
-    if args.type == "fleeting" and not body:
-        body = args.title
-    for warning in notes_mod.frontmatter_warnings(fm):
+    public_plan = notes_mod.public_note_new_plan(plan)
+    try:
+        confirmation_required = _confirmation_required(v, "note_new")
+    except ValueError as e:
+        sys.exit(str(e))
+    public_plan["confirmation_required"] = confirmation_required
+    if args.dry_run or (confirmation_required and not args.plan_hash):
+        if args.json:
+            print(json.dumps(public_plan, indent=2, ensure_ascii=False, sort_keys=True))
+        else:
+            print(f"Planned note → {plan['destination_path']}")
+            print(f"Plan hash: {plan['plan_sha256']}")
+            for warning in plan["warnings"]:
+                print(f"Warning: {warning}")
+            if confirmation_required and not args.dry_run:
+                print("Review the plan, then re-run with --plan-hash <plan_sha256>.")
+        usage_mod.set_result(
+            args, subject_kind="note", subject_type=plan["frontmatter"]["type"],
+            status_after=plan["frontmatter"]["status"], outcome="dry_run",
+            changed=False, count=1,
+        )
+        return
+    for warning in plan["warnings"]:
         print(f"Warning: {warning}", file=sys.stderr)
     try:
-        dest, r = notes_mod.create_note(v, fm, body)
+        dest, r, fm = notes_mod.apply_note_new(v, plan)
     except ValueError as e:
         sys.exit(str(e))
     usage_mod.set_result(
@@ -526,6 +896,29 @@ def cmd_note_new(args):
         status_after=fm["status"], outcome="captured", changed=True, count=1,
     )
     rel = dest.relative_to(v.root).as_posix()
+    if args.json:
+        if r.append:
+            result = {
+                "format": "arpent-fleeting-result",
+                "version": 1,
+                "path": rel,
+                "append": True,
+                "captured_time": r.entry_time,
+                "warnings": plan["warnings"],
+                "plan_sha256": plan["plan_sha256"],
+            }
+        else:
+            result = {
+                "format": "arpent-note-new-result",
+                "version": 1,
+                "id": fm["id"],
+                "path": rel,
+                "frontmatter": fm,
+                "warnings": plan["warnings"],
+                "plan_sha256": plan["plan_sha256"],
+            }
+        print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
+        return
     if r.reason:
         print(f"⚠ Routed to unsure: {rel}")
         print("  " + r.reason.replace("\n", "\n  "))
@@ -539,6 +932,7 @@ def cmd_note_route(args):
     """Re-route an existing note by replacing its PARA routing fields."""
     _reject_todo_mutation(args.id)
     v = _need_vault()
+    _require_confirmation_flag(args, v, "note_route")
     hit = notes_mod.find_note(v, args.id)
     if not hit:
         sys.exit(f"No note with id '{args.id}'.")
@@ -570,28 +964,68 @@ def cmd_note_route(args):
 
 def cmd_note_read(args):
     v = _need_vault()
+    _validate_content_page_arguments(args, default_bytes=32 * 1024)
     hit = notes_mod.find_note(v, args.id)
     if not hit:
         sys.exit(f"No note with id '{args.id}'.")
     path, fm, body = hit
+    relpath = path.relative_to(v.root).as_posix()
+    if args.json_page:
+        try:
+            page = _page_text(
+                body,
+                view="note-read",
+                path=relpath,
+                max_bytes=args.max_bytes,
+                cursor=args.cursor,
+                full=args.full,
+                metadata={
+                    "id": fm.get("id"),
+                    "body_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
+                    "frontmatter": fm,
+                },
+            )
+        except ValueError as exc:
+            sys.exit(str(exc))
+        print(json.dumps(page, indent=2, ensure_ascii=False, sort_keys=True))
+        return
     print(f"{fm.get('title')} [{fm.get('type')} / {fm.get('status')}]")
-    print(f"{path.relative_to(v.root).as_posix()}\n")
+    print(f"{relpath}\n")
     print(body.strip() or "(empty body)")
 
 
 def cmd_note_find(args):
     v = _need_vault()
+    _validate_page_arguments(args, default_limit=50)
     hits = views.search(v, args.query)
+    if args.json_page:
+        try:
+            page = _page_items(
+                hits,
+                view="note-find",
+                limit=args.limit,
+                cursor=args.cursor,
+                all_items=args.all,
+                query={"query": args.query},
+                summary={"by_backend": _counts(hits, "backend")},
+            )
+        except ValueError as exc:
+            sys.exit(str(exc))
+        print(json.dumps(page, indent=2, ensure_ascii=False, sort_keys=True))
+        return
     if not hits:
         print(f"No notes matching '{args.query}'.")
         return
-    for h in hits:
+    for h in hits[:50]:
         print(f"  {h['id']:<26} {h['title']}  ({h['path']})")
+    if len(hits) > 50:
+        print(f"Showing 50 of {len(hits)}. Use --json-page to continue or --json-page --all.")
 
 
 def cmd_note_status(args):
     _reject_todo_mutation(args.id)
     v = _need_vault()
+    _require_confirmation_flag(args, v, "note_status")
     try:
         res = notes_mod.set_status(v, args.id, args.status)
     except ValueError as e:
@@ -670,7 +1104,9 @@ def cmd_note_edit(args):
             replace_body=replace_body,
             expected_plan_hash=args.plan_hash,
         )
-        if not args.dry_run:
+        confirmation_required = _confirmation_required(v, "note_edit")
+        policy_preview = confirmation_required and not args.plan_hash and not args.dry_run
+        if not args.dry_run and not policy_preview:
             result = notes_mod.apply_note_edit(v, plan)
         else:
             result = None
@@ -678,7 +1114,7 @@ def cmd_note_edit(args):
         sys.exit(str(e))
     before = plan["frontmatter_before"]
     after = plan["frontmatter_after"]
-    if args.dry_run:
+    if args.dry_run or policy_preview:
         effective, outcome, changed = before, "dry_run", False
     elif result is None:
         effective, outcome, changed = before, "no_change", False
@@ -690,6 +1126,7 @@ def cmd_note_edit(args):
         outcome=outcome, changed=changed, count=1,
     )
     public_plan = notes_mod.public_note_edit_plan(plan)
+    public_plan["confirmation_required"] = confirmation_required
     if args.json:
         print(json.dumps(public_plan, indent=2, ensure_ascii=False))
         return
@@ -697,6 +1134,10 @@ def cmd_note_edit(args):
         print(f"Warning: {warning}", file=sys.stderr)
     if args.dry_run:
         print(f"Dry run: {public_plan['source_path']} → {public_plan['destination_path']}")
+    elif policy_preview:
+        print(f"Planned edit: {public_plan['source_path']} → {public_plan['destination_path']}")
+        print(f"Plan hash: {public_plan['plan_sha256']}")
+        print("Review the plan, then re-run with --plan-hash <plan_sha256>.")
     elif result is None:
         print("No changes requested.")
     elif result[1].reason:
@@ -710,7 +1151,9 @@ def cmd_note_ingest(args):
         sys.exit("--project cannot be combined with --resource.")
     v = _need_vault()
     try:
-        if not args.dry_run:
+        confirmation_required = _confirmation_required(v, "note_ingest")
+        policy_preview = confirmation_required and not args.yes and not args.dry_run
+        if not args.dry_run and not policy_preview:
             notes_mod.recover_ingest_transaction(v)
         plan = notes_mod.plan_ingest(
             v,
@@ -733,36 +1176,40 @@ def cmd_note_ingest(args):
             attachment=args.attachment,
             source_hash=args.source_hash,
         )
-        if not args.dry_run:
+        if not args.dry_run and not policy_preview:
             notes_mod.apply_ingest(v, plan)
     except (OSError, ValueError) as exc:
         sys.exit(str(exc))
     fm = plan["frontmatter"]
     usage_mod.set_result(
         args, subject_kind="ingestion",
-        subject_type=None if args.dry_run else fm.get("type"),
-        status_after=None if args.dry_run else fm.get("status"),
-        outcome="dry_run" if args.dry_run else "ingested",
-        changed=not args.dry_run, count=1, ingestion_kind=plan["kind"],
+        subject_type=None if args.dry_run or policy_preview else fm.get("type"),
+        status_after=None if args.dry_run or policy_preview else fm.get("status"),
+        outcome="dry_run" if args.dry_run or policy_preview else "ingested",
+        changed=not args.dry_run and not policy_preview, count=1, ingestion_kind=plan["kind"],
     )
     public_plan = notes_mod.public_ingest_plan(plan)
+    public_plan["confirmation_required"] = confirmation_required
     if args.json:
         print(json.dumps(public_plan, indent=2, ensure_ascii=False))
         return
     for warning in public_plan["warnings"]:
         print(f"Warning: {warning}", file=sys.stderr)
-    prefix = "Dry run" if args.dry_run else "Ingested"
+    prefix = "Dry run" if args.dry_run else "Planned" if policy_preview else "Ingested"
     print(f"{prefix}: {public_plan['source_path']} → {public_plan['destination_path']}")
     if public_plan["attachment_path"]:
         print(f"Attachment: {public_plan['attachment_path']}")
     if not public_plan["triaged"]:
         print("Disposition: captured but not triaged; result remains in inbox.")
+    if policy_preview:
+        print("Review the plan, then re-run with --yes.")
 
 
 def cmd_note_extract(args):
     if args.inbox and any((args.project, args.area, args.resource)):
         sys.exit("--inbox cannot be combined with --project, --area, or --resource.")
     v = _need_vault()
+    _require_confirmation_flag(args, v, "note_extract")
     body = _read_body(args) if args.body is not None or args.stdin else args.title
     try:
         result = notes_mod.extract_note(
@@ -796,9 +1243,13 @@ def cmd_note_extract(args):
 
 
 def cmd_note_dissolve(args):
-    if not args.yes:
-        sys.exit("Dissolution is deliberate. Review the source and re-run with --yes to confirm.")
     v = _need_vault()
+    try:
+        confirmation_required = _confirmation_required(v, "note_dissolve")
+    except ValueError as exc:
+        sys.exit(str(exc))
+    if confirmation_required and not args.yes:
+        sys.exit("Dissolution is deliberate. Review the source and re-run with --yes to confirm.")
     before_hit = notes_mod.find_note(v, args.linear_id)
     try:
         result = notes_mod.dissolve_note(v, args.linear_id)
@@ -820,6 +1271,7 @@ def cmd_note_dissolve(args):
 def cmd_archive(args):
     _reject_todo_mutation(args.id)
     v = _need_vault()
+    _require_confirmation_flag(args, v, "archive")
     before_hit = notes_mod.find_note(v, args.id)
     try:
         res = notes_mod.archive_note(v, args.id)
@@ -839,6 +1291,7 @@ def cmd_archive(args):
 
 def cmd_project_create(args):
     v = _need_vault()
+    _require_confirmation_flag(args, v, "project_create")
     try:
         result = projects_mod.create_project(
             v,
@@ -860,6 +1313,11 @@ def cmd_project_create(args):
 
 def cmd_session_end(args):
     v = _need_vault()
+    item_count = max(
+        1,
+        len(args.decision) + len(args.next_step) + len(args.observation) + len(args.trait),
+    )
+    _require_confirmation_flag(args, v, "session_end", count=item_count)
     try:
         result = session_mod.end_session(
             v,
@@ -914,6 +1372,8 @@ def cmd_cron_run(args):
     if not args.tick:
         sys.exit("Use `arpent cron run --tick` to dispatch due cron jobs.")
     v = _need_vault()
+    if not args.dry_run:
+        _require_confirmation_flag(args, v, "cron_run")
     try:
         results = cron_mod.run_tick(
             v,
@@ -935,6 +1395,8 @@ def cmd_cron_run(args):
 
 def cmd_sweep_ephemeral(args):
     v = _need_vault()
+    if not args.dry_run:
+        _require_confirmation_flag(args, v, "sweep_ephemeral")
     try:
         summary = sweep_mod.run_ephemeral(v, dry_run=args.dry_run)
     except (OSError, ValueError) as e:
@@ -1002,7 +1464,7 @@ def cmd_health(args):
 def cmd_todo_add(args):
     v = _need_vault()
     try:
-        item = todo_mod.add_todo(
+        plan = todo_mod.plan_todo_add(
             v,
             args.content,
             priority=args.priority,
@@ -1016,18 +1478,55 @@ def cmd_todo_add(args):
             frequency=args.frequency,
             list_order=args.list_order,
             assignee_id=args.assignee_id,
+            expected_plan_hash=args.plan_hash,
         )
+    except (OSError, ValueError, sqlite3.Error) as exc:
+        sys.exit(str(exc))
+    try:
+        confirmation_required = _confirmation_required(v, "todo_add")
+    except ValueError as exc:
+        sys.exit(str(exc))
+    public_plan = todo_mod.public_todo_add_plan(plan)
+    public_plan["confirmation_required"] = confirmation_required
+    if args.dry_run or (confirmation_required and not args.plan_hash):
+        if args.json:
+            print(json.dumps(public_plan, indent=2, ensure_ascii=False, sort_keys=True))
+        else:
+            print(f"Planned todo → {plan['destination_path']}")
+            print(f"Plan hash: {plan['plan_sha256']}")
+            if confirmation_required and not args.dry_run:
+                print("Review the plan, then re-run with --plan-hash <plan_sha256>.")
+        usage_mod.set_result(
+            args, subject_kind="todo", subject_type="checklist",
+            status_after=plan["todo"]["status"], outcome="dry_run",
+            changed=False, count=1,
+        )
+        return
+    try:
+        item = todo_mod.apply_todo_add(v, plan)
     except (OSError, ValueError, sqlite3.Error) as exc:
         sys.exit(str(exc))
     usage_mod.set_result(
         args, subject_kind="todo", subject_type="checklist",
         status_after=item["lifecycle_status"], outcome="added", changed=True, count=1,
     )
-    print(f"Added {item['id']} → {item['path']}")
+    if args.json:
+        result = {
+            "format": "arpent-todo-add-result",
+            "version": 1,
+            "id": item["id"],
+            "path": item["path"],
+            "todo": item,
+            "plan_sha256": plan["plan_sha256"],
+        }
+        print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
+    else:
+        print(f"Added {item['id']} → {item['path']}")
 
 
 def cmd_todo_list(args):
     v = _need_vault()
+    _validate_page_arguments(args, default_limit=50)
     try:
         rows = todo_mod.list_todos(
             v,
@@ -1036,6 +1535,24 @@ def cmd_todo_list(args):
         )
     except (OSError, ValueError, sqlite3.Error) as exc:
         sys.exit(str(exc))
+    if args.json_page:
+        try:
+            page = _page_items(
+                rows,
+                view="todo-list",
+                limit=args.limit,
+                cursor=args.cursor,
+                all_items=args.all,
+                query={"status": args.status, "include_archived": args.include_archived},
+                summary={
+                    "by_status": _counts(rows, "status"),
+                    "by_lifecycle_status": _counts(rows, "lifecycle_status"),
+                },
+            )
+        except ValueError as exc:
+            sys.exit(str(exc))
+        print(json.dumps(page, indent=2, ensure_ascii=False, sort_keys=True))
+        return
     if args.json:
         print(json.dumps(rows, indent=2, ensure_ascii=False, sort_keys=True))
         return
@@ -1099,6 +1616,7 @@ def cmd_todo_edit(args):
         changes["is_optional"] = args.is_optional
 
     v = _need_vault()
+    _require_confirmation_flag(args, v, "todo_edit")
     try:
         item = todo_mod.edit_todo(v, args.id, **changes)
     except (OSError, ValueError, sqlite3.Error) as exc:
@@ -1117,6 +1635,7 @@ def cmd_todo_edit(args):
 
 def cmd_todo_done(args):
     v = _need_vault()
+    _require_confirmation_flag(args, v, "todo_done")
     try:
         item = todo_mod.done_todo(v, args.id)
     except (OSError, ValueError, sqlite3.Error) as exc:
@@ -1130,6 +1649,7 @@ def cmd_todo_done(args):
 
 def cmd_todo_defer(args):
     v = _need_vault()
+    _require_confirmation_flag(args, v, "todo_defer")
     try:
         item = todo_mod.defer_todo(v, args.id, args.to_date)
     except (OSError, ValueError, sqlite3.Error) as exc:
@@ -1144,6 +1664,7 @@ def cmd_todo_defer(args):
 
 def cmd_todo_block(args):
     v = _need_vault()
+    _require_confirmation_flag(args, v, "todo_block")
     try:
         item = todo_mod.block_todo(v, args.id, args.dependency_id)
     except (OSError, ValueError, sqlite3.Error) as exc:
@@ -1157,6 +1678,7 @@ def cmd_todo_block(args):
 
 def cmd_todo_archive(args):
     v = _need_vault()
+    _require_confirmation_flag(args, v, "todo_archive")
     try:
         item = todo_mod.archive_todo(v, args.id)
     except (OSError, ValueError, sqlite3.Error) as exc:
@@ -1221,8 +1743,9 @@ def build_parser() -> argparse.ArgumentParser:
         prog="arpent",
         description="Arpent - a filesystem-native personal LifeOS.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""Core loop (existing commands):
-  arpent note new <title> -> arpent status -> arpent triage -> arpent index -> arpent search <query>
+        epilog="""Capture loop:
+  arpent note new <title> ... --json
+  Run status, triage, index, or search only when the current task needs them.
 
 Composed continuity loop (no synthetic resume command):
   capture: arpent note new ... or arpent note ingest ...
@@ -1316,6 +1839,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     imp.add_argument("--plan-hash", default=None, help="apply only if decisions and routing match a reviewed dry run")
     imp.add_argument("--stop-on-error", action="store_true")
     imp.add_argument("--json", action="store_true")
+    _add_page_arguments(imp, default_limit=50)
     imp.set_defaults(func=cmd_import_apply)
 
     imp = import_commands.add_parser("status", help="show resumable application progress")
@@ -1324,25 +1848,31 @@ Create a deliberate project destination with: arpent project create <name>""",
     imp.set_defaults(func=cmd_import_status)
 
     sub.add_parser("status", help="show vault state").set_defaults(func=cmd_status)
-    sub.add_parser("index", help="inventory the vault and rebuild generated indexes").set_defaults(func=cmd_index)
+    sp = sub.add_parser("index", help="inventory the vault and rebuild generated indexes")
+    sp.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
+    sp.set_defaults(func=cmd_index)
     sp = sub.add_parser(
         "triage",
         help="inventory inbox items for an agent-mediated plan/apply pass",
         description=(
             "Inventory every non-fleeting inbox item without moving it. Use the result "
-            "to propose one confirmed plan, then apply structured edits or raw ingestion "
+            "to propose one policy-governed plan, then apply structured edits or raw ingestion "
             "per item and re-run triage; report partial batches honestly."
         ),
     )
     sp.add_argument("--json", action="store_true", help="emit stable item details, hashes, ages, and available actions")
+    _add_page_arguments(sp, default_limit=50)
     sp.set_defaults(func=cmd_triage)
-    sub.add_parser("efforts", help="active actionables by effort cadence and level").set_defaults(func=cmd_efforts)
+    sp = sub.add_parser("efforts", help="active actionables by effort cadence and level")
+    _add_page_arguments(sp, default_limit=100)
+    sp.set_defaults(func=cmd_efforts)
     sp = sub.add_parser("backup", help="create, verify, or restore a complete logical vault snapshot")
     sp.add_argument(
         "--destination",
         default=None,
         help="snapshot parent directory (default: 06_indexes/backup/)",
     )
+    sp.add_argument("--yes", dest="backup_yes", action="store_true", help="approve when local policy requires confirmation")
     sp.set_defaults(func=cmd_backup)
     backup = sp.add_subparsers(dest="backup_cmd")
     b = backup.add_parser("verify", help="verify a snapshot manifest, payload, and databases")
@@ -1351,6 +1881,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     b = backup.add_parser("restore", help="restore a verified snapshot into a new directory")
     b.add_argument("snapshot")
     b.add_argument("--to", required=True, help="new target directory; must not exist")
+    b.add_argument("--yes", action="store_true", help="approve when snapshot policy requires confirmation")
     b.set_defaults(func=cmd_backup_restore)
     sp = sub.add_parser("health", help="show live vault density and lifecycle metrics")
     sp.add_argument("--json", action="store_true")
@@ -1374,6 +1905,7 @@ Create a deliberate project destination with: arpent project create <name>""",
 
     sp = sub.add_parser("search", help="keyword search across the vault")
     sp.add_argument("query")
+    _add_page_arguments(sp, default_limit=50)
     sp.set_defaults(func=cmd_search)
 
     context = sub.add_parser(
@@ -1384,6 +1916,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     c.add_argument("--kind", choices=("folder", "note", "text"), default=None)
     c.add_argument("--path", default=None, help="limit results to a relative path")
     c.add_argument("--json", action="store_true")
+    _add_page_arguments(c, default_limit=100)
     c.set_defaults(func=cmd_context_pending)
 
     c = context.add_parser("set", help="store an AI-generated L1 summary")
@@ -1394,15 +1927,22 @@ Create a deliberate project destination with: arpent project create <name>""",
     c.add_argument("--source-hash", required=True, help="hash returned by context pending")
     c.add_argument("--provider", default="agent", help="agent or provider identifier")
     c.add_argument("--force", action="store_true", help="replace an already-fresh L1 summary")
+    c.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
     c.set_defaults(func=cmd_context_set)
 
     c = context.add_parser("show", help="read one context level for an indexed path")
     c.add_argument("path", help="indexed path relative to the vault")
     c.add_argument("--level", choices=("l0", "l1", "l2"), default="l0")
+    c.add_argument("--json-page", action="store_true", help="emit bounded structured L2 content")
+    c.add_argument("--limit", type=_positive_int, default=200, help="folder-child page size")
+    c.add_argument("--max-bytes", type=_positive_int, default=32 * 1024, help="UTF-8 source bytes per page")
+    c.add_argument("--cursor", default=None)
+    c.add_argument("--full", action="store_true", help="emit the complete L2 source or child list")
     c.set_defaults(func=cmd_context_show)
 
     sp = sub.add_parser("archive", help="archive a note by id (never deletes)")
     sp.add_argument("id")
+    sp.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
     sp.set_defaults(func=cmd_archive)
 
     project = sub.add_parser("project", help="deliberate project operations").add_subparsers(
@@ -1422,6 +1962,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     pr.add_argument("--area", default=None, help="existing unambiguous area slug")
     pr.add_argument("--effort-cadence", choices=notes_mod.EFFORT_CADENCES, default=None)
     pr.add_argument("--effort-level", choices=notes_mod.EFFORT_LEVELS, default=None)
+    pr.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
     pr.set_defaults(func=cmd_project_create)
 
     note = sub.add_parser("note", help="note operations").add_subparsers(dest="note_cmd", required=True)
@@ -1443,6 +1984,9 @@ Create a deliberate project destination with: arpent project create <name>""",
     n.add_argument("--chosen-location", dest="chosen_location", default=None)
     n.add_argument("--body", default=None)
     n.add_argument("--stdin", action="store_true", help="read body from stdin")
+    n.add_argument("--dry-run", action="store_true", help="show the complete creation plan without mutation")
+    n.add_argument("--plan-hash", default=None, help="apply only if the current plan matches a reviewed plan_sha256")
+    n.add_argument("--json", action="store_true", help="emit a versioned creation plan or result")
     n.set_defaults(func=cmd_note_new)
 
     n = note.add_parser("route", help="re-route an existing note")
@@ -1450,19 +1994,26 @@ Create a deliberate project destination with: arpent project create <name>""",
     n.add_argument("--project", default=None)
     n.add_argument("--area", default=None)
     n.add_argument("--resource", default=None)
+    n.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
     n.set_defaults(func=cmd_note_route)
 
     n = note.add_parser("read", help="print a note by id")
     n.add_argument("id")
+    n.add_argument("--json-page", action="store_true", help="emit bounded structured body content")
+    n.add_argument("--max-bytes", type=_positive_int, default=32 * 1024)
+    n.add_argument("--cursor", default=None)
+    n.add_argument("--full", action="store_true", help="emit the complete body in structured form")
     n.set_defaults(func=cmd_note_read)
 
     n = note.add_parser("find", help="find notes by keyword")
     n.add_argument("query")
+    _add_page_arguments(n, default_limit=50)
     n.set_defaults(func=cmd_note_find)
 
     n = note.add_parser("status", help="change a note's status")
     n.add_argument("id")
     n.add_argument("status")
+    n.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
     n.set_defaults(func=cmd_note_status)
 
     n = note.add_parser(
@@ -1534,6 +2085,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     n.add_argument("--source-hash", default=None, help="reject apply unless the source still has this SHA-256")
     n.add_argument("--dry-run", action="store_true", help="show exact paths and metadata without mutation")
     n.add_argument("--json", action="store_true", help="print the ingestion plan as JSON")
+    n.add_argument("--yes", action="store_true", help="approve a reviewed ingestion when policy requires it")
     n.set_defaults(func=cmd_note_ingest)
 
     n = note.add_parser("extract", help="extract a typed child from a linear note")
@@ -1550,6 +2102,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     body_input.add_argument("--body", default=None, help="autonomous child-note body")
     body_input.add_argument("--stdin", action="store_true", help="read the child-note body from stdin")
     n.add_argument("--after", default=None, help="insert the source wikilink after this exact passage")
+    n.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
     n.set_defaults(func=cmd_note_extract)
 
     n = note.add_parser("dissolve", help="archive a decomposed linear note")
@@ -1578,6 +2131,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     s.add_argument("--memory-log", action="store_true", help="explicitly create or update the optional cross-project MEMORY.md log for this close")
     s.add_argument("--observation", action="append", default=[])
     s.add_argument("--trait", action="append", default=[])
+    s.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
     s.set_defaults(func=cmd_session_end)
 
     tools = sub.add_parser("tools", help="tools registry operations").add_subparsers(dest="tools_cmd", required=True)
@@ -1593,6 +2147,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     c = cron.add_parser("run", help="run cron jobs")
     c.add_argument("--tick", action="store_true", help="run due jobs from cron.json")
     c.add_argument("--dry-run", action="store_true")
+    c.add_argument("--yes", action="store_true", help="approve execution when local policy requires confirmation")
     c.add_argument(
         "--allow-local-code",
         action="store_true",
@@ -1603,6 +2158,7 @@ Create a deliberate project destination with: arpent project create <name>""",
     sweep = sub.add_parser("sweep", help="lifecycle sweep operations").add_subparsers(dest="sweep_cmd", required=True)
     sw = sweep.add_parser("ephemeral", help="apply configured ephemeral lifecycle rules")
     sw.add_argument("--dry-run", action="store_true")
+    sw.add_argument("--yes", action="store_true", help="approve apply when local policy requires confirmation")
     sw.set_defaults(func=cmd_sweep_ephemeral)
     sw = sweep.add_parser("status", help="show the latest completed ephemeral sweep")
     sw.add_argument("--json", action="store_true")
@@ -1624,12 +2180,16 @@ Create a deliberate project destination with: arpent project create <name>""",
     td.add_argument("--frequency", default=None)
     td.add_argument("--list-order", default=None)
     td.add_argument("--assignee", dest="assignee_id", default=None)
+    td.add_argument("--dry-run", action="store_true", help="show the complete todo plan without mutation")
+    td.add_argument("--plan-hash", default=None, help="apply only if the current plan matches a reviewed plan_sha256")
+    td.add_argument("--json", action="store_true", help="emit a versioned creation plan or result")
     td.set_defaults(func=cmd_todo_add)
 
     td = todo.add_parser("list", help="list current todos")
     td.add_argument("--status", choices=todo_mod.TODO_STATUSES, default=None)
     td.add_argument("--include-archived", action="store_true")
     td.add_argument("--json", action="store_true")
+    _add_page_arguments(td, default_limit=50)
     td.set_defaults(func=cmd_todo_list)
 
     td = todo.add_parser("show", help="show one todo")
@@ -1672,24 +2232,29 @@ Create a deliberate project destination with: arpent project create <name>""",
     assignee = td.add_mutually_exclusive_group()
     assignee.add_argument("--assignee", dest="assignee_id", default=None)
     assignee.add_argument("--clear-assignee", action="store_true")
+    td.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
     td.set_defaults(func=cmd_todo_edit)
 
     td = todo.add_parser("done", help="mark a todo done")
     td.add_argument("id")
+    td.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
     td.set_defaults(func=cmd_todo_done)
 
     td = todo.add_parser("defer", help="set the date on which to do a todo")
     td.add_argument("id")
     td.add_argument("--to", dest="to_date", required=True, help="dd-mm-yyyy")
+    td.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
     td.set_defaults(func=cmd_todo_defer)
 
     td = todo.add_parser("block", help="mark a todo waiting on an object ID")
     td.add_argument("id")
     td.add_argument("--on", dest="dependency_id", required=True)
+    td.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
     td.set_defaults(func=cmd_todo_block)
 
     td = todo.add_parser("archive", help="archive a completed todo without deleting its DB row")
     td.add_argument("id")
+    td.add_argument("--yes", action="store_true", help="approve when local policy requires confirmation")
     td.set_defaults(func=cmd_todo_archive)
 
     for tool_name in ("fleeting", "reader", "calendar", "sport", "journal", "crm"):

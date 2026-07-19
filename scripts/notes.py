@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
+from urllib.parse import urlparse
 
 from . import file_transaction
 from . import frontmatter as fmlib
@@ -91,13 +92,20 @@ def frontmatter_warnings(fm: dict) -> list[str]:
     warnings = []
     if source == "manual" and link:
         warnings.append("source manual should normally have link: null")
-    elif source == "captured" and not link:
-        warnings.append("source captured requires a URL in link")
+    elif source == "captured" and not _external_url(link):
+        warnings.append("source captured requires an http(s) URL in link")
     elif source == "imported" and not link:
         warnings.append("source imported requires a URL or external identifier in link")
     elif source == "derived" and link:
         warnings.append("source derived should normally have link: null")
     return warnings
+
+
+def _external_url(value) -> bool:
+    if not isinstance(value, str):
+        return False
+    parsed = urlparse(value.strip())
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
 
 
 def route_for(vault: Vault, fm: dict) -> routing.Route:
@@ -115,13 +123,130 @@ def route_for(vault: Vault, fm: dict) -> routing.Route:
     )
 
 
-def create_note(vault: Vault, fm: dict, body: str = "") -> tuple[Path, routing.Route]:
+def plan_note_new(vault: Vault, *, title, ntype, body="", status=None,
+                  project=None, area=None, resource=None, tags=None,
+                  source="manual", author="user", description=None, link=None,
+                  chosen_location=None, relations=None, effort_cadence=None,
+                  effort_level=None, depth=None, expected_plan_hash=None) -> dict:
+    """Build the complete public plan used by note-new preview and apply."""
+    fm = build_frontmatter(
+        vault,
+        title=title,
+        ntype=ntype,
+        status=status,
+        project=project,
+        area=area,
+        resource=resource,
+        tags=tags,
+        source=source,
+        author=author,
+        description=description,
+        link=link,
+        chosen_location=chosen_location,
+        relations=relations,
+        effort_cadence=effort_cadence,
+        effort_level=effort_level,
+        depth=depth,
+    )
+    route = route_for(vault, fm)
+    warnings = frontmatter_warnings(fm)
+    if route.reason:
+        warnings.append(route.reason)
+    side_effects = [f"{'append' if route.append else 'create'}:{route.relpath}"]
+    if route.reason:
+        side_effects.append(f"create:{route.bucket_relpath}/{route.filename}_reason.txt")
+    plan = {
+        "format": "arpent-note-new-plan",
+        "version": 1,
+        "frontmatter": fm,
+        "destination_path": route.relpath,
+        "append": route.append,
+        "reason": route.reason,
+        "warnings": warnings,
+        "side_effects": side_effects,
+        "body_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
+        "_body": body,
+    }
+    plan["plan_sha256"] = _note_new_plan_hash(plan)
+    if expected_plan_hash is not None and expected_plan_hash != plan["plan_sha256"]:
+        raise ValueError("Note creation plan no longer matches --plan-hash; review a fresh dry run.")
+    return plan
+
+
+def apply_note_new(vault: Vault, plan: dict) -> tuple[Path, routing.Route, dict]:
+    """Apply a validated note-new plan through the normal transaction path."""
+    fm = copy.deepcopy(plan["frontmatter"])
+    expected_id = None if plan["append"] else fm["id"]
+    destination, route = create_note(
+        vault,
+        fm,
+        plan["_body"],
+        expected_id=expected_id,
+        expected_route={
+            "destination_path": plan["destination_path"],
+            "append": plan["append"],
+            "reason": plan["reason"],
+        },
+    )
+    return destination, route, fm
+
+
+def public_note_new_plan(plan: dict) -> dict:
+    if plan.get("append"):
+        return {
+            "format": "arpent-fleeting-plan",
+            "version": 1,
+            "destination_path": plan["destination_path"],
+            "append": True,
+            "warnings": plan["warnings"],
+            "side_effects": plan["side_effects"],
+            "body_sha256": plan["body_sha256"],
+            "plan_sha256": plan["plan_sha256"],
+        }
+    public = {key: value for key, value in plan.items() if not key.startswith("_")}
+    public["frontmatter"] = copy.deepcopy(public["frontmatter"])
+    public["frontmatter"].pop("created", None)
+    public["frontmatter"].pop("modified", None)
+    public["apply_generated_fields"] = ["created", "modified"]
+    return public
+
+
+def _note_new_plan_hash(plan: dict) -> str:
+    frontmatter = copy.deepcopy(plan["frontmatter"])
+    for field in ("created", "modified"):
+        frontmatter.pop(field, None)
+    payload = {
+        "frontmatter": frontmatter,
+        "destination_path": plan["destination_path"],
+        "append": plan["append"],
+        "reason": plan["reason"],
+        "body_sha256": plan["body_sha256"],
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def create_note(vault: Vault, fm: dict, body: str = "", *, expected_id=None,
+                expected_route=None) -> tuple[Path, routing.Route]:
     with vault.exclusive_lock("mutations"):
         _recover_note_transaction(vault)
         normalize_frontmatter_fields(fm)
         normalize_agent_subjective_fields(fm)
-        fm["id"] = routing.new_id(fm["type"], vault.existing_ids())
+        existing_ids = vault.existing_ids()
+        if expected_id is not None:
+            if expected_id in existing_ids:
+                raise ValueError("Note creation plan is stale; review a fresh dry run.")
+            fm["id"] = expected_id
+        else:
+            fm["id"] = routing.new_id(fm["type"], existing_ids)
         r = route_for(vault, fm)
+        actual_route = {
+            "destination_path": r.relpath,
+            "append": r.append,
+            "reason": r.reason,
+        }
+        if expected_route is not None and actual_route != expected_route:
+            raise ValueError("Note routing changed after planning; review a fresh dry run.")
         dest = vault.safe_output_path(r.relpath)
         relpaths = [r.relpath]
         reason_rel = None
@@ -136,6 +261,7 @@ def create_note(vault: Vault, fm: dict, body: str = "") -> tuple[Path, routing.R
             )
         if r.append:
             stamp = datetime.now(timezone.utc).strftime("%H:%M")
+            r.entry_time = stamp
             if dest.exists():
                 text = vault.safe_source_path(r.relpath).read_text(encoding="utf-8")
             else:

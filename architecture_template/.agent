@@ -1,57 +1,34 @@
-# .agent - Entry point for AI agents working in this Arpent vault
+# .agent - Arpent vault entry point
 
-Read this first, completely, before doing anything else.
+Read this file completely. Then load only what the current operation needs.
 
-## What this is
+## Operation loading
 
-An Arpent vault: a personal filesystem-native life OS.
+1. If an Arpent host skill is already active, do not reload the local skill.
+2. For ordinary note, todo, or fleeting capture, use the active skill's hot path.
+3. Otherwise read `COMPASS.md` to select one workflow.
+4. Read `me.md` for user interaction preferences and when resuming work.
+5. On resume, read the target `_context.md`, then only needed notes/sources.
+6. Read detailed docs or schema files only for a relevant edge case.
 
-## Reading order
-
-1. Read `me.md`.
-2. Read `06_indexes/docs/ARPENT.md`.
-3. Read `06_indexes/docs/mental-model.md`.
-4. Read `06_indexes/global_skills/arpent.skill.md`.
-5. Skim `06_indexes/schemas/frontmatter_policy.yaml`.
-
-When resuming concrete work, read `me.md`, then the target project or area
-`_context.md`, then only the specific notes or sources needed. This is a reading
-protocol, not a resume command. `MEMORY.md` is disabled and unseeded by default;
-never read it unless the user explicitly asks for or enables it.
+The local confirmation mode and batch threshold live in
+`06_indexes/cli/operations.yaml`. The modes are `always`, `explicit-intent`, and
+`never`. Clarification remains separate from confirmation.
 
 ## Hard rules
 
-- Never delete files. Archive.
-- Never fill subjective fields: `appreciated`, `importance`. Leave them `null`.
-- Never guess routing. Use `00_inbox/unsure/` with a reason.
-- Never dump facts into the vault. Delegated memory is disabled until explicit
-  user opt-in; the vault remains a clean knowledge base.
-- Never rewrite `me.md` from inference. Propose changes and wait for explicit user confirmation.
-- Keep all tool know-how in `06_indexes/`; `05_tools/` is runtime-only.
-- Always announce moves and renames before executing.
-- Always use the Arpent CLI for state changes when available.
-- Keep the universal frontmatter schema closed; body sections, project files,
-  and project subfolders remain user-extensible.
-- Follow the primary/adaptive language settings in the installed Arpent skill.
-- Write dates as `dd-mm-yyyy` and note timestamps as `dd-mm-yyyyTHH:MM:SSZ`.
-- Never imply YAML is embedded in a binary; attachments use separate Markdown
-  companion reference notes.
+- Never delete or overwrite user content. Archive.
+- Never fill `appreciated` or `importance`; do not infer effort values.
+- Never guess a missing route; use `00_inbox/unsure/` with a reason.
+- Never invent frontmatter fields, relation types, memory activation, or side effects.
+- Use the CLI for coordinated state changes when available.
+- Keep tool know-how in `06_indexes/`; `05_tools/` is runtime material.
+- Keep dates day-first and note timestamps in UTC.
+- Keep binary attachments untouched with separate Markdown companions.
+- Do not rewrite `me.md` from inference.
 
-## Commands
+## Continuity
 
-`arpent status`
-`arpent search`
-`arpent note new`
-`arpent note edit --dry-run --json` then apply with its reviewed `--plan-hash`
-`arpent note ingest`
-`arpent import scan/suggest/review/validate/summary/apply/status`
-`arpent triage --json`
-`arpent project create`
-`arpent efforts`
-`arpent session end`
-`arpent usage report`
-`arpent archive`
-`arpent sweep`
-
-External-memory reads and writes require explicit user opt-in; interface
-availability alone is not activation. See `06_indexes/docs/mental-model.md`.
+`_context.md` is the default local continuity surface. `MEMORY.md` is optional,
+disabled by default, and read only after explicit user opt-in. External memory
+also requires explicit host-level opt-in.

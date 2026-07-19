@@ -464,8 +464,10 @@ or rescan the inventory, and returns nonzero when outputs are missing or changed
 If a destination was deleted, apply can recreate it. If it still exists but its
 recorded hash changed, apply refuses to overwrite it and reports a collision that
 must be inspected explicitly. Structure creation happens before file processing and is
-reported separately, including when all later file imports fail. `apply` asks one
-final interactive confirmation; unattended application requires `--yes`. See
+reported separately, including when all later file imports fail. `apply` follows
+the local policy: `always` and `explicit-intent` require the reviewed boundary,
+while `never` skips a second approval. Unattended reviewed application uses
+`--yes`. See
 [`import-and-migration.md`](references/import-and-migration.md) for the complete format,
 safety, and recovery contract.
 
@@ -554,19 +556,19 @@ ARPENT_VAULT_ROOT="$HOME/my-vault" arpent health
 | `arpent project create "<name>"` | Deliberately create a normalized project, complete `_context.md`, and working folders |
 | `arpent note new "..."` | Capture a structured note, initially in the inbox unless routing metadata is supplied |
 | `arpent status` | Check note totals by bucket and lifecycle status |
-| `arpent triage [--json]` | Inventory inbox items and available edit/ingest/leave dispositions |
+| `arpent triage [--json] [--json-page]` | Inventory inbox items and available edit/ingest/leave dispositions |
 | `arpent index` | Build or refresh inventory, search, and context indexes |
 | `arpent search "..."` | Search indexed structured notes by keyword |
 | `arpent session end --project <slug> --summary "..."` | Close into target local context in either mode; add `--memory-log` only for the optional cross-project log |
 | `arpent usage report` | Inspect privacy-preserving command metrics and current triage age |
 | `arpent todo add "..."` | Create a task with SQLite state and a readable Markdown trace |
-| `arpent todo list` | List current tasks |
+| `arpent todo list [--json-page]` | List current tasks with optional bounded pages |
 | `arpent backup` | Create and verify a logical vault snapshot |
 | `arpent <group> <subcommand> --help` | Inspect the complete syntax for a nested operation |
 
 ### Read command output correctly
 
-Arpent prints human-readable output by default. Commands exposing `--json`, such as `triage`, `note edit --dry-run`, `note ingest --dry-run`, `usage report`, `health`, `context pending`, `todo list`, `todo show`, and `sweep status`, are preferable for scripts. Exit code `0` means the command completed; validation, trust, consistency, or partial failures return a nonzero exit.
+Arpent prints human-readable output by default. Commands exposing `--json`, such as `triage`, `note new`, `note edit --dry-run`, `note ingest --dry-run`, `todo add`, `usage report`, `health`, `context pending`, `todo list`, `todo show`, and `sweep status`, are preferable for scripts. Collection commands also expose `--json-page`, `--limit`, `--cursor`, and `--all`; content reads expose `--json-page`, `--max-bytes`, `--cursor`, and `--full`. Every page reports totals, a snapshot hash, completeness, and continuation. Exit code `0` means the command completed; validation, trust, consistency, or partial failures return a nonzero exit.
 
 ## Common workflows
 
@@ -607,7 +609,7 @@ The agent-mediated plan/apply protocol is:
 1. Inventory with `arpent triage --json`.
 2. Build one combined proposal covering every item, including explicit leaves.
 3. Preview structured notes with `arpent note edit <id> ... --dry-run --json` and raw files with `arpent note ingest ... --dry-run --json`.
-4. Show complete before/after frontmatter, source and destination, body-change state, warnings, and all known side effects; obtain one confirmation for the batch.
+4. Show complete before/after frontmatter, source and destination, body-change state, warnings, and all known side effects when the local confirmation policy requires review.
 5. Apply the announced per-item commands, then re-run triage to verify.
 6. Report every applied, skipped, and failed item. Each item is atomic, but a batch is sequential per-item transactions and may partially succeed.
 
@@ -839,7 +841,7 @@ A newly initialized vault gives an agent a local reading order:
 
 For a concrete resume, follow [the project context reading order](#create-and-use-project-context).
 
-Tell a new agent to read `.agent` before acting. The expected operating protocol is to identify intent, inspect relevant context, announce meaningful moves or renames, invoke the CLI, and report the result. The CLI enforces mechanical invariants; the agent remains responsible for subjective interpretation and user confirmation.
+Tell a new agent to read `.agent` before acting. The expected operating protocol is to identify intent, inspect relevant context, apply the local `always`, `explicit-intent`, or `never` confirmation policy, invoke the CLI, and report the result. The CLI enforces mechanical invariants; the agent remains responsible for subjective interpretation and clarification.
 
 If the CLI is unavailable, source files remain readable, but safe mutation becomes more limited. Do not manually emulate todo dual state, extraction, dissolution, sweep, context-summary, backup, or delegated-queue transactions. The repository's [`ingestion-and-degraded-mode.md`](references/ingestion-and-degraded-mode.md) documents direct ordinary-note work and the default `_context.md` close fallback; optional `MEMORY.md` writes still require explicit user opt-in.
 
@@ -1224,34 +1226,35 @@ Avoid manually moving or editing todo records. Todo mutations check that SQLite 
 | `init [path] [--minimal] [--structure FILE]` | Scaffold a vault and optionally seed declared Areas, Resources, and projects |
 | `import scan/suggest/review/validate/summary/apply/status` | Plan, confirm, copy, and resume an external filesystem migration |
 | `status` | Count ID-bearing notes by bucket and status |
-| `triage [--json]` | Inventory inbox items with kinds, ages, hashes, and available dispositions |
-| `index` | Inventory the vault and rebuild search and context indexes |
-| `search <query>` | Search indexed structured notes by keyword |
-| `efforts` | Group active actionables by explicit cadence and effort level |
+| `triage [--json|--json-page]` | Inventory inbox items with kinds, ages, hashes, and available dispositions |
+| `index [--yes]` | Inventory the vault and rebuild search and context indexes |
+| `search <query> [--json-page]` | Search indexed structured notes by keyword with exact totals |
+| `efforts [--json-page]` | Group active actionables by explicit cadence and effort level |
 | `health [--json]` | Report live density and lifecycle signals |
-| `backup [--destination <dir>]` | Create a complete, verified logical vault snapshot |
+| `backup [--destination <dir>] [--yes]` | Create a complete, verified logical vault snapshot |
 | `backup verify <snapshot>` | Verify manifest, exact payload checksums, and SQLite integrity |
-| `backup restore <snapshot> --to <new-dir>` | Atomically restore into a directory that does not exist |
-| `project create <name>` | Deliberately create a normalized project and complete canonical context |
-| `note new <title>` | Create and deterministically route a note |
+| `backup restore <snapshot> --to <new-dir> [--yes]` | Atomically restore into a directory that does not exist |
+| `project create <name> [--yes]` | Deliberately create a normalized project and complete canonical context |
+| `note new <title> [--dry-run] [--json] [--plan-hash <hash>]` | Plan or create and deterministically route a note |
 | `note edit <id> [--dry-run] [--json] [--plan-hash <hash>]` | Plan or apply metadata/body edits, renames, and routing; bind reviewed plans when applying |
-| `note ingest <inbox-path> --title <title>` | Losslessly ingest text, malformed, or binary inbox content |
-| `note route <id>` | Replace routing fields and move the note accordingly |
-| `note read <id>` | Print a note |
-| `note find <query>` | Find structured notes using the same index and fallback behavior as `search` |
-| `note status <id> <status>` | Change a note's lifecycle status |
-| `note extract <linear-id>` | Extract a typed child from a linear working note |
-| `note dissolve <linear-id> --yes` | Validate children and archive a decomposed linear source |
-| `archive <id>` | Archive one note by ID without deleting its history |
-| `todo add/list/show` | Create and inspect SQLite-backed tasks and Markdown traces |
-| `todo edit/done/defer/block` | Update task fields and lifecycle state |
+| `note ingest <inbox-path> --title <title> [--dry-run] [--yes]` | Losslessly ingest text, malformed, or binary inbox content |
+| `note route <id> [--yes]` | Replace routing fields and move the note accordingly |
+| `note read <id> [--json-page] [--full]` | Print a note or retrieve hash-bound content pages |
+| `note find <query> [--json-page]` | Find structured notes using the same index and fallback behavior as `search` |
+| `note status <id> <status> [--yes]` | Change a note's lifecycle status |
+| `note extract <linear-id> [--yes]` | Extract a typed child from a linear working note |
+| `note dissolve <linear-id> [--yes]` | Validate children and archive a decomposed linear source |
+| `archive <id> [--yes]` | Archive one note by ID without deleting its history |
+| `todo add [--dry-run] [--json] [--plan-hash <hash>]` | Plan or create a SQLite-backed task and Markdown trace |
+| `todo list/show [--json-page]` | Inspect current tasks and complete/paginated views |
+| `todo edit/done/defer/block [--yes]` | Update task fields and lifecycle state |
 | `todo archive <id>` | Archive a completed task while retaining its SQLite row |
-| `context pending/show/set` | Inspect and maintain explicit L0/L1/L2 context |
-| `session end` | Update local project/area continuity; queue delegated writes only in full mode |
+| `context pending/show/set` | Inspect bounded L0/L1/L2 context and maintain explicit summaries |
+| `session end [--yes]` | Update local project/area continuity; queue delegated writes only in full mode |
 | `usage report [--since <dd-mm-yyyy>] [--json]` | Report local v2 command metrics and current triage age |
 | `tools list/show` | Inspect the tool registry |
-| `sweep ephemeral/status` | Preview, apply, and inspect configured lifecycle sweeps |
-| `cron run --tick [--dry-run] [--allow-local-code]` | Preview or explicitly authorize due jobs from the cron registry |
+| `sweep ephemeral/status [--yes]` | Preview, apply, and inspect configured lifecycle sweeps |
+| `cron run --tick [--dry-run] [--allow-local-code] [--yes]` | Preview or explicitly authorize due jobs from the cron registry |
 
 Run `arpent <command> --help` for full flags and accepted values.
 
@@ -1306,10 +1309,10 @@ normal validation, then verifies each source immediately before copying it.
 source or inventory. It returns nonzero when `missing_or_changed` outputs exist,
 so automation need not infer failure solely from human text.
 
-For JSON-only automation, use `review --accept-suggestions --json` and real
-`apply --yes --json`. Interactive review or apply intentionally prints questions
-and therefore refuses `--json` without those non-interactive flags. Dry-run JSON
-never prompts.
+For JSON-only automation, use `review --accept-suggestions --json`. Use
+`apply --yes --json` when the local policy requires confirmation; `never` accepts
+`apply --json` directly. Interactive review intentionally prints questions.
+Dry-run JSON never prompts.
 
 | Command | JSON fields |
 |---|---|
@@ -1448,7 +1451,7 @@ arpent note extract <linear-id>
 arpent note dissolve <linear-id> [--yes]
 ```
 
-The extracted child can use any installed note type except fleeting. `--inbox` cannot accompany another route. A missing body defaults to the child title. Dissolution requires `--yes`, an eligible source status, and validated child lineage.
+The extracted child can use any installed note type except fleeting. `--inbox` cannot accompany another route. A missing body defaults to the child title. Dissolution always requires an eligible source status and validated child lineage; `--yes` is required when the local confirmation mode requires approval.
 
 ### Context reference
 
@@ -1598,11 +1601,13 @@ is the implemented migration-specific review flow.
 | `sweep --dry-run` | Writes sweep log, usage, lock state, and summary |
 | `backup` | Creates a snapshot and temporary staging state |
 
-The CLI does not prompt before ordinary single-item mutation. `import review`
-asks hierarchical placement questions, and `import apply` asks one final batch
-confirmation unless `--yes` is supplied. `note dissolve --yes` retains its own
-explicit destructive boundary. Other preview/announce/confirm behavior comes
-from the agent protocol, not a generic parser prompt.
+The CLI reads `confirmation.mode` and `bulk_threshold` from the vault operation
+contract. `always` requires reviewed plans or `--yes`; `explicit-intent` runs
+bounded targeted commands directly but confirms high-impact and threshold-sized
+work; `never` skips the second approval. Validation, stale-plan, collision,
+confinement, and no-overwrite checks remain active in every mode. `import review`
+still asks semantic folder-placement questions because those are clarifications,
+not confirmation prompts.
 
 ## Roadmap
 

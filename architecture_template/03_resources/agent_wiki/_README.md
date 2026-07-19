@@ -5,9 +5,11 @@ This is the separate scope for notes created by agents without explicit user req
 Agent-authored notes start here with:
 
 ```yaml
+type: draft
+status: maturing
 author: agent
-agent_wiki_status: draft
 ```
 
-Promotion preserves `author: agent` so lineage remains clear.
-
+Review uses the normal lifecycle status. Promotion changes the standard type and
+routing fields while preserving `author: agent` so lineage remains clear. No
+agent-wiki-only frontmatter key is introduced.

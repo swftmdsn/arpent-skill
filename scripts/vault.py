@@ -441,11 +441,12 @@ Body sections, project files, and project subfolders remain user-extensible.
 
 1. Identify the intent and required destination.
 2. To resume work, read `me.md`, then the target `_context.md`, then only needed notes/sources. Never read optional `MEMORY.md` without explicit user opt-in.
-3. Read `06_indexes/global_skills/arpent.skill.md` and only the contract needed.
-4. Preview mutations, destination, metadata, and side effects.
-5. Ask once when a user-owned or routing decision is required.
-6. Prefer the Arpent CLI, execute, and verify the resulting path and state.
-7. Close useful work with targeted `arpent session end`; a no-target close needs `--memory-log`. Rebuild indexes after direct changes.
+3. Use the active host skill; otherwise read the compact local skill and only the contract needed.
+4. Read confirmation mode and threshold from `06_indexes/cli/operations.yaml`.
+5. Preview destination, metadata, and side effects only when policy requires it.
+6. Ask for clarification when a user-owned or routing decision is required.
+7. Prefer the Arpent CLI, execute, and verify the resulting path and state.
+8. Close useful work with targeted `arpent session end`; a no-target close needs `--memory-log`. Rebuild indexes after direct changes.
 
 ## Copy-paste frontmatter reference
 
@@ -535,80 +536,84 @@ This vault is an Arpent vault: a filesystem-native personal life OS.
 - Files over apps. Markdown + JSON are the source of truth.
 - Delegated memory is optional and disabled by default; the vault is a clean knowledge base, not a memory dump.
 - Routing is deterministic. Nothing is ever deleted - only archived.
-- The agent announces moves; the user owns the vault.
+- Confirmation follows the local operation policy; the user owns the vault.
 
 See 06_indexes/global_skills/ for the operating skill.
 """
 
-AGENT_STUB = """# .agent - Entry point for AI agents working in this Arpent vault
+AGENT_WIKI_README_STUB = """# Agent Wiki
 
-Read this first, completely, before doing anything else.
+This is the separate scope for notes created by agents without explicit user request.
 
-## Reading order
+Agent-authored notes start here with:
 
-1. Read `me.md`.
-2. Read `COMPASS.md`.
-3. Read `06_indexes/docs/ARPENT.md`.
-4. Read `06_indexes/docs/mental-model.md`.
-5. Read `06_indexes/global_skills/arpent.skill.md`.
-6. Skim `06_indexes/schemas/frontmatter_policy.yaml`.
+```yaml
+type: draft
+status: maturing
+author: agent
+```
 
-When resuming concrete work, read `me.md`, then the target project or area
-`_context.md`, then only the specific notes or sources needed. This is a reading
-protocol, not a resume command. `MEMORY.md` is disabled and unseeded by default;
-never read it unless the user explicitly asks for or enables it.
+Review uses the normal lifecycle status. Promotion changes the standard type and
+routing fields while preserving `author: agent` so lineage remains clear. No
+agent-wiki-only frontmatter key is introduced.
+"""
+
+AGENT_STUB = """# .agent - Arpent vault entry point
+
+Read this file completely. Then load only what the current operation needs.
+
+## Operation loading
+
+1. If an Arpent host skill is already active, do not reload the local skill.
+2. For ordinary note, todo, or fleeting capture, use the active skill's hot path.
+3. Otherwise read `COMPASS.md` to select one workflow.
+4. Read `me.md` for user interaction preferences and when resuming work.
+5. On resume, read the target `_context.md`, then only needed notes/sources.
+6. Read detailed docs or schema files only for a relevant edge case.
+
+The local confirmation mode and batch threshold live in
+`06_indexes/cli/operations.yaml`. The modes are `always`, `explicit-intent`, and
+`never`. Clarification remains separate from confirmation.
 
 ## Hard rules
 
-- Never delete files. Archive.
-- Never fill subjective fields: `appreciated`, `importance`. Leave them `null`.
-- Never guess routing. Use `00_inbox/unsure/` with a reason.
-- Never dump facts into the vault. Delegated memory requires explicit user opt-in; the vault is a clean knowledge base.
-- Never rewrite `me.md` from inference. Propose changes and wait for explicit user confirmation.
-- Keep all tool know-how in `06_indexes/`; `05_tools/` is runtime-only.
-- Always announce moves and renames before executing.
-- Always use the Arpent CLI for state changes when available.
-- Keep the universal frontmatter schema closed; bodies, project files, and project subfolders remain extensible.
-- Follow the primary/adaptive language settings in the installed Arpent skill.
-- Write dates as `dd-mm-yyyy` and note timestamps as `dd-mm-yyyyTHH:MM:SSZ`.
-- Binary attachments remain byte-for-byte untouched and use separate Markdown companion reference notes.
+- Never delete or overwrite user content. Archive.
+- Never fill `appreciated` or `importance`; do not infer effort values.
+- Never guess a missing route; use `00_inbox/unsure/` with a reason.
+- Never invent frontmatter fields, relation types, memory activation, or side effects.
+- Use the CLI for coordinated state changes when available.
+- Keep tool know-how in `06_indexes/`; `05_tools/` is runtime material.
+- Keep dates day-first and note timestamps in UTC.
+- Keep binary attachments untouched with separate Markdown companions.
+- Do not rewrite `me.md` from inference.
 
-## Continuity commands
+## Continuity
 
-- `arpent project create <name>`
-- `arpent triage --json`
-- `arpent note edit <id> ... --dry-run --json`, then apply with its `--plan-hash`
-- `arpent note ingest <inbox-path> --title <title> ... --dry-run --json`
-- `arpent import scan <source> --output <plan>`, then review, validate, dry-run, and confirmed apply
-- `arpent session end --summary <text> ...`
-- `arpent session end --summary <text> --memory-log` only for an explicitly requested optional cross-project log
-- `arpent usage report [--json]`
+`_context.md` is the default local continuity surface. `MEMORY.md` is optional,
+disabled by default, and read only after explicit user opt-in. External memory
+also requires explicit host-level opt-in.
 """
 
-MINIMAL_AGENT_STUB = """# .agent - Entry point for AI agents working in this Arpent vault
+MINIMAL_AGENT_STUB = """# .agent - Arpent minimal vault entry point
 
-Read this first, completely, before doing anything else.
+Read this file completely, then load only what the operation needs. Use the
+active host skill when present; otherwise use the compact local skill. Read
+`COMPASS.md` for less common operations and `me.md` for interaction preferences
+or project/area resume.
 
-1. Read `me.md`.
-2. Read `COMPASS.md`.
-3. Read `06_indexes/global_skills/arpent.skill.md`.
-4. Skim `06_indexes/schemas/frontmatter_policy.yaml`.
+The confirmation mode and batch threshold live in
+`06_indexes/cli/operations.yaml`. Apply `always`, `explicit-intent`, or `never`
+without weakening validation or no-overwrite checks.
 
-This is a minimal vault. Use complete universal frontmatter and deterministic
-routing. For continuity, read `me.md`, then the target project or area
-`_context.md`, then only needed notes/sources; close work with targeted
-`arpent session end`. `MEMORY.md` is disabled and unseeded by default. Only
-`--memory-log` writes it, and later reads require explicit user opt-in.
-Use `arpent project create`, `arpent triage --json`, `note edit --dry-run`
-followed by its reviewed `--plan-hash`, `note ingest --dry-run`, and
-`arpent import`, and `arpent usage report` as needed.
-Do not create delegated-memory queues, a memory wiki, context summaries, cron,
-todo, tools, sweep, or agent-infrastructure modules unless the user deliberately
-initializes a full vault elsewhere.
-Never delete files, infer subjective fields, guess routing, or rewrite `me.md`
-from inference. Do not invent frontmatter fields; freely extensible context
-bodies and project files/subfolders are not schema fields. Never imply YAML is
-embedded in a binary; attachments use separate Markdown companion notes.
+Use complete universal frontmatter and deterministic routing. Resume from
+`me.md`, then target `_context.md`, then only needed notes/sources. Never delete,
+infer subjective fields, guess routing, invent schema fields, or rewrite
+`me.md` from inference. Binary attachments use separate Markdown companions.
+
+This profile intentionally omits delegated-memory queues, memory wiki, context
+summaries, cron, todo, tools, sweep, and portable agent infrastructure. Capture,
+read, search, route, archive, import, project continuity, and filesystem mode
+remain available.
 """
 
 MENTAL_MODEL_STUB = """# Arpent Mental Model
@@ -745,40 +750,45 @@ INDEXING_CONTEXT_DOC_STUB = """# Indexing and Context
 computes hashes, rebuilds search data, and refreshes L0/L2 context. It never
 invokes an AI model.
 
-AI-generated L1 summaries belong to the explicit `context_summary` module. The
-module runs only after a user request and only for entries reported as missing
-or stale.
+AI-generated L1 summaries run only after a user request and only for entries
+reported as missing or stale.
 
 ## Generated outputs
 
 | Output | Content |
 |---|---|
-| `06_indexes/index.json` | Indexed folders and files, including non-note files, with sizes and hashes |
+| `06_indexes/index.json` | Complete folder and file inventory with sizes and hashes |
 | `06_indexes/sidecar.json` | Frontmatter metadata for recognized notes |
 | `06_indexes/databases/search.db` | FTS5 note search index |
 | `06_indexes/context_index.json` | L0/L1/L2 context cache keyed by relative path |
 
+Canonical generated files remain complete. Agents use bounded query commands
+rather than byte-truncating those JSON artifacts.
+
 ## Hashes and levels
 
 Files have an exact SHA-256. Notes additionally hash their body and all
-frontmatter except volatile timestamps (`created`, `modified`). Folders use a recursive hash of their path and children.
+frontmatter except volatile timestamps. Folders use a recursive child hash.
 
 - L0: deterministic one-line orientation, safe to load broadly.
 - L1: optional AI summary tied to a semantic source hash.
-- L2: original source or direct folder children, loaded only on demand.
+- L2: original source or direct folder children, loaded on demand.
 
-An unchanged context hash preserves its L1. A changed hash marks it `stale` but
-does not trigger generation.
+An unchanged context hash preserves its L1. A changed hash marks it stale.
 
 ## Commands
 
 ```bash
-arpent index
-arpent context pending [--path <path>] [--kind folder|note|text] [--json]
-arpent context show <path> --level l0|l1|l2
-arpent context set <path> --source-hash <hash> --summary "..." --provider <id>
-arpent context set <path> --source-hash <hash> --stdin --provider <id>
+arpent index [--yes]
+arpent context pending --json-page --limit 100
+arpent context show <path> --level l0|l1
+arpent context show <path> --level l2 --json-page --max-bytes 32768
+arpent context set <path> --source-hash <hash> --stdin --provider <id> [--yes]
 ```
+
+Every page reports total or total bytes, source/snapshot hash, completeness, and
+the next cursor. Follow all same-hash chunks before summarizing a complete
+source. Use `--all` for complete collections and `--full` for complete content.
 
 See `06_indexes/global_skills/context_summary.skill.md` for the explicit AI workflow.
 """
@@ -814,21 +824,21 @@ commands and directories are not created speculatively.
 
 1. A real need selects one tool.
 2. The agent proposes the smallest useful commands and output boundary.
-3. After confirmation, it creates a skill from
+3. Under the local confirmation policy, it creates a skill from
    `06_indexes/global_skills/_template_tool.skill.md` and registers the tool as
    `planned`.
 4. It adds only required CLI contracts, schemas, and migrations in
    `06_indexes/`.
 5. Installation validates paths, commands, storage, and lifecycle.
-6. User confirmation changes the tool to `installed` and creates runtime paths.
+6. Policy-governed installation changes the tool to `installed` and creates runtime paths.
 
 Only installed tools may be dispatched, scheduled, or swept. Control-plane
-changes are always announced and confirmed.
+changes follow the local confirmation policy.
 
 ## Maintenance
 
 The agent may maintain runtime content according to an installed skill. Changes
-to skills, commands, storage, schemas, or lifecycle are proposed and confirmed.
+to skills, commands, storage, schemas, or lifecycle follow that policy.
 Database evolution uses migrations; definitions are never copied into runtime
 folders.
 """
@@ -1077,53 +1087,53 @@ tools:
 
 ARPENT_SKILL_STUB = """---
 name: arpent
-description: Operate an Arpent vault using deterministic routing, universal frontmatter, optional delegated memory, and archive-only lifecycle rules.
+description: Operate an Arpent vault for typed capture, retrieval, routing, projects, lifecycle, and todo.
 ---
 
 # Arpent
 
-## Trigger
+Use for capture, organization, retrieval, routing, archival, project continuity,
+import, and actionable todo work.
 
-Use whenever the user asks to capture, organize, import, route, archive, retrieve,
-mature, extract personal knowledge, create/resume a project, close a session,
-or manage actionable todos.
+## Load progressively
 
-## Input
+1. Read `.agent` once.
+2. Use the note, todo, or fleeting hot path without loading full documentation.
+3. Read `COMPASS.md` only to classify a less common operation.
+4. Read one relevant document under `06_indexes/docs/architecture/` for an edge
+   case. Use CLI help only when exact syntax is not already known.
 
-Free-form content, a file path, a retrieval query, or a vault operation request.
+## Capture
 
-## Steps
+- Note: `arpent note new <title> --type <type> ... --json`.
+- Reviewed note: add `--dry-run --json`, then re-run with `--plan-hash`.
+- Todo: `arpent todo add <content> ... --json` when todo is installed.
+- Fleeting: `arpent note new <text> --type fleeting --json`.
 
-1. Read `.agent`, then `me.md` when present.
-2. Resume by reading `me.md`, then the target `_context.md`, then only needed notes/sources. Never read optional `MEMORY.md` without explicit user opt-in.
-3. Identify the operation and route it through the Arpent CLI when available.
-4. For triage, preview one complete plan with `triage --json`, `note edit
-   --dry-run --json`, and `note ingest --dry-run --json`; carry each structured
-   edit's `plan_sha256` into `--plan-hash` and apply items separately.
-5. For an external tree, use `import scan`, reviewed folder roles, validation,
-   dry-run, and one confirmed copy-only apply; never overlap source and vault.
-6. Announce destination, complete frontmatter, and side effects before changes.
-7. Confirm what changed, including partial batch outcomes.
+The confirmation policy is in `06_indexes/cli/operations.yaml`:
 
-## Output
-
-A natural-language summary plus structured confirmation of changed files.
+- `always`: require approval before every mutation; use a structured plan when available.
+- `explicit-intent`: direct for explicit bounded requests; preview high-impact or
+  threshold-sized batches.
+- `never`: no second approval; technical checks remain active.
 
 ## Method
 
-- Language settings: `Primary language: English`; `Adaptive languages: French`. Write note prose in the primary language by default, adapting to a listed language when explicitly requested or when the conversation/source is contextually in that language. Replace the list with `auto` to allow any contextual language. Do not add a frontmatter language field.
-- Dates use `dd-mm-yyyy`; note-facing UTC timestamps use `dd-mm-yyyyTHH:MM:SSZ`.
-- Files first; routing is deterministic; never delete.
-- Never fill `appreciated` or `importance`.
-- Delegated memory is disabled by default and requires explicit user opt-in; the vault is not a memory dump.
-- Keep all tool know-how in `06_indexes/`.
-- `05_tools/` contains declared runtime material only and never a `SKILL.md`.
-- Read `06_indexes/docs/architecture/tools.md` before creating or evolving a tool.
-- Create projects deliberately with `arpent project create`; routing never invents them.
-- The universal schema is closed during normal use; body sections, project files, and project subfolders remain extensible.
-- Binary attachments remain byte-for-byte untouched and use separate Markdown companion reference notes.
-- `_context.md` and `session end` work in both modes. `MEMORY.md` is disabled and unseeded by default; only `--memory-log` writes it, and later reads require explicit user opt-in. Delegated queue writes are full-only.
-- `arpent usage report` is local and cannot measure documentary resume quality.
+- Markdown is canonical; use the CLI for coordinated changes when available.
+- In filesystem mode, preserve complete frontmatter, typing, routing, and body,
+  then verify the written file.
+- Never delete, overwrite, guess routing, invent schema fields, infer subjective
+  fields, or activate memory without opt-in.
+- `project` and `resource` are mutually exclusive; `area` may accompany either.
+- Keep source URLs in `link`, titles in lowercase ASCII `snake_case`, and dates
+  in day-first format.
+- Agent-authored unrequested drafts use `author: agent`, `type: draft`, and the
+  standard lifecycle status; no extra frontmatter field is introduced.
+- Resume from `me.md`, then target `_context.md`, then only needed sources.
+- `MEMORY.md` and external memory require explicit opt-in.
+
+Report concise paths and outcomes. Do not run status, index, triage, search, or a
+full reread after an ordinary successful capture.
 """
 
 MINIMAL_ARPENT_SKILL_STUB = """---
@@ -1133,12 +1143,12 @@ description: Operate a minimal Arpent vault with deterministic routing, complete
 
 # Arpent Minimal
 
-Use the Arpent CLI for project creation, capture, routing, retrieval, indexing,
-triage/ingestion, reviewed external import, usage reporting, session closure,
-and archival.
-Every note uses the complete universal frontmatter contract. Announce
-destinations and side effects before state changes, never infer subjective
-fields, never guess a missing route, and never delete when archival is possible.
+Use the Arpent CLI or direct filesystem operation for project creation, capture,
+routing, retrieval, indexing, triage/ingestion, reviewed external import, usage
+reporting, session closure, and archival.
+Every note uses the complete universal frontmatter contract. Apply the local
+confirmation policy, never infer subjective fields, never guess a missing route,
+and never delete when archival is possible.
 Language settings: `Primary language: English`; `Adaptive languages: French`.
 Use the primary language by default and adapt to a listed language only when
 explicitly requested or contextually supported by the conversation/source;
@@ -1178,26 +1188,29 @@ summaries. `arpent index` never triggers this skill automatically.
 ## Steps
 
 1. Run `arpent index` to refresh deterministic inventory and hashes.
-2. List work with `arpent context pending --json`, optionally scoped by path or kind.
+2. List work with `arpent context pending --json-page --limit 100`, optionally
+   scoped by path or kind. Follow cursors or use `--all` before claiming the
+   pending set is complete.
 3. Skip every entry whose L1 status is already `fresh`.
-4. Load only the required source with `arpent context show <path> --level l2`.
-5. Produce a factual, standalone summary of 2-5 sentences and at most 180 words.
-6. Store it with `arpent context set <path> --source-hash <hash-from-pending> --stdin --provider <agent-or-model-id>`.
-7. Confirm that the path no longer appears in `arpent context pending`.
+4. Load the source with `arpent context show <path> --level l2 --json-page
+   --max-bytes 32768`. Follow every same-hash chunk needed for a complete
+   summary. For folders, start from child L0/L1 context.
+5. Produce a factual standalone summary of 2-5 sentences and at most 180 words.
+6. Store it with `arpent context set <path> --source-hash <hash-from-pending>
+   --stdin --provider <agent-or-model-id>`.
+7. Confirm that the path no longer appears in pending results.
 
 ## Output
 
-Fresh L1 entries in `06_indexes/context_index.json`, tied to their semantic
-source hashes.
+Fresh L1 entries tied to their exact semantic source hashes.
 
 ## Method
 
-- L0 is deterministic orientation generated by `arpent index`.
-- L1 is optional AI output and is never generated implicitly.
-- L2 is loaded only on demand.
+- Never summarize a partial source as complete.
+- Never combine chunks from different source hashes.
 - Never regenerate a fresh L1 whose source hash still matches.
 - Never summarize binary files or infer facts absent from the source.
-- Follow the Arpent skill's primary/adaptive language settings for summaries.
+- Follow the Arpent skill's primary/adaptive language settings.
 """
 
 READER_SKILL_STUB = """---
@@ -1250,16 +1263,17 @@ Projects, areas, notes, indexes, and user priorities.
 
 1. Read relevant indexes and context files.
 2. Identify stale, active, and high-value items.
-3. Propose changes before modifying files.
+3. Apply the local confirmation policy before modifying files.
 
 ## Output
 
-Review summary, suggested updates, and confirmed state changes.
+Review summary, suggested updates, and policy-governed state changes.
 
 ## Method
 
-Keep this skill in `06_indexes/global_skills/`. Write runtime output only to registered
-`writes_to` paths and never mutate the vault without confirmation.
+Keep this skill in `06_indexes/global_skills/`. Write runtime output only to
+registered `writes_to` paths. Mutations follow `always`, `explicit-intent`, or
+`never` from the local operation contract.
 """
 
 BACKUP_SKILL_STUB = """---
@@ -1506,6 +1520,7 @@ def init_vault(root: Path, *, minimal: bool = False) -> "Vault":
         _seed(vault, root / "COMPASS.md", COMPASS_STUB)
         _seed(vault, root / "06_indexes/docs/ARPENT.md", ARPENT_STUB)
         _seed(vault, root / "06_indexes/docs/mental-model.md", MENTAL_MODEL_STUB)
+        _seed(vault, root / "03_resources/agent_wiki/_README.md", AGENT_WIKI_README_STUB)
         _seed(vault, root / "06_indexes/docs/architecture/agent-infrastructure.md", AGENT_INFRA_DOC_STUB)
         _seed(vault, root / "06_indexes/docs/architecture/indexing-and-context.md", INDEXING_CONTEXT_DOC_STUB)
         _seed(vault, root / "06_indexes/docs/architecture/tools.md", TOOLS_ARCHITECTURE_DOC_STUB)

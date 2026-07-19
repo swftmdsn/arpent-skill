@@ -253,6 +253,7 @@ status: stable
 effort_cadence: null
 effort_level: null
 tags: [pkm, classification, para]
+chosen_location: null
 
 source: manual
 link: null
@@ -292,6 +293,7 @@ status: stable
 effort_cadence: null
 effort_level: null
 tags: [entrepreneurship, paul-graham, startups]
+chosen_location: null
 
 source: captured
 link: https://paulgraham.com/ds.html
@@ -331,9 +333,10 @@ status: maturing
 effort_cadence: null
 effort_level: null
 tags: [zettelkasten, ahrens, pkm, reading]
+chosen_location: null
 
-source: captured
-link: null
+source: imported
+link: isbn:9781542866507
 author: user
 
 depth: 3
@@ -358,18 +361,19 @@ After dissolution, this note moves to `04_archives/linear_notes/`, gets `status:
 ```yaml
 ---
 title: andrej_karpathy_portrait
-id: portrait-20260419-a
+id: draft-20260419-a
 created: 19-04-2026T16:00:00Z
 modified: 19-04-2026T16:00:00Z
 description: Co-founder of OpenAI turned independent educator championing radical pedagogy over institutional power.
-type: note
+type: draft
 project: null
 area: null
-resource: agent_wiki
+resource: null
 status: maturing
 effort_cadence: null
 effort_level: null
 tags: [karpathy, ai, education, portrait]
+chosen_location: Agent-authored proposal awaiting review in agent_wiki drafts.
 
 source: generated
 link: null

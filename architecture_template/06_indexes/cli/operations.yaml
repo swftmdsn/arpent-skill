@@ -1,5 +1,8 @@
-version: 0.6.0
+version: 0.7.0
 description: Contract-first operation registry for the Arpent CLI.
+confirmation:
+  mode: explicit-intent
+  bulk_threshold: 5
 routing:
   types: [note, concept, journal, log, checklist, reference, draft, template, meeting, idea, fleeting, linear, integration, angle, production, map, artefact]
   statuses: [inbox, maturing, active, stable, ongoing, standby, waiting, to-start, done, stale, archived]
@@ -8,6 +11,7 @@ routing:
   default_status:
     map: ongoing
     concept: maturing
+    draft: maturing
     fleeting: inbox
     idea: inbox
   type_subfolders:
@@ -54,6 +58,7 @@ operations:
     summary: Summarize planned roles, source kinds, and unresolved folder decisions.
   import_apply:
     phase: 1
+    confirmation: high-impact
     summary: Preview or resumably copy reviewed external files through per-item ingestion transactions.
   import_status:
     phase: 1
@@ -63,12 +68,14 @@ operations:
     summary: Show vault state.
   index:
     phase: 1
+    confirmation: targeted
     summary: Inventory folders and files, then rebuild generated indexes and deterministic context levels.
   context_pending:
     phase: 1
     summary: List paths whose optional AI-generated L1 summary is missing or stale.
   context_set:
     phase: 1
+    confirmation: targeted
     summary: Store an optional L1 summary against the current semantic content hash.
   context_show:
     phase: 1
@@ -85,8 +92,17 @@ operations:
   backup:
     phase: 1
     summary: Create, verify, or restore a manifest-backed logical vault snapshot.
+  backup_create:
+    phase: 1
+    confirmation: targeted
+    summary: Create and verify a logical vault snapshot.
+  backup_restore:
+    phase: 1
+    confirmation: high-impact
+    summary: Restore a verified snapshot to a new directory.
   archive:
     phase: 1
+    confirmation: targeted
     summary: Move a note into archives; never delete.
   health:
     phase: 1
@@ -96,9 +112,11 @@ operations:
     summary: Report privacy-preserving command events, current triage age, and unavailable qualitative metrics.
   note_new:
     phase: 1
+    confirmation: additive
     summary: Create a note and route it from frontmatter.
   note_route:
     phase: 1
+    confirmation: targeted
     summary: Re-route an existing note by changing routing fields.
   note_read:
     phase: 1
@@ -108,24 +126,31 @@ operations:
     summary: Find notes by keyword.
   note_status:
     phase: 1
+    confirmation: targeted
     summary: Change lifecycle status.
   note_edit:
     phase: 1
+    confirmation: targeted
     summary: Edit a note and route it through the contract.
   note_ingest:
     phase: 3
+    confirmation: targeted
     summary: Losslessly ingest raw or malformed text, or move an untouched binary and create its Markdown companion reference.
   note_extract:
     phase: 1
+    confirmation: high-impact
     summary: Extract a typed child note and maintain the bidirectional parent relation.
   note_dissolve:
     phase: 1
+    confirmation: high-impact
     summary: Validate and archive a decomposed linear note as its dissolution record.
   project_create:
     phase: 2
+    confirmation: additive
     summary: Create a project structure and canonical local context from a normalized human name.
   session_end:
     phase: 1
+    confirmation: targeted
     summary: Update target context by default; explicitly opt into MEMORY.md or full-mode delegated-memory queue sinks.
   tools_list:
     phase: 1
@@ -135,15 +160,18 @@ operations:
     summary: Show one registered tool stub.
   cron_run:
     phase: 1
+    confirmation: high-impact
     summary: Preview due jobs or execute explicitly trusted local code with an out-of-vault confirmation.
   sweep_ephemeral:
     phase: 1
+    confirmation: high-impact
     summary: Apply lifecycle rules declared by ephemeral tools.
   sweep_status:
     phase: 1
     summary: Read the latest completed ephemeral sweep summary.
   todo_add:
     phase: 2
+    confirmation: additive
     summary: Create a SQLite todo and its Markdown lifecycle record.
   todo_list:
     phase: 2
@@ -153,16 +181,21 @@ operations:
     summary: Show one todo with its structured fields and lifecycle path.
   todo_edit:
     phase: 2
+    confirmation: targeted
     summary: Edit todo fields without changing its immutable ID or creation date.
   todo_done:
     phase: 2
+    confirmation: targeted
     summary: Mark a todo done.
   todo_defer:
     phase: 2
+    confirmation: targeted
     summary: Set the date on which a todo should be done.
   todo_block:
     phase: 2
+    confirmation: targeted
     summary: Mark a todo waiting on a stable object ID.
   todo_archive:
     phase: 2
+    confirmation: targeted
     summary: Archive a completed todo while retaining its SQLite row.

@@ -12,6 +12,8 @@ DEFAULT_OPERATIONS_PATH = Path(__file__).with_name("operations.yaml")
 ROUTING_OVERLAY_KEYS = (
     "type_subfolders", "type_overrides", "status_type_overrides", "zero_field_routes",
 )
+CONFIRMATION_MODES = ("always", "explicit-intent", "never")
+CONFIRMATION_CLASSES = ("read-only", "additive", "targeted", "high-impact")
 
 
 def default_operations_text() -> str:
@@ -60,6 +62,63 @@ def routing_contract(path: str | Path | None = None) -> dict:
         merged[key] = current
     _validate_route_paths(merged)
     return merged
+
+
+def confirmation_policy(path: str | Path | None = None) -> dict:
+    """Return the validated per-vault confirmation policy.
+
+    Existing vault contracts without this section retain the conservative
+    `always` behavior. Newly initialized vaults mirror the packaged default.
+    """
+    data = default_operations() if path is None else load_operations(path)
+    policy = data.get("confirmation")
+    if policy is None:
+        return {"mode": "always", "bulk_threshold": 5}
+    if not isinstance(policy, dict):
+        raise ValueError("operations.yaml confirmation must be a mapping.")
+    mode = policy.get("mode")
+    threshold = policy.get("bulk_threshold")
+    if mode not in CONFIRMATION_MODES:
+        raise ValueError(
+            "confirmation.mode must be one of: " + ", ".join(CONFIRMATION_MODES)
+        )
+    if type(threshold) is not int or threshold < 1:
+        raise ValueError("confirmation.bulk_threshold must be a positive integer.")
+    return {"mode": mode, "bulk_threshold": threshold}
+
+
+def operation_confirmation_class(operation: str, path: str | Path | None = None) -> str:
+    """Return the operation's confirmation class from the canonical registry."""
+    packaged = default_operations().get("operations") or {}
+    local = load_operations(path).get("operations") or {} if path is not None else {}
+    entry = local.get(operation, packaged.get(operation))
+    if not isinstance(entry, dict):
+        raise ValueError(f"Unknown operation '{operation}'.")
+    confirmation_class = entry.get("confirmation", "targeted")
+    if confirmation_class not in CONFIRMATION_CLASSES:
+        raise ValueError(
+            f"operations.{operation}.confirmation must be one of: "
+            + ", ".join(CONFIRMATION_CLASSES)
+        )
+    return confirmation_class
+
+
+def requires_confirmation(operation: str, *, count=1, explicit_intent=True,
+                          path: str | Path | None = None) -> bool:
+    """Apply the configured policy to one planned operation."""
+    if type(count) is not int or count < 1:
+        raise ValueError("confirmation item count must be a positive integer.")
+    policy = confirmation_policy(path)
+    confirmation_class = operation_confirmation_class(operation, path)
+    if policy["mode"] == "never":
+        return False
+    if policy["mode"] == "always":
+        return True
+    return (
+        not explicit_intent
+        or count >= policy["bulk_threshold"]
+        or confirmation_class == "high-impact"
+    )
 
 
 def _validate_route_paths(routing: dict) -> None:

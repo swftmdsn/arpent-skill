@@ -41,14 +41,13 @@ Load only what the current operation requires.
 | `.agent` | Entering the vault and checking its hard rules |
 | `me.md` | Reading the user's approved interaction contract |
 | **`COMPASS.md`** | Choosing the next operation and interaction path |
-| `06_indexes/global_skills/arpent.skill.md` | Loading the complete installed operating method |
-| `06_indexes/docs/architecture/routing.md` | Computing a note destination or handling ambiguity |
-| `06_indexes/docs/architecture/frontmatter.md` | Creating, editing, or validating ordinary note metadata |
-| `06_indexes/docs/architecture/memory-layers.md` | Distinguishing vault, delegated memory, and memory wiki |
+| `06_indexes/global_skills/arpent.skill.md` | Loading the compact installed operating method |
+| `06_indexes/cli/operations.yaml` | Computing mechanical routes, confirmation policy, enums, and operation inventory |
+| `06_indexes/schemas/frontmatter_policy.yaml` | Creating, editing, or validating ordinary note metadata |
+| `06_indexes/docs/mental-model.md` | Distinguishing vault, delegated memory, and memory wiki |
 | `06_indexes/docs/architecture/indexing-and-context.md` | Indexes and optional L0/L1/L2 context |
 | `06_indexes/docs/architecture/tools.md` | Tool control plane, installation status, and runtime boundary |
-| `06_indexes/docs/architecture/cli.md` | CLI architecture; verify exact syntax with `arpent --help` |
-| `06_indexes/cli/operations.yaml` | Routing enums, mechanisable routes, and operation inventory; not full CLI syntax |
+| `arpent <command> --help` | Exact CLI syntax when the compact installed skill does not cover an option |
 | `06_indexes/tools.yaml` | Registered tools and declared status; not a command dispatcher |
 | `06_indexes/global_skills/<tool>.skill.md` | Exact method for an installed tool only |
 
@@ -70,7 +69,7 @@ Load only what the current operation requires.
    optional log only when the user explicitly asks for or enables it. Resume is
    this documentary protocol, not a command.
 4. **Probe execution.** Try `arpent --version`. When available, prefer the CLI
-   for supported state changes. Otherwise use the safe degraded path below.
+   for coordinated state changes. Otherwise use the direct filesystem path below.
 
 ## 4. Classify the intent
 
@@ -81,7 +80,7 @@ Load only what the current operation requires.
 | "Remember this fact/preference/context" | Delegated memory: observation/profile/buffer |
 | "Research this autonomously" | Memory wiki |
 | "Find/recall" | Vault search plus one external-memory query |
-| "Sort/organize" | Triage and confirmed routing |
+| "Sort/organize" | Triage and policy-governed routing |
 | "Develop/archive/close" | Lifecycle operation |
 | "Where should this go?" | Recommendation only; do not require a vault or write anything |
 
@@ -93,16 +92,17 @@ buffer when it is context to recall but no action must be completed.
 1. **Identify** the intent, destinations, and current capability.
 2. **Load** only the relevant contract or installed tool skill.
 3. **Resolve inputs** using the question policy in section 9.
-4. **Preview mutations:** operation, complete proposed metadata or field
-   changes, destination, content boundary, and every known side effect.
-5. **Confirm once** for the complete batch. Read-only domain queries may run
-   immediately; they can still append the CLI usage log.
-6. **Execute** with an implemented command. There is no generic `--plan` or
-   `--yes`; never claim otherwise. Specific confirmation flags exist for
-   `arpent note dissolve` and reviewed `arpent import apply`. Use available
-   `--dry-run` flags for note edit, note ingest, import apply, sweep, or cron
-   previews, noting that operational logs may still be written even when domain
-   files are unchanged.
+4. **Read confirmation policy** from `06_indexes/cli/operations.yaml`.
+   `always` requires approval before every mutation; `explicit-intent` runs explicit bounded
+   requests directly and confirms high-impact or threshold-sized work; `never`
+   skips the second approval while retaining technical checks.
+5. **Preview when required:** use the structured plan when available. Otherwise
+   state the target, requested change, and known side effects before passing
+   `--yes`; do not invent an exact preview the command cannot calculate.
+6. **Execute** with an implemented command. Note and todo creation support
+   `--dry-run --json` and reviewed `--plan-hash`; note edit, note ingest, import
+   apply, sweep, and cron expose their own preview contracts. Operational logs
+   may still be written when domain files are unchanged.
 7. **Verify** the result before reporting success: expected path/state exists,
    frontmatter parses, routing recomputes to the same destination, and required
    side effects are present. Report partial or deferred outcomes explicitly.
@@ -255,7 +255,7 @@ kind, age, hash, and `edit`, `ingest`, or `leave` actions. It does not move
 items. Build one complete plan, preview structured notes with `arpent note edit
 <id> ... --dry-run --json` and raw/malformed/binary files with `arpent note
 ingest ... --dry-run --json`, show all frontmatter/path/content-boundary
-changes, and confirm once. Carry a structured edit's `plan_sha256` into
+changes, and apply the configured confirmation policy once for the batch. Carry a structured edit's `plan_sha256` into
 `--plan-hash` when applying so source or routing changes require a fresh review.
 Apply each item as its own transaction, re-run
 triage, and report every applied, skipped, and failed item honestly; a batch may
@@ -277,8 +277,8 @@ by the ordered file-reading protocol in section 3.
   there is no `note promote` command.
 - Extract from a linear note with
   `arpent note extract <linear-id> --type <type> --title <title> ...`.
-- Dissolve only after at least one verified child and explicit confirmation:
-  `arpent note dissolve <linear-id> --yes`.
+- Dissolve only after at least one verified child. Pass `--yes` when the local
+  confirmation policy requires approval; `never` does not pause for it.
 - `arpent archive <id>` archives one ordinary non-linear note by ID. Use
   `arpent todo archive` for todos and dissolution for linear notes. A project,
   folder, or arbitrary file requires a separately previewed manual procedure.
@@ -289,8 +289,9 @@ Use `arpent status`, `arpent efforts`, and `arpent health [--json]` for
 domain-read-only views. Use `arpent index` for deterministic inventory, hashes,
 context state, and search. AI-generated L1 summaries are explicit-only: follow
 `06_indexes/global_skills/context_summary.skill.md`, run
-`arpent context pending --json`, load a source with
-`arpent context show <path> --level l2`, then store it with
+`arpent context pending --json-page --limit 100`, load a source with
+`arpent context show <path> --level l2 --json-page --max-bytes 32768` and
+follow every same-hash chunk needed for completeness, then store it with
 `arpent context set <path> --source-hash <hash> (--summary <text>|--stdin)
 [--provider <id>]`. Do not regenerate a fresh summary.
 
@@ -342,15 +343,16 @@ responsibility. Every `_context.md` created or updated by the command has the
 complete universal frontmatter field set; existing body sections are preserved
 and the session block is appended. Report each completed or deferred stage.
 
-## 8. Degraded mode
+## 8. Filesystem mode
 
-Without the CLI, ordinary Markdown capture, reading, searching, and confirmed
-routing remain safe when the routing and frontmatter contracts are followed.
-Do not manually operate todo dual state, linear dissolution, sweep, cron, or
-other coordinated DB/multi-file operations. External memory is not part of
-Arpent degraded mode: use the host interface or state that persistence was
-unavailable, without creating a local fallback. Rebuild derived indexes with
-`arpent index` when the CLI returns.
+Without the CLI, ordinary Markdown capture, reading, searching, routing, moving,
+and archival remain understandable and useful when the routing and frontmatter
+contracts are followed. For todo dual state, linear dissolution, sweep, cron, or
+other coordinated DB/multi-file operations, state that the feature is not
+supported in filesystem mode because it needs coordinated state. Preserve the
+current files and continue offering the useful direct-file operations. External
+memory remains a host capability. Rebuild derived indexes with `arpent index`
+when the CLI returns.
 
 ## 9. Ask only when the answer changes the operation
 
@@ -369,9 +371,9 @@ questioning and state what remains unresolved.
 
 ## 10. Invariants
 
-1. Announce and confirm state changes; batch related changes.
-2. Never delete user content; archive. Empty-directory cleanup and any reviewed
-   deletion proposal still require explicit confirmation.
+1. Apply the local confirmation mode and batch threshold; clarification remains separate.
+2. Never delete user content; archive. Empty-directory cleanup follows the local
+   confirmation policy and must never remove non-empty user content.
 3. Never silently guess routing; preserve a written reason in `00_inbox/unsure/`.
 4. Never fill `appreciated` or `importance`, and never infer effort profiles.
 5. Keep full frontmatter on ordinary notes; respect explicit system-file and
@@ -385,4 +387,4 @@ questioning and state what remains unresolved.
 10. Never report a capability, external-memory handoff, move, or index as
     successful without verifying it.
 
-*If you remember three things: classify before locating; knowledge, action, and memory are different roles; preview, confirm, execute, then verify.*
+*If you remember three things: classify before locating; knowledge, action, and memory are different roles; apply policy, execute, then verify.*

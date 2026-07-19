@@ -175,8 +175,10 @@ def search(vault, query: str) -> list[dict]:
                 "id": fm.get("id"),
                 "title": fm.get("title") or "(untitled)",
                 "path": path.relative_to(vault.root).as_posix(),
+                "snippet": "",
+                "backend": "text-fallback",
             })
-    return hits
+    return sorted(hits, key=lambda item: (item["path"], item.get("id") or ""))
 
 
 def _triage_item(vault, path: Path, rel: str, now: datetime) -> dict:

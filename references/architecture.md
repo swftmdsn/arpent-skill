@@ -354,26 +354,21 @@ Hosting recommendation: local-only initially. If multi-device needed later: self
 
 ## .agent and .arpent
 
-`.agent` is the entry point for any AI agent. It contains a quick orientation:
+`.agent` is the compact entry point for any AI agent. It prevents duplicate
+loading when a host Arpent skill is already active and selects context by
+operation:
 
 ```markdown
-# .agent - Entry point for AI agents working in this Arpent vault
+# .agent - Arpent vault entry point
 
-Read this FIRST, completely, before doing anything else.
+Read this file completely, then load only what the operation needs.
 
-## What this is
-An Arpent vault - a personal filesystem-native life OS.
-
-## Reading order
-1. Read me.md (human-owned orientation)
-2. Read COMPASS.md (operation router)
-3. Read 06_indexes/docs/ARPENT.md (the constitution)
-4. Read 06_indexes/docs/mental-model.md (the delegated memory model)
-5. Read 06_indexes/global_skills/arpent.skill.md (operating skill)
-6. Skim 06_indexes/schemas/frontmatter_policy.yaml
-
-For a concrete resume: me.md -> target _context.md -> only needed notes/sources.
-Do not read optional MEMORY.md without explicit user opt-in.
+1. Do not reload the local skill when an Arpent host skill is active.
+2. Use the active skill's hot path for note, todo, or fleeting capture.
+3. Read COMPASS.md only to classify a less common operation.
+4. Read me.md for interaction preferences and concrete resume.
+5. On resume, read target _context.md, then only needed notes/sources.
+6. Read detailed docs or schemas only for a relevant edge case.
 
 ## Hard rules
 - Never delete files. Archive.
@@ -381,13 +376,9 @@ Do not read optional MEMORY.md without explicit user opt-in.
 - Never guess routing. Use 00_inbox/unsure/ with reason.
 - Never dump facts into the vault. Delegated memory is disabled by default and
   requires explicit user opt-in; the vault is a clean knowledge base.
-- Always announce moves and renames before executing.
-- Always use the arpent CLI for state changes.
-
-## Commands
-arpent project create / note new / note ingest / import scan-review-apply / triage --json / session end / usage report
-arpent status / search / efforts / archive / sweep
-(external-memory writes use the host interface when one is available - see memory-layers.md)
+- Apply the local confirmation policy to moves and renames before executing.
+- Use the CLI for coordinated state changes when available.
+- Keep external memory disabled until explicit host-level opt-in.
 ```
 
 `.arpent` is a JSON marker file:
@@ -407,17 +398,22 @@ The CLI uses `.arpent` to detect that a directory is an Arpent vault root.
 When an agent creates a note without explicit user request (e.g., a synthesized portrait, an extracted concept proposal), it goes to `03_resources/agent_wiki/`, not directly to a final destination.
 
 ```yaml
-# In the agent_wiki note's frontmatter:
+# In the agent_wiki note's universal frontmatter:
+type: draft
+status: maturing
 author: agent
-agent_wiki_status: draft         # draft | reviewed | integrated | archived
 ```
 
 Promotion flow:
 
-1. Agent creates note in `agent_wiki/` with `author: agent`, `agent_wiki_status: draft`
-2. User reviews; if approves: `agent_wiki_status: reviewed` (stays in agent_wiki)
-3. User decides to promote: `agent_wiki_status: integrated`, file moves to final destination (e.g., `03_resources/concepts/`)
-4. `author: agent` is **preserved** - the lineage stays.
+1. The agent creates a standard `type: draft`, `author: agent` note in
+   `agent_wiki/drafts/`.
+2. Review keeps the note there while its ordinary lifecycle status evolves.
+3. Promotion changes the standard `type`, routing home, and status, then moves
+   the note to its final destination.
+4. `author: agent` is preserved so lineage stays visible.
+
+No agent-wiki-only frontmatter key is added to the closed universal schema.
 
 This keeps a clear separation between user-authored and agent-authored content while allowing seamless integration.
 

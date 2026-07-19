@@ -172,7 +172,7 @@ The user can extract any number and mixture of child types, including `concept`,
 Once all intended children are extracted, the user dissolves the source:
 
 ```bash
-arpent note dissolve <linear-id> --yes
+arpent note dissolve <linear-id> [--yes]
 ```
 
 The dissolution:
@@ -181,7 +181,10 @@ The dissolution:
 - Migrates the file to `04_archives/linear_notes/<slug>.md`
 - Updates `extracted_to: [list of all extracted child-note IDs]`
 
-The dissolution is deliberate and confirmed. **Never automatic.** The agent proposes but the user dissolves.
+The dissolution is deliberate and never inferred automatically. `always` and
+`explicit-intent` require `--yes`; `never` executes the user's dissolution
+request without a second approval. Validation of every child relation remains
+mandatory in all modes.
 
 ### Optional path - no extraction
 

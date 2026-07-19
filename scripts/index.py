@@ -501,8 +501,7 @@ def search_fts(vault: Vault, query: str) -> list[dict] | None:
                 SELECT id, title, path, snippet(notes_fts, 5, '', '', '...', 12) AS snippet
                 FROM notes_fts
                 WHERE notes_fts MATCH ?
-                ORDER BY rank
-                LIMIT 50
+                ORDER BY rank, path, id
                 """,
                 (_fts_query(q),),
             ).fetchall()
@@ -514,6 +513,7 @@ def search_fts(vault: Vault, query: str) -> list[dict] | None:
                 "title": row["title"] or "(untitled)",
                 "path": row["path"],
                 "snippet": row["snippet"] or "",
+                "backend": "fts5",
             }
             for row in rows
         ]

@@ -53,14 +53,14 @@ No future command, field, database, or directory is created speculatively.
 
 1. A real usage need or phase retro selects one tool.
 2. The agent proposes its smallest useful command set and output boundary.
-3. After user confirmation, the agent creates the skill from
+3. Under the local confirmation policy, the agent creates the skill from
    `06_indexes/global_skills/_template_tool.skill.md` and registers the tool as
    `planned`.
 4. The agent adds only the required CLI contract, schema, and migrations in
    `06_indexes/`.
 5. Installation validates the skill, commands, dependencies, storage,
    non-overlapping `writes_to` paths, and lifecycle dry-run.
-6. Only explicit user confirmation may change `status` to `installed` and
+6. The policy-governed installation step may change `status` to `installed` and
    create missing runtime directories in `05_tools/` or an area.
 
 Only installed tools may be dispatched, scheduled, or swept.
@@ -69,5 +69,5 @@ Only installed tools may be dispatched, scheduled, or swept.
 
 The agent may maintain runtime content according to an installed skill. It may
 propose changes to tool know-how, commands, storage, schemas, or lifecycle, but
-those control-plane changes are announced and confirmed. Database evolution
+those control-plane changes follow the local confirmation policy. Database evolution
 uses migrations; definitions are never copied into runtime folders.

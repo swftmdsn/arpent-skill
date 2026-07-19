@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -163,9 +165,14 @@ def _unexpected_schema_objects(connection) -> list[str]:
 
 @lru_cache(maxsize=1)
 def _expected_schema_signature() -> tuple:
-    with _REFERENCE_CONNECT(":memory:") as reference:
+    reference = _REFERENCE_CONNECT(":memory:")
+    try:
         reference.executescript(schema_text())
         return _schema_signature(reference)
+    finally:
+        reference.close()
+
+
 def _start_transaction(vault, todo_id: str, expected_db: dict, relpaths: list[str], *,
                        commit_detectable=True, expected_files=None) -> dict:
     expected_files = expected_files or {}
@@ -251,6 +258,8 @@ def add_todo(
     frequency=None,
     list_order=None,
     assignee_id=None,
+    planned_id=None,
+    expected_destination=None,
 ) -> dict:
     content = _required_text(content, "content")
     priority = _optional_text(priority, "priority")
@@ -271,7 +280,12 @@ def add_todo(
         connection.execute("BEGIN IMMEDIATE")
         existing_ids = vault.existing_ids()
         existing_ids.update(row[0] for row in connection.execute("SELECT id FROM todos"))
-        todo_id = routing.new_id("todo", existing_ids)
+        if planned_id is not None:
+            if planned_id in existing_ids:
+                raise ValueError("Todo creation plan is stale; review a fresh dry run.")
+            todo_id = planned_id
+        else:
+            todo_id = routing.new_id("todo", existing_ids)
         if depends_on_id == todo_id:
             raise ValueError("A todo cannot depend on itself.")
 
@@ -286,6 +300,8 @@ def add_todo(
         )
         frontmatter["id"] = todo_id
         relpath = _record_relpath(status, frontmatter["title"])
+        if expected_destination is not None and relpath != expected_destination:
+            raise ValueError("Todo destination changed after planning; review a fresh dry run.")
         expected_db = {
             "content": content,
             "priority": priority,
@@ -342,6 +358,127 @@ def add_todo(
         _commit_transaction(vault, journal)
         row = _get_row(connection, todo_id)
     return _decorate(row, (created_path, frontmatter, content + "\n"), vault)
+
+
+def plan_todo_add(
+    vault,
+    content,
+    *,
+    priority=None,
+    status=None,
+    due_date=None,
+    do_date=None,
+    duration=None,
+    linked_project_id=None,
+    depends_on_id=None,
+    is_optional=False,
+    frequency=None,
+    list_order=None,
+    assignee_id=None,
+    expected_plan_hash=None,
+) -> dict:
+    """Build a complete todo-add plan without opening or creating todo.db."""
+    content = _required_text(content, "content")
+    values = {
+        "content": content,
+        "priority": _optional_text(priority, "priority"),
+        "status": status or ("waiting" if depends_on_id else "active"),
+        "due_date": _optional_date(due_date, "due date"),
+        "do_date": _optional_date(do_date, "do date"),
+        "duration": _optional_text(duration, "duration"),
+        "linked_project_id": _optional_text(linked_project_id, "linked project"),
+        "depends_on_id": _optional_text(depends_on_id, "dependency"),
+        "is_optional": is_optional,
+        "frequency": _optional_text(frequency, "frequency"),
+        "list_order": _optional_text(list_order, "list order"),
+        "assignee_id": _optional_text(assignee_id, "assignee"),
+    }
+    _validate_status(values["status"])
+    if not isinstance(is_optional, bool):
+        raise ValueError("optional must be a boolean")
+    existing_ids = vault.existing_ids()
+    database_path = vault.root / DATABASE_RELPATH
+    if database_path.exists() or database_path.is_symlink():
+        safe_database = vault.safe_source_path(DATABASE_RELPATH)
+        connection = None
+        try:
+            connection = sqlite3.connect(f"{safe_database.as_uri()}?mode=ro", uri=True)
+            existing_ids.update(row[0] for row in connection.execute("SELECT id FROM todos"))
+        except sqlite3.Error as exc:
+            raise ValueError(f"Cannot inspect existing todo IDs: {exc}") from exc
+        finally:
+            if connection is not None:
+                connection.close()
+    todo_id = routing.new_id("todo", existing_ids)
+    if values["depends_on_id"] == todo_id:
+        raise ValueError("A todo cannot depend on itself.")
+    frontmatter = notes_mod.build_frontmatter(
+        vault,
+        title=content,
+        ntype="checklist",
+        status=values["status"],
+        area="todo",
+        source="generated",
+        author="user",
+    )
+    frontmatter["id"] = todo_id
+    relpath = _record_relpath(values["status"], frontmatter["title"])
+    plan = {
+        "format": "arpent-todo-add-plan",
+        "version": 1,
+        "todo": {"id": todo_id, **values},
+        "frontmatter": frontmatter,
+        "destination_path": relpath,
+        "side_effects": [f"create:{relpath}", f"insert:{DATABASE_RELPATH}"],
+    }
+    plan["plan_sha256"] = _todo_add_plan_hash(plan)
+    if expected_plan_hash is not None and expected_plan_hash != plan["plan_sha256"]:
+        raise ValueError("Todo creation plan no longer matches --plan-hash; review a fresh dry run.")
+    return plan
+
+
+def _todo_add_plan_hash(plan: dict) -> str:
+    todo = dict(plan["todo"])
+    frontmatter = dict(plan["frontmatter"])
+    for field in ("created", "modified"):
+        frontmatter.pop(field, None)
+    payload = {
+        "todo": todo,
+        "frontmatter": frontmatter,
+        "destination_path": plan["destination_path"],
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def public_todo_add_plan(plan: dict) -> dict:
+    public = json.loads(json.dumps(plan))
+    public["frontmatter"].pop("created", None)
+    public["frontmatter"].pop("modified", None)
+    public["apply_generated_fields"] = ["created", "modified", "created_at"]
+    return public
+
+
+def apply_todo_add(vault, plan: dict) -> dict:
+    """Apply the normalized values and ID from a reviewed todo-add plan."""
+    values = plan["todo"]
+    return add_todo(
+        vault,
+        values["content"],
+        priority=values["priority"],
+        status=values["status"],
+        due_date=_display_date(values["due_date"]),
+        do_date=_display_date(values["do_date"]),
+        duration=values["duration"],
+        linked_project_id=values["linked_project_id"],
+        depends_on_id=values["depends_on_id"],
+        is_optional=values["is_optional"],
+        frequency=values["frequency"],
+        list_order=values["list_order"],
+        assignee_id=values["assignee_id"],
+        planned_id=values["id"],
+        expected_destination=plan["destination_path"],
+    )
 
 
 def list_todos(vault, *, status=None, include_archived=False) -> list[dict]:

@@ -17,14 +17,14 @@ Projects, areas, notes, indexes, and user priorities.
 
 1. Read relevant indexes and context files.
 2. Identify stale, active, and high-value items.
-3. Propose changes before modifying files.
+3. Apply the local confirmation policy before modifying files.
 
 ## Output
 
-Review summary, suggested updates, and any confirmed state changes.
+Review summary, suggested updates, and policy-governed state changes.
 
 ## Method
 
-Do not mutate the vault without explicit confirmation. This skill remains in
-`06_indexes/global_skills/`; any runtime output must use the tool's declared
-`writes_to` paths.
+This skill remains in `06_indexes/global_skills/`; any runtime output must use
+the tool's declared `writes_to` paths. Mutations follow `always`,
+`explicit-intent`, or `never` from the local operation contract.

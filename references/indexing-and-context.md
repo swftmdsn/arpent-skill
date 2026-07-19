@@ -94,3 +94,29 @@ The workflow for generating L1 summaries is defined in
 
 `--source-hash` prevents a delayed worker from attaching a summary of an older
 source version to newer content.
+
+## Bounded agent reads
+
+Collection commands expose a versioned `--json-page` envelope with exact total,
+snapshot hash, `complete_result`, `has_more`, and `next_cursor`. Use `--all` for
+one complete collection or exhaust cursors before claiming completeness.
+
+```bash
+arpent context pending --json-page --limit 100
+arpent search "query" --json-page --limit 50
+arpent triage --json-page --limit 50
+```
+
+Large source reads use UTF-8-safe chunks tied to the exact content hash:
+
+```bash
+arpent context show path/to/note.md --level l2 --json-page --max-bytes 32768
+arpent note read <id> --json-page --max-bytes 32768
+```
+
+Use the returned cursor for the next chunk. Use `--full` when the operation
+requires the complete source. Never create an L1 summary, transform a note, or
+claim a complete reading from a response where `complete_result` is false.
+
+Canonical `index.json`, `sidecar.json`, and `context_index.json` remain complete
+artifacts. Do not byte-truncate them; use bounded query commands instead.
