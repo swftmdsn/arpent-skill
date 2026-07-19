@@ -1,12 +1,11 @@
 ---
 name: arpent
-description: Operate an Arpent vault for typed capture, retrieval, routing, projects, lifecycle, and todo.
+description: Operate an Arpent vault.
 ---
 
 # Arpent
 
-Use for capture, organization, retrieval, routing, archival, project continuity,
-import, and actionable todo work.
+Use for capture, retrieval, routing, archival, project continuity, import, and todo.
 
 ## Load Progressively
 
@@ -26,14 +25,37 @@ import, and actionable todo work.
 
 ## Capture
 
-- Full-mode note: `arpent note new <title> --type <type> ... --json`.
+- Full note: `arpent note new <title> --type <type> ... --json`; `howto` is
+  current global guidance, `map` navigation.
 - Exact-plan note: add `--dry-run --json`, then use `--plan-hash`.
 - Full-mode todo: `arpent todo add <content> ... --json`.
 - Full-mode fleeting: `arpent note new <text> --type fleeting --json`.
-- Minimal: read `06_indexes/schemas/frontmatter_policy.yaml`, the routing section
-  of `06_indexes/cli/operations.yaml`, and
-  `06_indexes/docs/architecture/routing.md`; build complete frontmatter, compute
-  the route, create without replacement, and read back the result.
+
+## Minimal Hot Paths
+
+### Note
+
+1. Read `06_indexes/schemas/frontmatter_policy.yaml` and the routing contract.
+2. Build complete frontmatter, normalize the title, and compute the route.
+3. Reserved resource homes may materialize on first write; never invent another
+   missing home.
+4. Recheck the destination, create without silently replacing it, read back, and
+   verify frontmatter, body, and path.
+
+### Untracked Todo
+
+1. State that coordinated todo is unavailable in minimal mode.
+2. If the user still wants capture, create an ordinary inbox note clearly
+   labeled as an untracked action; do not claim a todo ID, database row, status
+   tracking, or reminder delivery.
+3. Suggest promotion to full mode when execution tracking is required.
+
+### Fleeting Append
+
+1. Use the current UTC file `00_inbox/fleeting/dd-mm-yyyy.md`.
+2. Preserve the complete existing file and append one `## HH:MM` block.
+3. Verify the final block. If safe append cannot be guaranteed, create an
+   ordinary inbox note instead of risking previous captures.
 
 Canonical field order: `title, id, created, modified, description, type,
 project, area, resource, status, effort_cadence, effort_level, tags,
@@ -62,19 +84,24 @@ The confirmation policy is in `06_indexes/cli/operations.yaml`.
 
 ## Method
 
-- Markdown is canonical; all ordinary notes use complete frontmatter.
-- Never delete, overwrite, guess routing, invent schema fields, infer subjective
-  fields, or use delegated memory without provider opt-in.
+- Markdown is canonical for documents; `todo.db` is authoritative for
+  coordinated todo state. All ordinary notes use complete frontmatter.
+- Prevent silent loss: never silently replace a destination or destroy user
+  content. Explicit edits may use checked atomic replacement. Never guess
+  routing, invent schema fields, infer subjective fields, or use delegated
+  memory without provider opt-in.
 - `project` and `resource` are mutually exclusive; `area` may accompany either.
 - Keep source URLs in `link`, titles in lowercase ASCII `snake_case`, and public
   timestamps in `dd-MM-YYYY-HH-mm` UTC format.
 - Agent-authored unrequested drafts use `author: agent`, `type: draft`, and the
   standard lifecycle status.
 - Resume from `me.md`, then target `_context.md`, then only needed sources.
-- Minimal keeps user-provided orientation in `me.md`, work state in `_context.md`, and
-  durable readable material in notes.
-- Skills and full-mode state remain retained; mode-gated state is dormant in
+- Minimal continuity uses `me.md` for approved orientation, `_context.md` for
+  work state, and notes for durable content.
+- External memory requires provider opt-in; full-mode state remains dormant in
   minimal.
+- Status and location are independent. `archived` is a status;
+  `archived_at`/`archived_from` describe archive events.
 
 Report concise paths and outcomes. Do not run status, index, triage, search, or a
 full reread after an ordinary successful capture.

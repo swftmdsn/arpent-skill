@@ -8,6 +8,7 @@ from .errors import ValidationError
 SCENARIO_KEYS = {
     "schema_version", "id", "title", "category", "description",
     "conversation_id", "turn_index", "prompt", "fixture", "tags",
+    "stateful_eligible",
 }
 FIXTURE_KEYS = {"vault_mode", "skill_loaded", "confirmation", "documents"}
 DOCUMENT_KEYS = {"path", "content"}
@@ -15,7 +16,21 @@ GOLDEN_KEYS = {
     "schema_version", "scenario_id", "required_reads", "forbidden_reads",
     "required_commands", "forbidden_commands", "required_claims",
     "forbidden_claims", "required_writes", "forbidden_writes",
-    "final_size", "hard_failures",
+    "command_results", "write_results", "final_size", "hard_failures",
+    "command_bindings", "postconditions",
+}
+OPTIONAL_GOLDEN_KEYS = {
+    "command_results", "write_results", "command_bindings", "postconditions",
+}
+COMMAND_RESULT_KEYS = {"command", "exit_code", "output_json"}
+WRITE_RESULT_KEYS = {"path", "content", "sha256"}
+COMMAND_BINDING_KEYS = {
+    "source_command", "source_json_field", "target_command", "target_option",
+}
+POSTCONDITION_KEYS = {
+    "command_json_fields": {"kind", "command", "fields"},
+    "command_json_path_exists": {"kind", "command", "field"},
+    "path_exists": {"kind", "path"},
 }
 FINAL_SIZE_KEYS = {"min_utf8_bytes", "max_utf8_bytes"}
 USAGE_KEYS = {
@@ -25,7 +40,7 @@ USAGE_KEYS = {
 }
 HARD_FAILURES = {
     "forbidden_read", "forbidden_command", "forbidden_claim",
-    "forbidden_write", "missing_final",
+    "forbidden_write", "missing_final", "command_failure", "write_mismatch",
 }
 EVENT_KEYS = {
     "request": {"type", "content"},
@@ -74,6 +89,21 @@ def _number_or_none(value, where):
         raise ValidationError("%s must be null or a non-negative number" % where)
 
 
+def _json_value(value, where):
+    if value is None or isinstance(value, (str, bool, int, float)):
+        return
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            _json_value(item, "%s[%d]" % (where, index))
+        return
+    if isinstance(value, dict):
+        for key, item in value.items():
+            _string(key, where + " key")
+            _json_value(item, "%s.%s" % (where, key))
+        return
+    raise ValidationError("%s must contain only JSON values" % where)
+
+
 def _safe_path(value, where):
     _string(value, where)
     path = PurePosixPath(value)
@@ -102,6 +132,8 @@ def validate_scenario(value, where="scenario"):
         _string(value[key], "%s.%s" % (where, key))
     _integer(value["turn_index"], where + ".turn_index", 1)
     _string_list(value["tags"], where + ".tags", allow_empty=False)
+    if type(value["stateful_eligible"]) is not bool:
+        raise ValidationError(where + ".stateful_eligible must be a boolean")
     fixture = value["fixture"]
     _exact_keys(fixture, FIXTURE_KEYS, where + ".fixture")
     if fixture["vault_mode"] not in ("full", "minimal", "none"):
@@ -124,7 +156,11 @@ def validate_scenario(value, where="scenario"):
 
 
 def validate_golden(value, where="golden"):
-    _exact_keys(value, GOLDEN_KEYS, where)
+    _object(value, where)
+    missing = (GOLDEN_KEYS - OPTIONAL_GOLDEN_KEYS) - set(value)
+    extra = set(value) - GOLDEN_KEYS
+    if missing or extra:
+        raise ValidationError("%s keys differ; missing=%s extra=%s" % (where, sorted(missing), sorted(extra)))
     if value["schema_version"] != SCHEMA_VERSION:
         raise ValidationError("%s.schema_version must be %d" % (where, SCHEMA_VERSION))
     _string(value["scenario_id"], where + ".scenario_id")
@@ -140,6 +176,80 @@ def validate_golden(value, where="golden"):
                 re.compile(pattern)
             except re.error as exc:
                 raise ValidationError("%s.%s[%d] invalid regex: %s" % (where, key, index, exc)) from exc
+    if not isinstance(value.get("command_results", []), list):
+        raise ValidationError(where + ".command_results must be a list")
+    for index, result in enumerate(value.get("command_results", [])):
+        result_where = "%s.command_results[%d]" % (where, index)
+        _exact_keys(result, COMMAND_RESULT_KEYS, result_where)
+        pattern = _string(result["command"], result_where + ".command")
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            raise ValidationError(result_where + ".command invalid regex: %s" % exc) from exc
+        _integer(result["exit_code"], result_where + ".exit_code")
+        if result["exit_code"] != 0:
+            raise ValidationError(result_where + ".exit_code must be 0")
+        output_json = result["output_json"]
+        if output_json is not None:
+            _object(output_json, result_where + ".output_json")
+            _string(output_json.get("format"), result_where + ".output_json.format")
+            _integer(output_json.get("version"), result_where + ".output_json.version", 1)
+            _json_value(output_json, result_where + ".output_json")
+    if not isinstance(value.get("write_results", []), list):
+        raise ValidationError(where + ".write_results must be a list")
+    for index, result in enumerate(value.get("write_results", [])):
+        result_where = "%s.write_results[%d]" % (where, index)
+        _exact_keys(result, WRITE_RESULT_KEYS, result_where)
+        pattern = _string(result["path"], result_where + ".path")
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            raise ValidationError(result_where + ".path invalid regex: %s" % exc) from exc
+        if result["content"] is not None:
+            _string(result["content"], result_where + ".content", allow_empty=True)
+        digest = result["sha256"]
+        if digest is not None and (not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest)):
+            raise ValidationError(result_where + ".sha256 must be a lowercase SHA-256 digest or null")
+        if result["content"] is None and digest is None:
+            raise ValidationError(result_where + " must declare content, sha256, or both")
+    if not isinstance(value.get("command_bindings", []), list):
+        raise ValidationError(where + ".command_bindings must be a list")
+    for index, binding in enumerate(value.get("command_bindings", [])):
+        binding_where = "%s.command_bindings[%d]" % (where, index)
+        _exact_keys(binding, COMMAND_BINDING_KEYS, binding_where)
+        for key in COMMAND_BINDING_KEYS:
+            item = _string(binding[key], "%s.%s" % (binding_where, key))
+            if key.endswith("command"):
+                try:
+                    re.compile(item)
+                except re.error as exc:
+                    raise ValidationError("%s.%s invalid regex: %s" % (binding_where, key, exc)) from exc
+        if not binding["source_json_field"].replace("_", "a").replace(".", "a").isalnum():
+            raise ValidationError(binding_where + ".source_json_field must be a dotted field path")
+        if not binding["target_option"].startswith("--"):
+            raise ValidationError(binding_where + ".target_option must be a long option")
+    if not isinstance(value.get("postconditions", []), list):
+        raise ValidationError(where + ".postconditions must be a list")
+    for index, postcondition in enumerate(value.get("postconditions", [])):
+        postcondition_where = "%s.postconditions[%d]" % (where, index)
+        _object(postcondition, postcondition_where)
+        kind = postcondition.get("kind")
+        if kind not in POSTCONDITION_KEYS:
+            raise ValidationError(postcondition_where + ".kind is invalid")
+        _exact_keys(postcondition, POSTCONDITION_KEYS[kind], postcondition_where)
+        if kind == "path_exists":
+            _safe_path(postcondition["path"], postcondition_where + ".path")
+            continue
+        pattern = _string(postcondition["command"], postcondition_where + ".command")
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            raise ValidationError(postcondition_where + ".command invalid regex: %s" % exc) from exc
+        if kind == "command_json_fields":
+            _object(postcondition["fields"], postcondition_where + ".fields")
+            _json_value(postcondition["fields"], postcondition_where + ".fields")
+        else:
+            _string(postcondition["field"], postcondition_where + ".field")
     _exact_keys(value["final_size"], FINAL_SIZE_KEYS, where + ".final_size")
     minimum = _integer(value["final_size"]["min_utf8_bytes"], where + ".final_size.min_utf8_bytes", 0)
     maximum = _integer(value["final_size"]["max_utf8_bytes"], where + ".final_size.max_utf8_bytes", 1)

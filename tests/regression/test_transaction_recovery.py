@@ -15,6 +15,76 @@ from tests.regression._support import initialized
 
 
 class CoordinatedTransactionRecoveryTests(unittest.TestCase):
+    def test_interrupted_project_staging_is_completed_on_retry(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            vault = initialized(Path(temporary))
+            real_create = vault.atomic_create_text
+
+            def interrupt_after_staged_context(relpath, content):
+                result = real_create(relpath, content)
+                if relpath.endswith("/_context.md"):
+                    raise KeyboardInterrupt
+                return result
+
+            with mock.patch.object(
+                vault,
+                "atomic_create_text",
+                side_effect=interrupt_after_staged_context,
+            ):
+                with self.assertRaises(KeyboardInterrupt):
+                    projects.create_project(vault, "Durable project")
+
+            project = vault.root / "01_projects/durable-project"
+            staging = vault.root / "01_projects/.durable-project.arpent-project-staging"
+            self.assertFalse(project.exists())
+            staged_context = staging / "_context.md"
+            self.assertTrue(staged_context.is_file())
+            staged_metadata, _ = frontmatter.read_note(staged_context)
+            staged_id = staged_metadata["id"]
+            self.assertIn(staged_id, vault.existing_ids())
+            self.assertNotIn(staging.name, vault.project_slugs())
+
+            concurrent_plan = notes.plan_note_new(
+                vault, title="Concurrent note", ntype="note", body="reserved id check",
+            )
+            concurrent_path, _, concurrent_metadata = notes.apply_note_new(
+                vault, concurrent_plan,
+            )
+            self.assertNotEqual(concurrent_metadata["id"], staged_id)
+            self.assertTrue(concurrent_path.is_file())
+
+            created = projects.create_project(vault, "Durable project")
+            retried = projects.create_project(vault, "Durable project")
+
+            self.assertEqual(created["project_path"], project)
+            self.assertEqual(retried["project_path"], project)
+            self.assertTrue(created["created"])
+            self.assertFalse(retried["created"])
+            self.assertFalse(staging.exists())
+            for child in ("notes", "drafts", "attachments"):
+                self.assertTrue((project / child).is_dir())
+            metadata, body = frontmatter.read_note(project / "_context.md")
+            self.assertEqual(metadata["id"], staged_id)
+            self.assertEqual(
+                len({metadata["id"], concurrent_metadata["id"]}),
+                2,
+            )
+            self.assertEqual(metadata["project"], "durable-project")
+            self.assertIn("## Resume here", body)
+
+    def test_project_creation_never_replaces_existing_directory(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            vault = initialized(Path(temporary))
+            existing = vault.root / "01_projects/existing-project"
+            existing.mkdir()
+            sentinel = existing / "user.txt"
+            sentinel.write_text("keep me\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "already exists"):
+                projects.create_project(vault, "Existing project")
+
+            self.assertEqual(sentinel.read_text(encoding="utf-8"), "keep me\n")
+
     def test_interrupted_note_move_is_rolled_back_before_next_mutation(self):
         with tempfile.TemporaryDirectory() as temporary:
             vault = initialized(Path(temporary))

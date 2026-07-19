@@ -83,7 +83,7 @@ def run_ephemeral(vault, *, dry_run=False, now=None) -> dict:
                 if (
                     path.name == "_context.md"
                     or foundational_area_note
-                    or fm.get("type") in {"map", "linear"}
+                    or fm.get("type") in {"map", "howto", "linear"}
                     or fm.get("status") in PROTECTED_STATUSES
                 ):
                     tool_counts["skipped"] += 1
@@ -165,6 +165,22 @@ def _load_plans(vault) -> list[dict]:
             raise ValueError(f"Tool '{name}' lifecycle must be a list.")
         parsed_rules = [_validate_rule(name, rule) for rule in rules]
 
+        database = raw_cfg.get("database") or raw_cfg.get("db")
+        if database is not None:
+            if not isinstance(database, str) or not database:
+                raise ValueError(f"Tool '{name}' database must be a non-empty path.")
+            database_path = Path(database).as_posix()
+            if not database_path.startswith("06_indexes/databases/"):
+                raise ValueError(f"Tool '{name}' database must be under 06_indexes/databases/.")
+            vault._safe_relative_path(database_path)
+        else:
+            database_path = None
+        if database_path and any(rule.get("to") is not None for rule in parsed_rules):
+            raise ValueError(
+                f"Tool '{name}' cannot use lifecycle 'to' transitions because its "
+                "Markdown and database states must change together."
+            )
+
         writes_to = raw_cfg.get("writes_to") or []
         if isinstance(writes_to, str):
             writes_to = [writes_to]
@@ -186,16 +202,9 @@ def _load_plans(vault) -> list[dict]:
             claimed_roots.append((name, root))
             roots.append(root)
 
-        database = raw_cfg.get("database") or raw_cfg.get("db")
         if any(rule.get("action") == "archive-with-trace" for rule in parsed_rules):
-            if not isinstance(database, str) or not database:
+            if database_path is None:
                 raise ValueError(f"Tool '{name}' needs database for archive-with-trace.")
-            database_path = Path(database).as_posix()
-            if not database_path.startswith("06_indexes/databases/"):
-                raise ValueError(f"Tool '{name}' database must be under 06_indexes/databases/.")
-            vault._safe_relative_path(database_path)
-        else:
-            database_path = None
 
         plans.append({
             "name": name,
@@ -275,6 +284,7 @@ def _apply_rule(vault, plan, root, path, fm, body, rule, now, *, dry_run):
         updated = dict(fm)
         updated["status"] = rule["to"]
         updated["modified"] = fmlib.format_note_timestamp(now)
+        notes_mod.normalize_frontmatter_fields(updated)
         notes_mod.validate_frontmatter_values(updated)
         if not dry_run:
             updated_content = fmlib.compose_note(updated, body)
@@ -316,6 +326,7 @@ def _apply_rule(vault, plan, root, path, fm, body, rule, now, *, dry_run):
     archived["modified"] = fmlib.format_note_timestamp(now)
     archived["archived_at"] = archived["modified"]
     archived["archived_from"] = rel
+    notes_mod.normalize_frontmatter_fields(archived)
     notes_mod.validate_frontmatter_values(archived)
     if not dry_run:
         trace = None

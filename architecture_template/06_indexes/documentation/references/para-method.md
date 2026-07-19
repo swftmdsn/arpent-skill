@@ -1,4 +1,0 @@
-# PARA Method
-
-Reference placeholder.
-

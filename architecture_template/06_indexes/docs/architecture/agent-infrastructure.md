@@ -9,7 +9,7 @@ indexes, and harness-specific configuration.
 |---|---|---|
 | Portable definitions | `03_resources/agent_infrastructure/` | Roles, skills, workflows, prompts, templates, styles, and capability manifests |
 | Arpent tool control plane | `06_indexes/` | Skills, CLI contracts, schemas, migrations, registry, documentation, and databases |
-| Tool runtime material | `05_tools/` or the relevant area | Declared artifacts, queues, captures, caches, outputs, and user content |
+| Tool runtime material | `05_tools/` or the relevant area | Declared artifacts, captures, caches, outputs, and user content |
 | Discovery registry | `06_indexes/agent_infrastructure_index.yaml` | IDs, paths, and relations between portable definitions |
 | Vault tool registry | `06_indexes/tools.yaml` | Declared Arpent tools and their `planned` or `installed` status |
 | Harness configuration | Outside the vault or generated from portable definitions | OpenCode, Claude Code, or other harness-specific activation |
@@ -61,9 +61,12 @@ Capabilities and the index are complementary:
 
 ### System instructions
 
-Vault-wide instructions live in `.agent`, `me.md`, `COMPASS.md`, `SKILL.md`,
-and `06_indexes/docs/ARPENT.md`. Automatic injection remains the responsibility
-of the active harness; Arpent provides the portable source of truth.
+Vault-wide operating instructions live in `.agent`,
+`06_indexes/global_skills/arpent.skill.md`, and `06_indexes/docs/ARPENT.md`.
+`me.md` is human-owned orientation, while
+`COMPASS.md` selects only less common operations. Automatic injection remains
+the responsibility of the active harness; Arpent provides the portable source
+of truth.
 
 ## Decision Rule
 

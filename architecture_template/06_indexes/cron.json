@@ -12,7 +12,7 @@
       "tags": ["lifecycle", "ephemeral"],
       "last_started": null,
       "last_run": null,
-      "description": "Apply lifecycle rules from tools.yaml."
+      "description": "Apply lifecycle rules from installed ephemeral tools only."
     }
   ]
 }

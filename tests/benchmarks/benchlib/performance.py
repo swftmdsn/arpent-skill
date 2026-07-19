@@ -19,6 +19,15 @@ from .jsonio import atomic_write_text
 COMMON_TERM = "benchmarkcommon"
 
 
+def _alpha_suffix(number):
+    characters = []
+    number += 1
+    while number:
+        number, remainder = divmod(number - 1, 26)
+        characters.append(chr(ord("a") + remainder))
+    return "".join(reversed(characters))
+
+
 def _percentile(samples, percentile):
     ordered = sorted(samples)
     if not ordered:
@@ -45,7 +54,7 @@ def _materialize_vault(parent, note_count):
         metadata = notes._blank_frontmatter()
         metadata.update({
             "title": title,
-            "id": "note-20260101-%06d" % number,
+            "id": "note-20260101-%s" % _alpha_suffix(number),
             "created": "01-01-2026-00-00",
             "modified": "01-01-2026-00-00",
             "description": "Deterministic performance fixture.",

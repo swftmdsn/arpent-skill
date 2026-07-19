@@ -1,16 +1,399 @@
 {
   "adapter": "replay",
-  "benchmark_version": 1,
-  "bundle_sha256": "3429fb630177b83a7245d5ed7c733099189d85d0a7083980008229b9d21f055c",
+  "benchmark_version": 3,
+  "bundle_sha256": "a94935bab0ea7b6ca7409fd2d3d7d4df7c8de3a00d65cb4d706ec7a00845d31e",
+  "document_manifest": {
+    "documents": [
+      {
+        "path": "SKILL.md",
+        "scenario_id": "cold_global_comprehension",
+        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "source": "repository",
+        "utf8_bytes": 7700
+      },
+      {
+        "path": "references/appendices/complete-reference-index.md",
+        "scenario_id": "cold_global_comprehension",
+        "sha256": "222a7b6b4a4813c1fb56c0cd7dc68ce24223bec2ddc2e76cc666dff87e2e9163",
+        "source": "repository",
+        "utf8_bytes": 1444
+      },
+      {
+        "path": "references/architecture.md",
+        "scenario_id": "cold_global_comprehension",
+        "sha256": "65546bbc2a07070cf65bc4b7b31482c84357cecdb934cafa37e1bae457c9cafd",
+        "source": "repository",
+        "utf8_bytes": 9981
+      },
+      {
+        "path": "references/memory-layers.md",
+        "scenario_id": "cold_global_comprehension",
+        "sha256": "3ba8bbeb01b5836e869972f3326b473c3c1ed9559c33c63849b45921fd0f8024",
+        "source": "repository",
+        "utf8_bytes": 4011
+      },
+      {
+        "path": ".arpent",
+        "scenario_id": "full_first_capture",
+        "sha256": "f48e4ed8a2e1f88322bbe9e59f28b59210a632b0b81357c02fe98818edc43297",
+        "source": "fixture",
+        "utf8_bytes": 62
+      },
+      {
+        "path": "SKILL.md",
+        "scenario_id": "full_first_capture",
+        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "source": "repository",
+        "utf8_bytes": 7700
+      },
+      {
+        "path": "references/modes/full.md",
+        "scenario_id": "full_first_capture",
+        "sha256": "9fc2bdb7f7ea6302e84f7896f4d516fbe6297fc3e93a445b17d359f011526fcc",
+        "source": "repository",
+        "utf8_bytes": 1099
+      },
+      {
+        "path": ".arpent",
+        "scenario_id": "full_second_capture_loaded",
+        "sha256": "f48e4ed8a2e1f88322bbe9e59f28b59210a632b0b81357c02fe98818edc43297",
+        "source": "fixture",
+        "utf8_bytes": 62
+      },
+      {
+        "path": ".arpent",
+        "scenario_id": "reviewed_capture",
+        "sha256": "f48e4ed8a2e1f88322bbe9e59f28b59210a632b0b81357c02fe98818edc43297",
+        "source": "fixture",
+        "utf8_bytes": 62
+      },
+      {
+        "path": "06_indexes/cli/operations.yaml",
+        "scenario_id": "reviewed_capture",
+        "sha256": "d550eda82f6338e9111f596558f6e253871520f42ab3864c27b1d85f147cf137",
+        "source": "package_data",
+        "utf8_bytes": 6513
+      },
+      {
+        "path": "references/workflows/capture-note.md",
+        "scenario_id": "reviewed_capture",
+        "sha256": "811ca2480000d316ef84a71c853378dd8a7e4f459cd01da3b4f308f5de3e0af9",
+        "source": "repository",
+        "utf8_bytes": 2584
+      },
+      {
+        "path": ".arpent",
+        "scenario_id": "routing_ambiguity",
+        "sha256": "f48e4ed8a2e1f88322bbe9e59f28b59210a632b0b81357c02fe98818edc43297",
+        "source": "fixture",
+        "utf8_bytes": 62
+      },
+      {
+        "path": "SKILL.md",
+        "scenario_id": "routing_ambiguity",
+        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "source": "repository",
+        "utf8_bytes": 7700
+      },
+      {
+        "path": "references/contracts/routing.md",
+        "scenario_id": "routing_ambiguity",
+        "sha256": "c8ff4cfc78bbb7bffc336b655c99e3aef67e89f0cc5aa539936852b436868427",
+        "source": "repository",
+        "utf8_bytes": 1735
+      },
+      {
+        "path": ".arpent",
+        "scenario_id": "todo_capture",
+        "sha256": "f48e4ed8a2e1f88322bbe9e59f28b59210a632b0b81357c02fe98818edc43297",
+        "source": "fixture",
+        "utf8_bytes": 62
+      },
+      {
+        "path": "SKILL.md",
+        "scenario_id": "todo_capture",
+        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "source": "repository",
+        "utf8_bytes": 7700
+      },
+      {
+        "path": "references/workflows/capture-todo.md",
+        "scenario_id": "todo_capture",
+        "sha256": "4134c246f5f845d9339848a04bdae4a1fac2f8174121964903e51e1776751d2a",
+        "source": "repository",
+        "utf8_bytes": 1577
+      },
+      {
+        "path": ".arpent",
+        "scenario_id": "durable_note_capture",
+        "sha256": "f48e4ed8a2e1f88322bbe9e59f28b59210a632b0b81357c02fe98818edc43297",
+        "source": "fixture",
+        "utf8_bytes": 62
+      },
+      {
+        "path": ".arpent",
+        "scenario_id": "fleeting_capture",
+        "sha256": "f48e4ed8a2e1f88322bbe9e59f28b59210a632b0b81357c02fe98818edc43297",
+        "source": "fixture",
+        "utf8_bytes": 62
+      },
+      {
+        "path": ".arpent",
+        "scenario_id": "minimal_note_capture",
+        "sha256": "fcd6ca70ec6979ea31ee6e6ce19dd79441bb50cbc9d6f2fcfff64d4cffa27275",
+        "source": "fixture",
+        "utf8_bytes": 65
+      },
+      {
+        "path": "SKILL.md",
+        "scenario_id": "minimal_note_capture",
+        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "source": "repository",
+        "utf8_bytes": 7700
+      },
+      {
+        "path": "references/modes/minimal.md",
+        "scenario_id": "minimal_note_capture",
+        "sha256": "bb4f0f46b7143b9951aa3acbe27b5fe6cb9307cc80c43bb53cf83ec22777dc32",
+        "source": "repository",
+        "utf8_bytes": 2414
+      },
+      {
+        "path": "references/contracts/frontmatter.md",
+        "scenario_id": "minimal_note_capture",
+        "sha256": "f80d3aef90d34afe4057bd9094f14ca9faaa393c04ac1d2f6a7af1ee142d42e0",
+        "source": "repository",
+        "utf8_bytes": 1462
+      },
+      {
+        "path": "references/contracts/routing.md",
+        "scenario_id": "minimal_note_capture",
+        "sha256": "c8ff4cfc78bbb7bffc336b655c99e3aef67e89f0cc5aa539936852b436868427",
+        "source": "repository",
+        "utf8_bytes": 1735
+      },
+      {
+        "path": "references/contracts/provenance-and-body.md",
+        "scenario_id": "minimal_note_capture",
+        "sha256": "ead3887b544bbc726cf8246a1a0850085b4db532024f1ac51b1f6a921223d0fb",
+        "source": "repository",
+        "utf8_bytes": 1616
+      },
+      {
+        "path": "00_inbox/offline_insight.md",
+        "scenario_id": "minimal_note_capture",
+        "sha256": "292136d436581062c93210ca15940a6a949a31be8c6ceb409529486e37d82013",
+        "source": "trace_write",
+        "utf8_bytes": 497
+      },
+      {
+        "path": ".arpent",
+        "scenario_id": "minimal_todo_boundary",
+        "sha256": "fcd6ca70ec6979ea31ee6e6ce19dd79441bb50cbc9d6f2fcfff64d4cffa27275",
+        "source": "fixture",
+        "utf8_bytes": 65
+      },
+      {
+        "path": "SKILL.md",
+        "scenario_id": "minimal_todo_boundary",
+        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "source": "repository",
+        "utf8_bytes": 7700
+      },
+      {
+        "path": "references/workflows/capture-todo.md",
+        "scenario_id": "minimal_todo_boundary",
+        "sha256": "4134c246f5f845d9339848a04bdae4a1fac2f8174121964903e51e1776751d2a",
+        "source": "repository",
+        "utf8_bytes": 1577
+      },
+      {
+        "path": "references/modes/minimal.md",
+        "scenario_id": "minimal_todo_boundary",
+        "sha256": "bb4f0f46b7143b9951aa3acbe27b5fe6cb9307cc80c43bb53cf83ec22777dc32",
+        "source": "repository",
+        "utf8_bytes": 2414
+      },
+      {
+        "path": "SKILL.md",
+        "scenario_id": "rearchitecture_source_selection",
+        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "source": "repository",
+        "utf8_bytes": 7700
+      },
+      {
+        "path": "references/appendices/complete-reference-index.md",
+        "scenario_id": "rearchitecture_source_selection",
+        "sha256": "222a7b6b4a4813c1fb56c0cd7dc68ce24223bec2ddc2e76cc666dff87e2e9163",
+        "source": "repository",
+        "utf8_bytes": 1444
+      },
+      {
+        "path": "references/architecture.md",
+        "scenario_id": "rearchitecture_source_selection",
+        "sha256": "65546bbc2a07070cf65bc4b7b31482c84357cecdb934cafa37e1bae457c9cafd",
+        "source": "repository",
+        "utf8_bytes": 9981
+      },
+      {
+        "path": "references/routing.md",
+        "scenario_id": "rearchitecture_source_selection",
+        "sha256": "2fc363a09d587da9d1ad71f418575c58898479a0dd88dbeac6886cb84013a5b0",
+        "source": "repository",
+        "utf8_bytes": 5674
+      },
+      {
+        "path": "scripts/operations.yaml",
+        "scenario_id": "rearchitecture_source_selection",
+        "sha256": "43e2fdb35e37206c650bb1bf7cd6eb498747905af536c093668fb395d8681a24",
+        "source": "repository",
+        "utf8_bytes": 6522
+      },
+      {
+        "path": "scripts/routing.py",
+        "scenario_id": "rearchitecture_source_selection",
+        "sha256": "948bc824adade35af9efe5db7a54f5c80295e816829f242cda43ff37afd87763",
+        "source": "repository",
+        "utf8_bytes": 8300
+      },
+      {
+        "path": "SKILL.md",
+        "scenario_id": "add_note_type_source_selection",
+        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "source": "repository",
+        "utf8_bytes": 7700
+      },
+      {
+        "path": "references/appendices/complete-reference-index.md",
+        "scenario_id": "add_note_type_source_selection",
+        "sha256": "222a7b6b4a4813c1fb56c0cd7dc68ce24223bec2ddc2e76cc666dff87e2e9163",
+        "source": "repository",
+        "utf8_bytes": 1444
+      },
+      {
+        "path": "references/frontmatter.md",
+        "scenario_id": "add_note_type_source_selection",
+        "sha256": "7a01ec4822a4643052c52066b342940dbfc9b97675c2f6a2453a57c50f239d7f",
+        "source": "repository",
+        "utf8_bytes": 20268
+      },
+      {
+        "path": "scripts/operations.yaml",
+        "scenario_id": "add_note_type_source_selection",
+        "sha256": "43e2fdb35e37206c650bb1bf7cd6eb498747905af536c093668fb395d8681a24",
+        "source": "repository",
+        "utf8_bytes": 6522
+      },
+      {
+        "path": "scripts/frontmatter.py",
+        "scenario_id": "add_note_type_source_selection",
+        "sha256": "a9e3641bbe33cf7a9a2334a2702e21fde856b7a34bfb07d249543e1b9da77c11",
+        "source": "repository",
+        "utf8_bytes": 14498
+      },
+      {
+        "path": "tests/tests/test_capture_contract.py",
+        "scenario_id": "add_note_type_source_selection",
+        "sha256": "aa50b55c518847b3e4b74845cac5c37c1fb522c40836c277f872ce4387727abc",
+        "source": "repository",
+        "utf8_bytes": 34926
+      },
+      {
+        "path": "SKILL.md",
+        "scenario_id": "add_frontmatter_field_source_selection",
+        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "source": "repository",
+        "utf8_bytes": 7700
+      },
+      {
+        "path": "references/appendices/complete-reference-index.md",
+        "scenario_id": "add_frontmatter_field_source_selection",
+        "sha256": "222a7b6b4a4813c1fb56c0cd7dc68ce24223bec2ddc2e76cc666dff87e2e9163",
+        "source": "repository",
+        "utf8_bytes": 1444
+      },
+      {
+        "path": "references/frontmatter.md",
+        "scenario_id": "add_frontmatter_field_source_selection",
+        "sha256": "7a01ec4822a4643052c52066b342940dbfc9b97675c2f6a2453a57c50f239d7f",
+        "source": "repository",
+        "utf8_bytes": 20268
+      },
+      {
+        "path": "references/contracts/frontmatter.md",
+        "scenario_id": "add_frontmatter_field_source_selection",
+        "sha256": "f80d3aef90d34afe4057bd9094f14ca9faaa393c04ac1d2f6a7af1ee142d42e0",
+        "source": "repository",
+        "utf8_bytes": 1462
+      },
+      {
+        "path": "scripts/frontmatter.py",
+        "scenario_id": "add_frontmatter_field_source_selection",
+        "sha256": "a9e3641bbe33cf7a9a2334a2702e21fde856b7a34bfb07d249543e1b9da77c11",
+        "source": "repository",
+        "utf8_bytes": 14498
+      },
+      {
+        "path": "tests/tests/test_capture_contract.py",
+        "scenario_id": "add_frontmatter_field_source_selection",
+        "sha256": "aa50b55c518847b3e4b74845cac5c37c1fb522c40836c277f872ce4387727abc",
+        "source": "repository",
+        "utf8_bytes": 34926
+      },
+      {
+        "path": ".arpent",
+        "scenario_id": "linear_lifecycle",
+        "sha256": "f48e4ed8a2e1f88322bbe9e59f28b59210a632b0b81357c02fe98818edc43297",
+        "source": "fixture",
+        "utf8_bytes": 62
+      },
+      {
+        "path": "references/lifecycle.md",
+        "scenario_id": "linear_lifecycle",
+        "sha256": "07e7817e545fea5335c305b8d1f4f43174a3f42952d3a76c23e561b38ad59484",
+        "source": "repository",
+        "utf8_bytes": 7798
+      },
+      {
+        "path": ".arpent",
+        "scenario_id": "reviewed_import",
+        "sha256": "f48e4ed8a2e1f88322bbe9e59f28b59210a632b0b81357c02fe98818edc43297",
+        "source": "fixture",
+        "utf8_bytes": 62
+      },
+      {
+        "path": "references/import-and-migration.md",
+        "scenario_id": "reviewed_import",
+        "sha256": "017c2c256d28503d36f53b2cb7ef11ca0cadd4182fc0fb283a442ad22d9af92a",
+        "source": "repository",
+        "utf8_bytes": 8223
+      },
+      {
+        "path": ".arpent",
+        "scenario_id": "current_guidance_capture",
+        "sha256": "f48e4ed8a2e1f88322bbe9e59f28b59210a632b0b81357c02fe98818edc43297",
+        "source": "fixture",
+        "utf8_bytes": 62
+      }
+    ],
+    "sha256": "398b684560edf532e9b0e5fad618b42440baecea7b9a3033b1d3d795d26c4493"
+  },
   "mode": "offline",
   "scenarios": [
     {
       "category": "comprehension",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 19,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^SKILL\\.md$"
         },
@@ -18,6 +401,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/appendices/complete-reference-index\\.md$"
         },
@@ -25,6 +409,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/architecture\\.md$"
         },
@@ -32,6 +417,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/memory-layers\\.md$"
         },
@@ -39,6 +425,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
@@ -46,6 +433,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "complete-COMPASS"
         },
@@ -53,6 +441,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?:^|\\s)arpent\\s+(?:status|index|search)"
         },
@@ -60,6 +449,7 @@
           "detail": "matched 2 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "filesystem-native"
         },
@@ -67,6 +457,7 @@
           "detail": "matched 2 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?i)minimal.*full|full.*minimal"
         },
@@ -74,13 +465,23 @@
           "detail": "matched 2 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
-          "pattern": "Markdown.*source of truth|source of truth.*Markdown"
+          "pattern": "(?i)Markdown is canonical for documents"
+        },
+        {
+          "detail": "matched 2 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "(?i)todo\\.db.*authoritative for (?:coordinated )?(?:structured )?todo state"
         },
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "memory.*opt-in|opt-in.*memory"
         },
@@ -88,6 +489,23 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "(?i)(?:files|Markdown).{0,60}source of truth"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "(?i)files are canonical"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "semantic search is built in"
         },
@@ -95,6 +513,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "autonomous daemon"
         },
@@ -102,6 +521,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
         },
@@ -109,27 +529,29 @@
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
         {
-          "detail": "720 UTF-8 bytes",
+          "detail": "875 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "250..1600"
         }
       ],
       "hard_failures": [],
       "metrics": {
-        "claim_utf8_bytes": 169,
+        "claim_utf8_bytes": 197,
         "cli_count": 0,
         "command_count": 0,
         "command_output_utf8_bytes": 0,
         "command_utf8_bytes": 0,
-        "cumulative_input_proxy_utf8_bytes": 250,
-        "document_utf8_bytes": 46821,
-        "final_utf8_bytes": 720,
+        "cumulative_input_proxy_utf8_bytes": 247,
+        "document_utf8_bytes": 23136,
+        "final_utf8_bytes": 875,
         "prompt_utf8_bytes": 151,
         "provider_cache_creation_input_tokens": null,
         "provider_cache_read_input_tokens": null,
@@ -141,11 +563,11 @@
         "provider_total_tokens": null,
         "repeated_document_utf8_bytes": 0,
         "request_count": 1,
-        "request_utf8_bytes": 250,
+        "request_utf8_bytes": 247,
         "stable_prefix_utf8_bytes": 0,
         "tool_count": 4,
-        "unique_document_utf8_bytes": 46821,
-        "utf8_byte_quarter_estimate": 63,
+        "unique_document_utf8_bytes": 23136,
+        "utf8_byte_quarter_estimate": 62,
         "write_utf8_bytes": 0
       },
       "passed": true,
@@ -153,15 +575,23 @@
       "scenario_id": "cold_global_comprehension",
       "score": 100.0,
       "title": "Cold global comprehension",
-      "trace_sha256": "58dbc26d1b0033e736e1cdd85cabede9f72803e6922fba888f817e1bd4e365be"
+      "trace_sha256": "f620e703dd83f97b908eef03627c5be143d5ae4e756050144ab87e64e4b63a60",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "capture",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 19,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^\\.arpent$"
         },
@@ -169,6 +599,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^SKILL\\.md$"
         },
@@ -176,6 +607,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/modes/full\\.md$"
         },
@@ -183,6 +615,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^README\\.md$"
         },
@@ -190,6 +623,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "complete-reference-index"
         },
@@ -197,6 +631,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "complete-COMPASS"
         },
@@ -204,13 +639,15 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 1 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent note new .*Cache invalidation question.*--type note.*--body .*Which cache keys survive the URL cutover\\?.*--json$"
         },
@@ -218,6 +655,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?:^|\\s)arpent\\s+(?:--help|help|status|triage|index|search|note read)"
         },
@@ -225,6 +663,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "00_inbox"
         },
@@ -232,6 +671,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "type.*note|note.*type"
         },
@@ -239,6 +679,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "status.*inbox|inbox.*status"
         },
@@ -246,6 +687,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "indexed"
         },
@@ -253,6 +695,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "triage complete"
         },
@@ -260,13 +703,31 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent note new \"Cache invalidation question\" --type note --body \"Which cache keys survive the URL cutover?\" --json"
+        },
+        {
+          "detail": "versioned JSON matched in order",
+          "hard": false,
+          "kind": "command_result",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^arpent note new"
         },
         {
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
@@ -274,6 +735,7 @@
           "detail": "100 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "40..420"
         }
@@ -283,10 +745,10 @@
         "claim_utf8_bytes": 0,
         "cli_count": 1,
         "command_count": 1,
-        "command_output_utf8_bytes": 104,
+        "command_output_utf8_bytes": 725,
         "command_utf8_bytes": 115,
-        "cumulative_input_proxy_utf8_bytes": 207,
-        "document_utf8_bytes": 8610,
+        "cumulative_input_proxy_utf8_bytes": 204,
+        "document_utf8_bytes": 8861,
         "final_utf8_bytes": 100,
         "prompt_utf8_bytes": 105,
         "provider_cache_creation_input_tokens": null,
@@ -297,13 +759,13 @@
         "provider_reported_cost": null,
         "provider_reported_cost_currency": null,
         "provider_total_tokens": null,
-        "repeated_document_utf8_bytes": 7522,
+        "repeated_document_utf8_bytes": 7700,
         "request_count": 1,
-        "request_utf8_bytes": 207,
+        "request_utf8_bytes": 204,
         "stable_prefix_utf8_bytes": 0,
         "tool_count": 4,
-        "unique_document_utf8_bytes": 1088,
-        "utf8_byte_quarter_estimate": 52,
+        "unique_document_utf8_bytes": 1161,
+        "utf8_byte_quarter_estimate": 51,
         "write_utf8_bytes": 0
       },
       "passed": true,
@@ -311,15 +773,23 @@
       "scenario_id": "full_first_capture",
       "score": 100.0,
       "title": "First full-mode capture",
-      "trace_sha256": "992dbf2f0639e8fc6a6c3253fbb187405a9f0be89fd12ec9974923c984394d42"
+      "trace_sha256": "37e7e32d6d078a10fa2b4bf04bbceef4f6e1af84496a5e1e41d84840800bd722",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "capture",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 17,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^\\.arpent$"
         },
@@ -327,6 +797,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^SKILL\\.md$"
         },
@@ -334,6 +805,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^README\\.md$"
         },
@@ -341,6 +813,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/"
         },
@@ -348,6 +821,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "complete-COMPASS"
         },
@@ -355,13 +829,15 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 1 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent note new .*Preserve redirect table.*--type note.*--body .*Keep the old-to-new URL mapping until analytics confirm the cutover\\..*--json$"
         },
@@ -369,6 +845,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?:^|\\s)arpent\\s+(?:--help|help|status|triage|index|search|note read)"
         },
@@ -376,6 +853,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "00_inbox"
         },
@@ -383,6 +861,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "type.*note|note.*type"
         },
@@ -390,6 +869,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "reloaded the skill"
         },
@@ -397,6 +877,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "indexed"
         },
@@ -404,13 +885,31 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent note new \"Preserve redirect table\" --type note --body \"Keep the old-to-new URL mapping until analytics confirm the cutover.\" --json"
+        },
+        {
+          "detail": "versioned JSON matched in order",
+          "hard": false,
+          "kind": "command_result",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^arpent note new"
         },
         {
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
@@ -418,6 +917,7 @@
           "detail": "96 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "35..360"
         }
@@ -427,9 +927,9 @@
         "claim_utf8_bytes": 0,
         "cli_count": 1,
         "command_count": 1,
-        "command_output_utf8_bytes": 100,
+        "command_output_utf8_bytes": 717,
         "command_utf8_bytes": 138,
-        "cumulative_input_proxy_utf8_bytes": 235,
+        "cumulative_input_proxy_utf8_bytes": 232,
         "document_utf8_bytes": 62,
         "final_utf8_bytes": 96,
         "prompt_utf8_bytes": 133,
@@ -443,11 +943,11 @@
         "provider_total_tokens": null,
         "repeated_document_utf8_bytes": 62,
         "request_count": 1,
-        "request_utf8_bytes": 235,
-        "stable_prefix_utf8_bytes": 102,
+        "request_utf8_bytes": 232,
+        "stable_prefix_utf8_bytes": 99,
         "tool_count": 2,
         "unique_document_utf8_bytes": 0,
-        "utf8_byte_quarter_estimate": 59,
+        "utf8_byte_quarter_estimate": 58,
         "write_utf8_bytes": 0
       },
       "passed": true,
@@ -455,15 +955,23 @@
       "scenario_id": "full_second_capture_loaded",
       "score": 100.0,
       "title": "Second capture with skill loaded",
-      "trace_sha256": "edb183cfe85bd1d75f9a3c74060ab858d8a6f1e095f5ff357b641436e4d4f80a"
+      "trace_sha256": "daca1bfd847109f4672fc9c5f0a65b974dcd3610e18f2ecd2b3f11619743ba14",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "capture",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 20,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^\\.arpent$"
         },
@@ -471,6 +979,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^06_indexes/cli/operations\\.yaml$"
         },
@@ -478,6 +987,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/workflows/capture-note\\.md$"
         },
@@ -485,6 +995,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^README\\.md$"
         },
@@ -492,20 +1003,23 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 1 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent note new .*Project risks.*--dry-run --json$"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 2 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent note new .*Project risks.*--plan-hash [a-f0-9]{64} --json$"
         },
@@ -513,6 +1027,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?:^|\\s)arpent\\s+(?:status|triage|index|search|note read)"
         },
@@ -520,6 +1035,7 @@
           "detail": "matched 2 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "preview"
         },
@@ -527,6 +1043,7 @@
           "detail": "matched 2 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "plan.*hash|hash.*plan"
         },
@@ -534,6 +1051,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?i)created.*00_inbox|00_inbox.*created"
         },
@@ -541,6 +1059,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "applied before review"
         },
@@ -548,13 +1067,55 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent note new \"Project risks\" --type note --body \"Record migration risks before implementation.\" --dry-run --json"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent note new \"Project risks\" --type note --body \"Record migration risks before implementation.\" --plan-hash 0ab2d5cfafde81a1c00e49f163a7e08dac670cc57b5a8844ef95f1fbee4b279a --json"
+        },
+        {
+          "detail": "versioned JSON matched in order",
+          "hard": false,
+          "kind": "command_result",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "--dry-run --json$"
+        },
+        {
+          "detail": "versioned JSON matched in order",
+          "hard": false,
+          "kind": "command_result",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "--plan-hash [a-f0-9]{64} --json$"
+        },
+        {
+          "detail": "bound value matched",
+          "hard": false,
+          "kind": "command_binding",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "plan_sha256 -> --plan-hash"
         },
         {
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
@@ -562,19 +1123,20 @@
           "detail": "140 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "45..450"
         }
       ],
       "hard_failures": [],
       "metrics": {
-        "claim_utf8_bytes": 107,
+        "claim_utf8_bytes": 111,
         "cli_count": 2,
         "command_count": 2,
-        "command_output_utf8_bytes": 200,
+        "command_output_utf8_bytes": 1561,
         "command_utf8_bytes": 297,
         "cumulative_input_proxy_utf8_bytes": 181,
-        "document_utf8_bytes": 2456,
+        "document_utf8_bytes": 9159,
         "final_utf8_bytes": 140,
         "prompt_utf8_bytes": 87,
         "provider_cache_creation_input_tokens": null,
@@ -590,7 +1152,7 @@
         "request_utf8_bytes": 181,
         "stable_prefix_utf8_bytes": 0,
         "tool_count": 5,
-        "unique_document_utf8_bytes": 2394,
+        "unique_document_utf8_bytes": 9097,
         "utf8_byte_quarter_estimate": 46,
         "write_utf8_bytes": 0
       },
@@ -598,16 +1160,24 @@
       "provider_usage": null,
       "scenario_id": "reviewed_capture",
       "score": 100.0,
-      "title": "Capture under always-review policy",
-      "trace_sha256": "e51802ef965acaaf36530de1a2a75c1344f5eb64a9e8ab98cbc06af352b2053a"
+      "title": "Capture under always-confirm policy",
+      "trace_sha256": "924375e4be5348e2f8964f48b842a951e3705740968367ba22656e9f2904800f",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "routing",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 16,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^\\.arpent$"
         },
@@ -615,6 +1185,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^SKILL\\.md$"
         },
@@ -622,6 +1193,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/contracts/routing\\.md$"
         },
@@ -629,6 +1201,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^README\\.md$"
         },
@@ -636,6 +1209,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
@@ -643,6 +1217,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent note new"
         },
@@ -650,6 +1225,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent project create"
         },
@@ -657,6 +1233,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "project.*resource|resource.*project"
         },
@@ -664,6 +1241,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "which|choose|clarif"
         },
@@ -671,6 +1249,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "created"
         },
@@ -678,6 +1257,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "saved"
         },
@@ -685,6 +1265,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "chose the project"
         },
@@ -692,6 +1273,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "chose the resource"
         },
@@ -699,6 +1281,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
         },
@@ -706,6 +1289,7 @@
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
@@ -713,6 +1297,7 @@
           "detail": "249 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "70..500"
         }
@@ -725,7 +1310,7 @@
         "command_output_utf8_bytes": 0,
         "command_utf8_bytes": 0,
         "cumulative_input_proxy_utf8_bytes": 204,
-        "document_utf8_bytes": 8859,
+        "document_utf8_bytes": 9497,
         "final_utf8_bytes": 249,
         "prompt_utf8_bytes": 129,
         "provider_cache_creation_input_tokens": null,
@@ -736,12 +1321,12 @@
         "provider_reported_cost": null,
         "provider_reported_cost_currency": null,
         "provider_total_tokens": null,
-        "repeated_document_utf8_bytes": 7584,
+        "repeated_document_utf8_bytes": 7762,
         "request_count": 1,
         "request_utf8_bytes": 204,
         "stable_prefix_utf8_bytes": 0,
         "tool_count": 3,
-        "unique_document_utf8_bytes": 1275,
+        "unique_document_utf8_bytes": 1735,
         "utf8_byte_quarter_estimate": 51,
         "write_utf8_bytes": 0
       },
@@ -750,15 +1335,23 @@
       "scenario_id": "routing_ambiguity",
       "score": 100.0,
       "title": "Project or resource ambiguity",
-      "trace_sha256": "9be905c2c9466b52f91e60aa3ef31ff3f6bef9328c09010f74f21f001d8c63dc"
+      "trace_sha256": "9be905c2c9466b52f91e60aa3ef31ff3f6bef9328c09010f74f21f001d8c63dc",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "intent-routing",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 18,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^\\.arpent$"
         },
@@ -766,6 +1359,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^SKILL\\.md$"
         },
@@ -773,6 +1367,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/workflows/capture-todo\\.md$"
         },
@@ -780,6 +1375,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^README\\.md$"
         },
@@ -787,13 +1383,15 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 1 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent todo add .*send the signed lease.*--do 20-07-2026-09-00 --json$"
         },
@@ -801,6 +1399,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent note new"
         },
@@ -808,6 +1407,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent todo list"
         },
@@ -815,6 +1415,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "todo-"
         },
@@ -822,6 +1423,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "20-07-2026-09-00"
         },
@@ -829,6 +1431,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "active"
         },
@@ -836,6 +1439,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "fleeting"
         },
@@ -843,6 +1447,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "ordinary note"
         },
@@ -850,13 +1455,31 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent todo add \"send the signed lease\" --do 20-07-2026-09-00 --json"
+        },
+        {
+          "detail": "versioned JSON matched in order",
+          "hard": false,
+          "kind": "command_result",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^arpent todo add"
         },
         {
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
@@ -864,6 +1487,7 @@
           "detail": "77 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "40..320"
         }
@@ -873,10 +1497,10 @@
         "claim_utf8_bytes": 0,
         "cli_count": 1,
         "command_count": 1,
-        "command_output_utf8_bytes": 136,
+        "command_output_utf8_bytes": 644,
         "command_utf8_bytes": 68,
         "cumulative_input_proxy_utf8_bytes": 195,
-        "document_utf8_bytes": 8963,
+        "document_utf8_bytes": 9339,
         "final_utf8_bytes": 77,
         "prompt_utf8_bytes": 113,
         "provider_cache_creation_input_tokens": null,
@@ -887,12 +1511,12 @@
         "provider_reported_cost": null,
         "provider_reported_cost_currency": null,
         "provider_total_tokens": null,
-        "repeated_document_utf8_bytes": 7584,
+        "repeated_document_utf8_bytes": 7762,
         "request_count": 1,
         "request_utf8_bytes": 195,
         "stable_prefix_utf8_bytes": 0,
         "tool_count": 4,
-        "unique_document_utf8_bytes": 1379,
+        "unique_document_utf8_bytes": 1577,
         "utf8_byte_quarter_estimate": 49,
         "write_utf8_bytes": 0
       },
@@ -901,15 +1525,23 @@
       "scenario_id": "todo_capture",
       "score": 100.0,
       "title": "Route actionable work to todo",
-      "trace_sha256": "3e0f71986e67b57a1c8ba51b025a30f92ebebc4579e07ee51d33fbabb2e7beb6"
+      "trace_sha256": "fe2e5ebdab559ed7580cc56bad3106b9b124f10e550e8da2a9aa2a61f86a40f5",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "intent-routing",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 17,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^\\.arpent$"
         },
@@ -917,6 +1549,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^README\\.md$"
         },
@@ -924,6 +1557,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^SKILL\\.md$"
         },
@@ -931,13 +1565,15 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 1 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent note new .*Cache keys tied to canonical URLs.*--type note.*--json$"
         },
@@ -945,6 +1581,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent todo add"
         },
@@ -952,6 +1589,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "--type fleeting"
         },
@@ -959,6 +1597,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent (?:status|index|search)"
         },
@@ -966,6 +1605,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "type.*note|note.*type"
         },
@@ -973,6 +1613,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "00_inbox"
         },
@@ -980,6 +1621,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "todo"
         },
@@ -987,6 +1629,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "fleeting"
         },
@@ -994,13 +1637,31 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent note new \"Cache keys tied to canonical URLs remain valid across display URL changes.\" --type note --json"
+        },
+        {
+          "detail": "versioned JSON matched in order",
+          "hard": false,
+          "kind": "command_result",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^arpent note new"
         },
         {
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
@@ -1008,6 +1669,7 @@
           "detail": "145 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "35..320"
         }
@@ -1017,7 +1679,7 @@
         "claim_utf8_bytes": 0,
         "cli_count": 1,
         "command_count": 1,
-        "command_output_utf8_bytes": 150,
+        "command_output_utf8_bytes": 817,
         "command_utf8_bytes": 111,
         "cumulative_input_proxy_utf8_bytes": 195,
         "document_utf8_bytes": 62,
@@ -1045,15 +1707,23 @@
       "scenario_id": "durable_note_capture",
       "score": 100.0,
       "title": "Route durable knowledge to a note",
-      "trace_sha256": "6f7bbc8ee43be6a2d11343716468d68329cb8f29e05364df5fa253733703cf26"
+      "trace_sha256": "c268fc998e7e141e677cab2d49c9cabb79151534fa06b3070ecc968dd2f745a9",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "intent-routing",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 16,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^\\.arpent$"
         },
@@ -1061,6 +1731,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^README\\.md$"
         },
@@ -1068,6 +1739,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^SKILL\\.md$"
         },
@@ -1075,13 +1747,15 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 1 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent note new .*migration argument needs a counterexample.*--type fleeting --json$"
         },
@@ -1089,6 +1763,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent todo add"
         },
@@ -1096,6 +1771,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent (?:status|triage|index|search)"
         },
@@ -1103,6 +1779,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "00_inbox/fleeting/"
         },
@@ -1110,6 +1787,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?i)captured.*[0-2][0-9]:[0-5][0-9]|[0-2][0-9]:[0-5][0-9].*captured"
         },
@@ -1117,6 +1795,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "frontmatter"
         },
@@ -1124,6 +1803,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "per-entry ID"
         },
@@ -1131,13 +1811,31 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent note new \"the migration argument needs a counterexample\" --type fleeting --json"
+        },
+        {
+          "detail": "versioned JSON matched in order",
+          "hard": false,
+          "kind": "command_result",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^arpent note new"
         },
         {
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
@@ -1145,6 +1843,7 @@
           "detail": "57 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "35..260"
         }
@@ -1154,7 +1853,7 @@
         "claim_utf8_bytes": 0,
         "cli_count": 1,
         "command_count": 1,
-        "command_output_utf8_bytes": 64,
+        "command_output_utf8_bytes": 221,
         "command_utf8_bytes": 86,
         "cumulative_input_proxy_utf8_bytes": 178,
         "document_utf8_bytes": 62,
@@ -1182,15 +1881,23 @@
       "scenario_id": "fleeting_capture",
       "score": 100.0,
       "title": "Route a quick thought to fleeting",
-      "trace_sha256": "84442d0b29daf54bbe91d5271f955eefd2698cd9719972cdcecc3b94e4c651f5"
+      "trace_sha256": "704af9e4a84064d65c4651eae73ba6f2a28da3083d37aaf5ff51e824679033a6",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "modes",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 20,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^\\.arpent$"
         },
@@ -1198,6 +1905,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^SKILL\\.md$"
         },
@@ -1205,6 +1913,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/modes/minimal\\.md$"
         },
@@ -1212,6 +1921,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/contracts/frontmatter\\.md$"
         },
@@ -1219,6 +1929,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/contracts/routing\\.md$"
         },
@@ -1226,6 +1937,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/contracts/provenance-and-body\\.md$"
         },
@@ -1233,6 +1945,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^00_inbox/offline_insight\\.md$"
         },
@@ -1240,6 +1953,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^README\\.md$"
         },
@@ -1247,6 +1961,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
@@ -1254,6 +1969,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?:^|\\s)(?:arpent|arp)(?:\\s|$)"
         },
@@ -1261,6 +1977,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?:^|\\s)rm(?:\\s|$)"
         },
@@ -1268,6 +1985,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "note-20260719-a"
         },
@@ -1275,6 +1993,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "00_inbox/offline_insight\\.md"
         },
@@ -1282,6 +2001,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "type.*note|note.*type"
         },
@@ -1289,6 +2009,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "index rebuilt"
         },
@@ -1296,6 +2017,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^00_inbox/offline_insight\\.md$"
         },
@@ -1303,13 +2025,23 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^06_indexes/"
+        },
+        {
+          "detail": "content/hash matched",
+          "hard": false,
+          "kind": "write_result",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^00_inbox/offline_insight\\.md$"
         },
         {
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
@@ -1317,6 +2049,7 @@
           "detail": "125 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "45..360"
         }
@@ -1328,8 +2061,8 @@
         "command_count": 0,
         "command_output_utf8_bytes": 0,
         "command_utf8_bytes": 0,
-        "cumulative_input_proxy_utf8_bytes": 216,
-        "document_utf8_bytes": 13731,
+        "cumulative_input_proxy_utf8_bytes": 218,
+        "document_utf8_bytes": 15489,
         "final_utf8_bytes": 125,
         "prompt_utf8_bytes": 112,
         "provider_cache_creation_input_tokens": null,
@@ -1340,29 +2073,37 @@
         "provider_reported_cost": null,
         "provider_reported_cost_currency": null,
         "provider_total_tokens": null,
-        "repeated_document_utf8_bytes": 8797,
+        "repeated_document_utf8_bytes": 9435,
         "request_count": 1,
-        "request_utf8_bytes": 216,
+        "request_utf8_bytes": 218,
         "stable_prefix_utf8_bytes": 0,
         "tool_count": 8,
-        "unique_document_utf8_bytes": 4934,
-        "utf8_byte_quarter_estimate": 54,
-        "write_utf8_bytes": 505
+        "unique_document_utf8_bytes": 6054,
+        "utf8_byte_quarter_estimate": 55,
+        "write_utf8_bytes": 497
       },
       "passed": true,
       "provider_usage": null,
       "scenario_id": "minimal_note_capture",
       "score": 100.0,
       "title": "Minimal-mode direct note capture",
-      "trace_sha256": "401a9911708c756cd22abe8ffbd307af2e2766459c0e00cad96a6eba59ca8a0c"
+      "trace_sha256": "e6f67b906a6752772435bb8f8065d4efa2897add7096820652a0148429065977",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "modes",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 18,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^\\.arpent$"
         },
@@ -1370,6 +2111,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^SKILL\\.md$"
         },
@@ -1377,6 +2119,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/workflows/capture-todo\\.md$"
         },
@@ -1384,6 +2127,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/modes/minimal\\.md$"
         },
@@ -1391,6 +2135,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "todo_schema\\.sql"
         },
@@ -1398,6 +2143,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "todo\\.db"
         },
@@ -1405,6 +2151,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
@@ -1412,6 +2159,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?:^|\\s)(?:arpent|arp)\\s+todo"
         },
@@ -1419,6 +2167,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "sqlite"
         },
@@ -1426,6 +2175,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "not supported in minimal mode"
         },
@@ -1433,6 +2183,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "switch.*full"
         },
@@ -1440,6 +2191,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "untracked.*inbox|inbox.*untracked"
         },
@@ -1447,6 +2199,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "tracked todo.*created"
         },
@@ -1454,6 +2207,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "todo-2026"
         },
@@ -1461,6 +2215,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": "todo\\.db"
         },
@@ -1468,6 +2223,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": "area__perso__todo"
         },
@@ -1475,6 +2231,7 @@
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
@@ -1482,6 +2239,7 @@
           "detail": "330 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "120..650"
         }
@@ -1494,7 +2252,7 @@
         "command_output_utf8_bytes": 0,
         "command_utf8_bytes": 0,
         "cumulative_input_proxy_utf8_bytes": 147,
-        "document_utf8_bytes": 11016,
+        "document_utf8_bytes": 11756,
         "final_utf8_bytes": 330,
         "prompt_utf8_bytes": 69,
         "provider_cache_creation_input_tokens": null,
@@ -1505,7 +2263,7 @@
         "provider_reported_cost": null,
         "provider_reported_cost_currency": null,
         "provider_total_tokens": null,
-        "repeated_document_utf8_bytes": 11016,
+        "repeated_document_utf8_bytes": 11756,
         "request_count": 1,
         "request_utf8_bytes": 147,
         "stable_prefix_utf8_bytes": 0,
@@ -1519,15 +2277,23 @@
       "scenario_id": "minimal_todo_boundary",
       "score": 100.0,
       "title": "Minimal-mode todo boundary",
-      "trace_sha256": "035cffab564bea800bd2ff67d56536a17f65a36fd204893e8d8d62e841dfe2c0"
+      "trace_sha256": "035cffab564bea800bd2ff67d56536a17f65a36fd204893e8d8d62e841dfe2c0",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "efficiency",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 12,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
         },
@@ -1535,6 +2301,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?:^|\\s)arpent\\s+(?:--help|help|status|triage|index|search|note read)"
         },
@@ -1542,6 +2309,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "note-20260719-a"
         },
@@ -1549,6 +2317,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "00_inbox/captures/cache_note\\.md"
         },
@@ -1556,6 +2325,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "inbox"
         },
@@ -1563,6 +2333,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "note"
         },
@@ -1570,6 +2341,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "index rebuilt"
         },
@@ -1577,6 +2349,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "triage complete"
         },
@@ -1584,6 +2357,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "status checked"
         },
@@ -1591,6 +2365,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
         },
@@ -1598,6 +2373,7 @@
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
@@ -1605,6 +2381,7 @@
           "detail": "92 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "45..240"
         }
@@ -1642,15 +2419,23 @@
       "scenario_id": "post_capture_discipline",
       "score": 100.0,
       "title": "No post-capture ritual",
-      "trace_sha256": "2b66575e3e97d63a2a0b10bffaf943a53f8b110da58e7e69976f5193dc164994"
+      "trace_sha256": "2b66575e3e97d63a2a0b10bffaf943a53f8b110da58e7e69976f5193dc164994",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "maintenance",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 17,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^SKILL\\.md$"
         },
@@ -1658,6 +2443,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/appendices/complete-reference-index\\.md$"
         },
@@ -1665,6 +2451,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/architecture\\.md$"
         },
@@ -1672,6 +2459,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/routing\\.md$"
         },
@@ -1679,6 +2467,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^scripts/operations\\.yaml$"
         },
@@ -1686,6 +2475,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^scripts/routing\\.py$"
         },
@@ -1693,6 +2483,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
@@ -1700,6 +2491,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^architecture_template/06_indexes/cli/operations\\.yaml$"
         },
@@ -1707,6 +2499,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?:^|\\s)arpent(?:\\s|$)"
         },
@@ -1714,6 +2507,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "scripts/operations\\.yaml.*authoritative|authoritative.*scripts/operations\\.yaml"
         },
@@ -1721,6 +2515,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "routing\\.py"
         },
@@ -1728,6 +2523,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "tests"
         },
@@ -1735,6 +2531,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "vault-local.*authoritative"
         },
@@ -1742,6 +2539,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "edited"
         },
@@ -1749,6 +2547,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
         },
@@ -1756,13 +2555,15 @@
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
         {
-          "detail": "541 UTF-8 bytes",
+          "detail": "538 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "150..850"
         }
@@ -1775,8 +2576,8 @@
         "command_output_utf8_bytes": 0,
         "command_utf8_bytes": 0,
         "cumulative_input_proxy_utf8_bytes": 292,
-        "document_utf8_bytes": 57637,
-        "final_utf8_bytes": 541,
+        "document_utf8_bytes": 39621,
+        "final_utf8_bytes": 538,
         "prompt_utf8_bytes": 187,
         "provider_cache_creation_input_tokens": null,
         "provider_cache_read_input_tokens": null,
@@ -1786,12 +2587,12 @@
         "provider_reported_cost": null,
         "provider_reported_cost_currency": null,
         "provider_total_tokens": null,
-        "repeated_document_utf8_bytes": 37716,
+        "repeated_document_utf8_bytes": 19125,
         "request_count": 1,
         "request_utf8_bytes": 292,
         "stable_prefix_utf8_bytes": 0,
         "tool_count": 6,
-        "unique_document_utf8_bytes": 19921,
+        "unique_document_utf8_bytes": 20496,
         "utf8_byte_quarter_estimate": 73,
         "write_utf8_bytes": 0
       },
@@ -1800,15 +2601,23 @@
       "scenario_id": "rearchitecture_source_selection",
       "score": 100.0,
       "title": "Rearchitecture source selection",
-      "trace_sha256": "382c9fd2312b6bee2ef4009a7de7f731aa6de078d731c74151cc70fb01bf1396"
+      "trace_sha256": "1fb600b1465600dbfacda9ba70ba2d962ce7964da72fa5418d4c51d97dbef20f",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "maintenance",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 17,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^SKILL\\.md$"
         },
@@ -1816,6 +2625,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/appendices/complete-reference-index\\.md$"
         },
@@ -1823,6 +2633,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/frontmatter\\.md$"
         },
@@ -1830,6 +2641,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^scripts/operations\\.yaml$"
         },
@@ -1837,6 +2649,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^scripts/frontmatter\\.py$"
         },
@@ -1844,6 +2657,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^tests/tests/test_capture_contract\\.py$"
         },
@@ -1851,6 +2665,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
@@ -1858,6 +2673,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^architecture_template/06_indexes/cli/operations\\.yaml$"
         },
@@ -1865,6 +2681,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?:^|\\s)arpent(?:\\s|$)"
         },
@@ -1872,6 +2689,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "routing.types|types.*scripts/operations\\.yaml"
         },
@@ -1879,6 +2697,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "validation|parser"
         },
@@ -1886,6 +2705,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "tests"
         },
@@ -1893,6 +2713,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "only.*vault-local"
         },
@@ -1900,6 +2721,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "edited"
         },
@@ -1907,6 +2729,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
         },
@@ -1914,6 +2737,7 @@
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
@@ -1921,6 +2745,7 @@
           "detail": "636 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "160..900"
         }
@@ -1933,7 +2758,7 @@
         "command_output_utf8_bytes": 0,
         "command_utf8_bytes": 0,
         "cumulative_input_proxy_utf8_bytes": 274,
-        "document_utf8_bytes": 65069,
+        "document_utf8_bytes": 85358,
         "final_utf8_bytes": 636,
         "prompt_utf8_bytes": 169,
         "provider_cache_creation_input_tokens": null,
@@ -1944,12 +2769,12 @@
         "provider_reported_cost": null,
         "provider_reported_cost_currency": null,
         "provider_total_tokens": null,
-        "repeated_document_utf8_bytes": 15741,
+        "repeated_document_utf8_bytes": 15666,
         "request_count": 1,
         "request_utf8_bytes": 274,
         "stable_prefix_utf8_bytes": 0,
         "tool_count": 6,
-        "unique_document_utf8_bytes": 49328,
+        "unique_document_utf8_bytes": 69692,
         "utf8_byte_quarter_estimate": 69,
         "write_utf8_bytes": 0
       },
@@ -1958,15 +2783,23 @@
       "scenario_id": "add_note_type_source_selection",
       "score": 100.0,
       "title": "New note type source selection",
-      "trace_sha256": "ee9252c5221b26f90cfcc9daf51eaf488744db9d11d991e2ba7f3663505e9557"
+      "trace_sha256": "ee9252c5221b26f90cfcc9daf51eaf488744db9d11d991e2ba7f3663505e9557",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "maintenance",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 18,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^SKILL\\.md$"
         },
@@ -1974,6 +2807,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/appendices/complete-reference-index\\.md$"
         },
@@ -1981,6 +2815,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/frontmatter\\.md$"
         },
@@ -1988,6 +2823,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/contracts/frontmatter\\.md$"
         },
@@ -1995,6 +2831,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^scripts/frontmatter\\.py$"
         },
@@ -2002,6 +2839,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^tests/tests/test_capture_contract\\.py$"
         },
@@ -2009,6 +2847,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
@@ -2016,6 +2855,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^architecture_template/06_indexes/schemas/frontmatter_policy\\.yaml$"
         },
@@ -2023,6 +2863,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?:^|\\s)arpent(?:\\s|$)"
         },
@@ -2030,6 +2871,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "closed schema"
         },
@@ -2037,6 +2879,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "KEY_ORDER|canonical order"
         },
@@ -2044,6 +2887,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "parser|serializ"
         },
@@ -2051,6 +2895,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "tests"
         },
@@ -2058,6 +2903,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "add it only to the template"
         },
@@ -2065,6 +2911,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "edited"
         },
@@ -2072,6 +2919,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
         },
@@ -2079,13 +2927,15 @@
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
         {
-          "detail": "631 UTF-8 bytes",
+          "detail": "628 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "170..950"
         }
@@ -2098,8 +2948,8 @@
         "command_output_utf8_bytes": 0,
         "command_utf8_bytes": 0,
         "cumulative_input_proxy_utf8_bytes": 289,
-        "document_utf8_bytes": 59496,
-        "final_utf8_bytes": 631,
+        "document_utf8_bytes": 80298,
+        "final_utf8_bytes": 628,
         "prompt_utf8_bytes": 184,
         "provider_cache_creation_input_tokens": null,
         "provider_cache_read_input_tokens": null,
@@ -2109,7 +2959,7 @@
         "provider_reported_cost": null,
         "provider_reported_cost_currency": null,
         "provider_total_tokens": null,
-        "repeated_document_utf8_bytes": 59496,
+        "repeated_document_utf8_bytes": 80298,
         "request_count": 1,
         "request_utf8_bytes": 289,
         "stable_prefix_utf8_bytes": 0,
@@ -2123,15 +2973,23 @@
       "scenario_id": "add_frontmatter_field_source_selection",
       "score": 100.0,
       "title": "New frontmatter field source selection",
-      "trace_sha256": "3207946a5d6e7c251926e096adab15d51c3694dec04946ffeb96182c02b0ea96"
+      "trace_sha256": "d25c6b794326e3241fd16d800ac745da483175ef59e5372d0c98e1fead09e646",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "lifecycle",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 18,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^\\.arpent$"
         },
@@ -2139,6 +2997,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/lifecycle\\.md$"
         },
@@ -2146,6 +3005,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
@@ -2153,20 +3013,23 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^README\\.md$"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 1 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent note extract linear-20260701-a --type concept --title .*Actionability gradient.*--resource concepts --body .+ --yes$"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 2 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent note dissolve linear-20260701-a --yes$"
         },
@@ -2174,6 +3037,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?:^|\\s)(?:rm|unlink)(?:\\s|$)"
         },
@@ -2181,6 +3045,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent archive linear-20260701-a"
         },
@@ -2188,6 +3053,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "parent.*linear-20260701-a|linear-20260701-a.*parent"
         },
@@ -2195,6 +3061,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "04_archives/linear_notes"
         },
@@ -2202,6 +3069,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "archived"
         },
@@ -2209,6 +3077,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "deleted"
         },
@@ -2216,6 +3085,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "dissolved without validation"
         },
@@ -2223,13 +3093,31 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": ".*"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent note extract linear-20260701-a --type concept --title \"Actionability gradient\" --resource concepts --body \"A framework becomes more useful as its next action becomes clearer.\" --yes"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent note dissolve linear-20260701-a --yes"
         },
         {
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
@@ -2237,6 +3125,7 @@
           "detail": "240 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "80..500"
         }
@@ -2246,10 +3135,10 @@
         "claim_utf8_bytes": 0,
         "cli_count": 2,
         "command_count": 2,
-        "command_output_utf8_bytes": 160,
+        "command_output_utf8_bytes": 357,
         "command_utf8_bytes": 232,
         "cumulative_input_proxy_utf8_bytes": 257,
-        "document_utf8_bytes": 17426,
+        "document_utf8_bytes": 7860,
         "final_utf8_bytes": 240,
         "prompt_utf8_bytes": 148,
         "provider_cache_creation_input_tokens": null,
@@ -2265,7 +3154,7 @@
         "request_utf8_bytes": 257,
         "stable_prefix_utf8_bytes": 0,
         "tool_count": 4,
-        "unique_document_utf8_bytes": 17364,
+        "unique_document_utf8_bytes": 7798,
         "utf8_byte_quarter_estimate": 65,
         "write_utf8_bytes": 0
       },
@@ -2274,15 +3163,23 @@
       "scenario_id": "linear_lifecycle",
       "score": 100.0,
       "title": "Linear extraction and dissolution",
-      "trace_sha256": "f64a9d85c4f518d6b9c00caa7ae0fe285ad3970f203ccc5af3cf9a6ef0dbd8e6"
+      "trace_sha256": "d407cf3416f9fa258e8c06022e14e6ab869f56b91e54fa92b2272c98e1ce2851",
+      "verdict_basis": "replayed_ideal_trace"
     },
     {
       "category": "import",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 31,
+        "reported": 0
+      },
       "checks": [
         {
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^\\.arpent$"
         },
@@ -2290,6 +3187,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^references/import-and-migration\\.md$"
         },
@@ -2297,6 +3195,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^development/"
         },
@@ -2304,48 +3203,55 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_read",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^README\\.md$"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 1 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent import scan ~/Documents/legacy --output .+legacy-plan\\.json$"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 2 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent import suggest .+legacy-plan\\.json$"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 3 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent import review .+legacy-plan\\.json --accept-suggestions --minimum-confidence 0\\.8$"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 4 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent import validate .+legacy-plan\\.json --sources$"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 5 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent import apply .+legacy-plan\\.json --dry-run --json$"
         },
         {
-          "detail": "matched 1 event(s)",
+          "detail": "matched command 6 in order",
           "hard": false,
           "kind": "required_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^arpent import apply .+legacy-plan\\.json --plan-hash [a-f0-9]{64} --yes --json$"
         },
@@ -2353,6 +3259,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "(?:^|\\s)(?:rm|mv)\\s+~/Documents/legacy"
         },
@@ -2360,6 +3267,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_command",
+          "origin": "replayed",
           "passed": true,
           "pattern": "--force"
         },
@@ -2367,6 +3275,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "copy-only|copied"
         },
@@ -2374,6 +3283,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "source.*unchanged|unchanged.*source"
         },
@@ -2381,6 +3291,7 @@
           "detail": "matched 1 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "per-item|partial"
         },
@@ -2388,6 +3299,7 @@
           "detail": "matched 2 event(s)",
           "hard": false,
           "kind": "required_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "plan.*hash|hash.*plan"
         },
@@ -2395,6 +3307,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "atomic batch"
         },
@@ -2402,6 +3315,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "source deleted"
         },
@@ -2409,6 +3323,7 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_claim",
+          "origin": "replayed",
           "passed": true,
           "pattern": "all succeeded"
         },
@@ -2416,13 +3331,87 @@
           "detail": "no matching event",
           "hard": false,
           "kind": "forbidden_write",
+          "origin": "replayed",
           "passed": true,
           "pattern": "^~/Documents/legacy"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent import scan ~/Documents/legacy --output /tmp/arpent-benchmark/legacy-plan.json"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent import suggest /tmp/arpent-benchmark/legacy-plan.json"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent import review /tmp/arpent-benchmark/legacy-plan.json --accept-suggestions --minimum-confidence 0.8"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent import validate /tmp/arpent-benchmark/legacy-plan.json --sources"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent import apply /tmp/arpent-benchmark/legacy-plan.json --dry-run --json"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent import apply /tmp/arpent-benchmark/legacy-plan.json --plan-hash abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789 --yes --json"
+        },
+        {
+          "detail": "versioned JSON matched in order",
+          "hard": false,
+          "kind": "command_result",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "--dry-run --json$"
+        },
+        {
+          "detail": "versioned JSON matched in order",
+          "hard": false,
+          "kind": "command_result",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "--yes --json$"
+        },
+        {
+          "detail": "bound value matched",
+          "hard": false,
+          "kind": "command_binding",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "plan_sha256 -> --plan-hash"
         },
         {
           "detail": "one final event",
           "hard": false,
           "kind": "final_present",
+          "origin": "replayed",
           "passed": true,
           "pattern": null
         },
@@ -2430,6 +3419,7 @@
           "detail": "327 UTF-8 bytes",
           "hard": false,
           "kind": "final_size",
+          "origin": "replayed",
           "passed": true,
           "pattern": "130..750"
         }
@@ -2439,10 +3429,10 @@
         "claim_utf8_bytes": 89,
         "cli_count": 6,
         "command_count": 6,
-        "command_output_utf8_bytes": 367,
+        "command_output_utf8_bytes": 838,
         "command_utf8_bytes": 544,
         "cumulative_input_proxy_utf8_bytes": 256,
-        "document_utf8_bytes": 7968,
+        "document_utf8_bytes": 8285,
         "final_utf8_bytes": 327,
         "prompt_utf8_bytes": 162,
         "provider_cache_creation_input_tokens": null,
@@ -2458,7 +3448,7 @@
         "request_utf8_bytes": 256,
         "stable_prefix_utf8_bytes": 0,
         "tool_count": 8,
-        "unique_document_utf8_bytes": 7906,
+        "unique_document_utf8_bytes": 8223,
         "utf8_byte_quarter_estimate": 64,
         "write_utf8_bytes": 0
       },
@@ -2467,24 +3457,237 @@
       "scenario_id": "reviewed_import",
       "score": 100.0,
       "title": "Reviewed external tree import",
-      "trace_sha256": "72243e9146088bf61e4cc4a395508cae688c9b1eb01aed9bd393bf19d472cee9"
+      "trace_sha256": "30ba72dc42cf95819926161632004863bc660eeafd442a86be2defb617488609",
+      "verdict_basis": "replayed_ideal_trace"
+    },
+    {
+      "category": "intent-routing",
+      "check_summary": {
+        "executed": 0,
+        "observed": 0,
+        "replayed": 20,
+        "reported": 0
+      },
+      "checks": [
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_read",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^\\.arpent$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^README\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^SKILL\\.md$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_read",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^development/"
+        },
+        {
+          "detail": "matched command 1 in order",
+          "hard": false,
+          "kind": "required_command",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^arpent note new .*Rotate credentials without downtime.*--type howto.*--source derived.*--json$"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "--type (?:map|integration|note)"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "--project"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "--resource"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^arpent todo add"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_command",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^arpent (?:status|index|search)"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "type.*howto|howto.*type"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "03_resources/how-tos"
+        },
+        {
+          "detail": "matched 1 event(s)",
+          "hard": false,
+          "kind": "required_claim",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "ongoing"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "project-local"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_claim",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "integration note"
+        },
+        {
+          "detail": "no matching event",
+          "hard": false,
+          "kind": "forbidden_write",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": ".*"
+        },
+        {
+          "detail": "exit 0; expected 0",
+          "hard": false,
+          "kind": "command_exit_code",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "arpent note new \"Rotate credentials without downtime\" --type howto --source derived --body \"Current conclusion: rotate credentials with a verified overlap window. Last explicit review: 19-07-2026-14-32. Linked notes: [[credential_rotation_history]] - detailed history and superseded guidance.\" --json"
+        },
+        {
+          "detail": "versioned JSON matched in order",
+          "hard": false,
+          "kind": "command_result",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "^arpent note new"
+        },
+        {
+          "detail": "one final event",
+          "hard": false,
+          "kind": "final_present",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": null
+        },
+        {
+          "detail": "193 UTF-8 bytes",
+          "hard": false,
+          "kind": "final_size",
+          "origin": "replayed",
+          "passed": true,
+          "pattern": "70..360"
+        }
+      ],
+      "hard_failures": [],
+      "metrics": {
+        "claim_utf8_bytes": 0,
+        "cli_count": 1,
+        "command_count": 1,
+        "command_output_utf8_bytes": 759,
+        "command_utf8_bytes": 300,
+        "cumulative_input_proxy_utf8_bytes": 326,
+        "document_utf8_bytes": 62,
+        "final_utf8_bytes": 193,
+        "prompt_utf8_bytes": 227,
+        "provider_cache_creation_input_tokens": null,
+        "provider_cache_read_input_tokens": null,
+        "provider_cached_input_tokens": null,
+        "provider_input_tokens": null,
+        "provider_output_tokens": null,
+        "provider_reported_cost": null,
+        "provider_reported_cost_currency": null,
+        "provider_total_tokens": null,
+        "repeated_document_utf8_bytes": 62,
+        "request_count": 1,
+        "request_utf8_bytes": 326,
+        "stable_prefix_utf8_bytes": 0,
+        "tool_count": 2,
+        "unique_document_utf8_bytes": 0,
+        "utf8_byte_quarter_estimate": 82,
+        "write_utf8_bytes": 0
+      },
+      "passed": true,
+      "provider_usage": null,
+      "scenario_id": "current_guidance_capture",
+      "score": 100.0,
+      "title": "Route current practical guidance to how-to",
+      "trace_sha256": "5378816878bdf330451051fabf8cae024bc1bdb1ae59d93e1fee9228df0cb0da",
+      "verdict_basis": "replayed_ideal_trace"
     }
   ],
   "schema_version": 1,
   "summary": {
+    "check_summary": {
+      "executed": 0,
+      "observed": 0,
+      "replayed": 313,
+      "reported": 0
+    },
     "failed": 0,
     "hard_failure_count": 0,
     "mean_score": 100.0,
     "metrics": {
-      "claim_utf8_bytes": 365,
-      "cli_count": 15,
-      "command_count": 15,
-      "command_output_utf8_bytes": 1281,
-      "command_utf8_bytes": 1591,
-      "cumulative_input_proxy_utf8_bytes": 3562,
-      "document_utf8_bytes": 308238,
-      "final_utf8_bytes": 4506,
-      "prompt_utf8_bytes": 2034,
+      "claim_utf8_bytes": 397,
+      "cli_count": 16,
+      "command_count": 16,
+      "command_output_utf8_bytes": 6639,
+      "command_utf8_bytes": 1891,
+      "cumulative_input_proxy_utf8_bytes": 3881,
+      "document_utf8_bytes": 308907,
+      "final_utf8_bytes": 4848,
+      "prompt_utf8_bytes": 2261,
       "provider_cache_creation_input_tokens": null,
       "provider_cache_read_input_tokens": null,
       "provider_cached_input_tokens": null,
@@ -2494,16 +3697,17 @@
       "provider_reported_cost_currency": null,
       "provider_total_tokens": null,
       "provider_usage_scenario_count": 0,
-      "repeated_document_utf8_bytes": 155828,
-      "request_count": 16,
-      "request_utf8_bytes": 3562,
-      "stable_prefix_utf8_bytes": 102,
-      "tool_count": 68,
-      "unique_document_utf8_bytes": 152410,
-      "utf8_byte_quarter_estimate": 896,
-      "write_utf8_bytes": 505
+      "repeated_document_utf8_bytes": 159938,
+      "request_count": 17,
+      "request_utf8_bytes": 3881,
+      "stable_prefix_utf8_bytes": 99,
+      "tool_count": 70,
+      "unique_document_utf8_bytes": 148969,
+      "utf8_byte_quarter_estimate": 976,
+      "write_utf8_bytes": 497
     },
-    "passed": 16,
-    "scenario_count": 16
-  }
+    "passed": 17,
+    "scenario_count": 17
+  },
+  "validation_scope": "Checked-in ideal trace replay; no agent or CLI execution is evaluated."
 }

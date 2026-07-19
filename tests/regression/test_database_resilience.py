@@ -45,7 +45,7 @@ PRAGMA user_version = 2;
 
 
 class DatabaseResilienceRegressionTests(unittest.TestCase):
-    def test_v2_database_migrates_dates_to_v3_minute_timestamps(self):
+    def test_v2_database_migrates_dates_to_current_minute_timestamps(self):
         with tempfile.TemporaryDirectory() as temporary:
             vault = initialized(Path(temporary))
             database = vault.root / todo.DATABASE_RELPATH
@@ -70,7 +70,7 @@ class DatabaseResilienceRegressionTests(unittest.TestCase):
                 row = connection.execute(
                     "SELECT due_date, do_date, created_at FROM todos"
                 ).fetchone()
-            self.assertEqual(version, 3)
+            self.assertEqual(version, todo.SCHEMA_VERSION)
             self.assertEqual(row, (
                 "2030-02-03T00:00:00Z",
                 "2030-02-02T00:00:00Z",
@@ -120,7 +120,9 @@ class DatabaseResilienceRegressionTests(unittest.TestCase):
                     """
                 )
 
-            with self.assertRaisesRegex(ValueError, "does not match schema version 3"):
+            with self.assertRaisesRegex(
+                ValueError, f"does not match schema version {todo.SCHEMA_VERSION}",
+            ):
                 todo.ensure_database(vault)
 
 

@@ -14,7 +14,7 @@ arpent import review ~/migration/legacy-plan.json
 arpent import validate ~/migration/legacy-plan.json --sources
 arpent import summary ~/migration/legacy-plan.json
 arpent import apply ~/migration/legacy-plan.json --dry-run --json
-arpent import apply ~/migration/legacy-plan.json --plan-hash <execution_sha256>
+arpent import apply ~/migration/legacy-plan.json --plan-hash <plan_sha256> --yes --json
 arpent import status ~/migration/legacy-plan.json
 ```
 
@@ -99,7 +99,7 @@ inbox note. Imported notes use `source: imported`, `author: imported`, and an
 import identifier for provenance.
 
 Filename collisions and different source paths that normalize to one destination
-are reported and never overwritten. Nested source paths qualify generated note
+are reported and never silently replace an existing destination. Nested source paths qualify generated note
 titles to reduce flattening collisions; arbitrary source folders are not recreated
 as destination folders. Project notes follow the vault's current routing contract
 rather than a hard-coded folder assumption.
@@ -113,7 +113,7 @@ the reviewed apply boundary. Under `never`, it proceeds without a second
 confirmation. A reviewed non-interactive application uses:
 
 ```bash
-arpent import apply legacy-plan.json --yes
+arpent import apply legacy-plan.json --yes --json
 ```
 
 For a plan/apply review bound to both folder decisions and the current routing
@@ -121,6 +121,11 @@ contract, carry `plan_sha256` from the JSON dry run into `--plan-hash`. A routin
 or decision change then forces a fresh preview. This hash is not a current-source
 snapshot; use `validate --sources` immediately before apply to prehash the whole
 tree. Apply also rechecks each source immediately before copying it.
+
+The dry-run and apply reports call this execution binding `plan_sha256`.
+`import status --json` exposes the recomputed current binding as
+`execution_sha256`; it is a status field, not the name of the `--plan-hash`
+token returned by a dry run.
 
 `--dry-run` does not create destination folders, notes, attachments, state, or
 import lock files. With `--json`, it includes per-item predicted destinations and
@@ -143,8 +148,8 @@ committed immediately before an interrupted state append. `status` verifies
 recorded outputs but does not rehash the external source or inventory. A torn
 final state line is repaired; malformed committed lines remain an error. Changing
 folder decisions or routing after application starts is refused because durable
-state is bound to the execution hash. Create a fresh scan plan for a different
-migration strategy.
+state is bound to the exact execution plan. Create a fresh scan plan for a
+different migration strategy.
 
 ## Safety boundaries
 
@@ -154,7 +159,7 @@ migration strategy.
 - The source must remain stable during scan and apply; hostile concurrent path replacement is outside the portable stdlib threat model.
 - Source files are copied, never removed.
 - Source hashes are checked again before each item.
-- Existing destinations are never overwritten.
+- Existing destinations are never silently replaced or destroyed.
 - Partial failures are reported honestly and return a nonzero CLI status.
 - No external AI provider or format-specific connector is used.
 

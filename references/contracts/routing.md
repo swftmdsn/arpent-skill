@@ -8,8 +8,8 @@ remain in `../routing.md` and `../architecture.md`.
    reason.
 3. Resolve `area` against an exact folder or one unambiguous
    `area__*__<slug>__*` folder. Missing or multiple matches route to unsure.
-4. Apply type homes: `fleeting`, `map`, `integration`, and `artefact` use their
-   configured override in `operations.yaml`.
+4. Apply type homes: `fleeting`, `map`, `howto`, `integration`, and `artefact`
+   use their configured override in `operations.yaml`.
 5. An agent-authored `draft` without a project routes to
    `03_resources/agent_wiki/drafts/`.
 6. With no home fields, `source: captured` routes to `00_inbox/captures/`; other
@@ -20,6 +20,13 @@ remain in `../routing.md` and `../architecture.md`.
 9. An area routes to `02_areas/<resolved-area>/`, with its configured type
    subfolder when present.
 
-Never create a missing home as a side effect of routing. Use `project create`
-for deliberate projects. The local `routing_overrides` section may refine
-mechanical destinations and must remain inside the vault.
+Reserved resource homes (`concepts`, `maps-of-content`, `how-tos`, `integrations`,
+`templates`, `agent_wiki`, `books`, `articles`, `portraits`, `productions`) may
+be materialized on first write because the contract already declares them.
+Never invent another missing home as a side effect of routing. Use `project
+create` for deliberate projects; create areas and arbitrary resources
+deliberately. The local `routing_overrides` section may refine mechanical
+destinations and must remain inside the vault.
+
+Status and location are decoupled. Status alone does not imply a path or move;
+only explicit contract exceptions and lifecycle operations change location.

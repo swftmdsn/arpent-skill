@@ -2,20 +2,23 @@
 
 This directory is a ready-to-copy, annotated minimal vault. `arpent init` creates
 the same scaffold and critical operating contracts, while this tree may retain
-expanded examples and explanatory documents. Both paths retain every full-mode
-skill and default to direct-file operation without Git or a CLI dependency.
+expanded examples and explanatory documents. Both paths retain delivered skills
+and clearly marked planned skill designs, and default to direct-file operation
+without Git or a CLI dependency.
 
 It follows the architecture expected by the Arpent skill:
 
 - 7 deterministic buckets: `00_inbox`, `01_projects`, `02_areas`, `03_resources`, `04_archives`, `05_tools`, `06_indexes` - unresolved routing lands in `00_inbox/unsure/`
 - `.agent` as the entry point for AI agents
-- `.arpent` as the vault marker
+- `.arpent` as the version 2 vault marker and mode selector
 - `me.md` as the human-owned orientation file agents read early
 - dormant memory contracts and research-wiki structure under `06_indexes/memory/`; optional `MEMORY.md` is not seeded
 - portable agent roles, skills, workflows, prompts, and capabilities under `03_resources/agent_infrastructure/`
 - whole-vault folder/file inventory with deterministic L0/L2 context and optional AI-generated L1 summaries
 - tool know-how centralized in `06_indexes/`; `05_tools/` reserved for declared runtime material
 - clean vault knowledge separated from tools, indexes, generated metadata, and agent research scratch
+- Markdown canonical for documents; `todo.db` authoritative for coordinated
+  todo state when the installed todo tool is used
 
 To start a live vault:
 
@@ -30,10 +33,11 @@ To start a live vault:
    the local skill. For a missing area context, instantiate
    `02_areas/_context.template.md` inside that existing area. In full, use
    `arpent project create <name>`.
-4. Resume by reading `me.md`, then the target `_context.md`, then only the specific notes or sources needed. Do not read optional `MEMORY.md` without a separate explicit read request.
+4. Resume by reading `me.md`, then the target `_context.md`, then only the specific notes or sources needed. Optional `MEMORY.md` is absent by default and is not part of normal resume; full-mode `session end --memory-log` writes it only after that explicit request.
 5. Keep `project` and `resource` mutually exclusive; `area` may accompany either as context.
 6. Leave `appreciated` and `importance` as `null`; they are user-only fields.
-7. Archive instead of deleting.
+7. Prevent silent content loss. Explicit edits may use checked atomic
+   replacement; use archive operations for lifecycle retention.
 
 Both modes retain the complete skills, contracts, schemas, and documentation.
 Minimal operates ordinary notes and context directly in files and leaves
@@ -43,6 +47,20 @@ prerequisites are met. With `auto_full: true`, the first mode-gated CLI command
 requests vault-mode promotion; the confirmation policy may first require
 `arpent mode full --yes`. Use `arpent mode minimal` to return without deleting
 any skill or state and to cancel the pending promotion request.
+
+Areas are optional. Create one only for an actual ongoing responsibility; a
+project may have `area: null`. Reserved resource homes are contract-declared and
+may materialize on first write, while arbitrary missing resources, projects,
+and areas are never invented by routing.
+
+Global how-tos live in `03_resources/how-tos/`. They contain only explicitly
+reviewed current guidance for one practical problem; MOCs navigate the broader
+subject and linked notes retain detailed reasoning and history. Start a new
+guide from `03_resources/templates/howto.template.md`.
+
+Lifecycle status and location are decoupled. `archived` is a status;
+`archived_at` and `archived_from` are metadata added by an explicit archive
+event. No automatic project closure is delivered.
 
 The universal frontmatter schema is closed during normal use; unsupported
 per-project fields are rejected. Users may freely add/reorder body sections and

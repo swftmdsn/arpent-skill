@@ -20,7 +20,8 @@ class TriageAndIngestE2ETests(unittest.TestCase):
             malformed = root / "00_inbox/broken.md"
             binary = root / "00_inbox/report.pdf"
             raw.write_bytes(raw_content.encode("utf-8"))
-            malformed.write_text(malformed_content, encoding="utf-8", newline="")
+            with malformed.open("w", encoding="utf-8", newline="") as stream:
+                stream.write(malformed_content)
             binary.write_bytes(binary_content)
 
             inventory = json_result(run_cli(root, "triage", "--json"))

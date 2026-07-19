@@ -1,15 +1,17 @@
 version: 0.9.0
-description: Contract-first operation registry for the Arpent CLI.
+description: CLI ops.
 confirmation:
   policy: explicit-intent
   bulk_threshold: 5
 routing:
-  types: [note, concept, journal, log, checklist, reference, draft, template, meeting, idea, fleeting, linear, integration, angle, production, map, artefact]
+  types: [note, concept, journal, log, checklist, reference, draft, template, meeting, idea, fleeting, linear, integration, angle, production, map, howto, artefact]
   statuses: [inbox, maturing, active, stable, ongoing, standby, waiting, to-start, done, stale, archived]
   sources: [manual, generated, imported, captured, conversation, derived]
   authors: [user, agent, imported]
+  reserved_resources: [concepts, maps-of-content, how-tos, integrations, templates, agent_wiki, books, articles, portraits, productions]
   default_status:
     map: ongoing
+    howto: ongoing
     concept: maturing
     draft: maturing
     fleeting: inbox
@@ -24,6 +26,8 @@ routing:
       append: true
     map:
       bucket: 03_resources/maps-of-content
+    howto:
+      bucket: 03_resources/how-tos
     integration:
       bucket: 03_resources/integrations
     artefact:
@@ -40,7 +44,10 @@ routing_overrides: {}
 operations:
   init:
     phase: 1
-    summary: Scaffold a new vault.
+    summary: Scaffold vault.
+  skill_install:
+    phase: 1
+    summary: Add skill.
   mode_show:
     phase: 1
     summary: Show whether the vault uses direct-file or CLI-mediated operation.
@@ -149,7 +156,7 @@ operations:
     summary: Create a project structure and canonical local context from a normalized human name.
   session_end:
     phase: 1
-    summary: Update target context by default; optionally request one memory-log write or deferred provider intent.
+    summary: Update target context by default; optionally write MEMORY.md after an explicit memory-log request.
   tools_list:
     phase: 1
     summary: List registered tool stubs.

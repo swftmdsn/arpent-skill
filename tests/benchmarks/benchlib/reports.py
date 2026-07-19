@@ -5,6 +5,27 @@ from xml.etree import ElementTree
 from . import BENCHMARK_VERSION, SCHEMA_VERSION
 from .errors import ValidationError
 from .jsonio import atomic_write_text, canonical_json, load_json, sha256_json
+from .metrics import METRIC_KEYS
+from .schema import validate_usage
+
+
+REPORT_KEYS = {
+    "schema_version", "benchmark_version", "mode", "adapter", "bundle_sha256",
+    "document_manifest", "validation_scope", "summary", "scenarios",
+}
+SUMMARY_KEYS = {
+    "scenario_count", "passed", "failed", "hard_failure_count", "mean_score",
+    "check_summary", "metrics",
+}
+RESULT_KEYS = {
+    "scenario_id", "title", "category", "score", "passed", "hard_failures",
+    "checks", "check_summary", "verdict_basis", "metrics", "provider_usage",
+    "trace_sha256",
+}
+CHECK_KEYS = {"kind", "pattern", "passed", "hard", "detail", "origin"}
+CHECK_ORIGINS = ("executed", "observed", "replayed", "reported")
+DOCUMENT_MANIFEST_KEYS = {"sha256", "documents"}
+DOCUMENT_KEYS = {"scenario_id", "path", "source", "utf8_bytes", "sha256"}
 
 
 def aggregate_metrics(results):
@@ -47,21 +68,43 @@ def aggregate_metrics(results):
     return aggregate
 
 
-def build_report(mode, adapter, bundle_digest, results):
+def _check_summary(results):
+    return {
+        origin: sum(result["check_summary"][origin] for result in results)
+        for origin in CHECK_ORIGINS
+    }
+
+
+def _summary(results):
+    return {
+        "scenario_count": len(results),
+        "passed": sum(1 for result in results if result["passed"]),
+        "failed": sum(1 for result in results if not result["passed"]),
+        "hard_failure_count": sum(len(result["hard_failures"]) for result in results),
+        "mean_score": round(sum(result["score"] for result in results) / len(results), 2) if results else 0.0,
+        "check_summary": _check_summary(results),
+        "metrics": aggregate_metrics(results),
+    }
+
+
+def _validation_scope(mode, adapter):
+    if mode == "stateful":
+        return "Declared CLI/write execution and observed vault postconditions; agent behavior is not evaluated."
+    if adapter == "replay":
+        return "Checked-in ideal trace replay; no agent or CLI execution is evaluated."
+    return "Adapter-reported agent trace; tool events are reported by the adapter, not re-executed by this harness."
+
+
+def build_report(mode, adapter, bundle_digest, document_manifest, results):
     return {
         "schema_version": SCHEMA_VERSION,
         "benchmark_version": BENCHMARK_VERSION,
         "mode": mode,
         "adapter": adapter,
         "bundle_sha256": bundle_digest,
-        "summary": {
-            "scenario_count": len(results),
-            "passed": sum(1 for result in results if result["passed"]),
-            "failed": sum(1 for result in results if not result["passed"]),
-            "hard_failure_count": sum(len(result["hard_failures"]) for result in results),
-            "mean_score": round(sum(result["score"] for result in results) / len(results), 2) if results else 0.0,
-            "metrics": aggregate_metrics(results),
-        },
+        "document_manifest": document_manifest,
+        "validation_scope": _validation_scope(mode, adapter),
+        "summary": _summary(results),
         "scenarios": results,
     }
 
@@ -73,20 +116,27 @@ def _markdown(report):
         "",
         "- Mode: `%s`" % report["mode"],
         "- Adapter: `%s`" % report["adapter"],
+        "- Scope: %s" % report["validation_scope"],
         "- Scenarios: %d" % summary["scenario_count"],
         "- Passed: %d" % summary["passed"],
         "- Mean score: %.2f" % summary["mean_score"],
         "- Hard failures: %d" % summary["hard_failure_count"],
+        "- Executed/observed/replayed/reported checks: %d/%d/%d/%d" % (
+            summary["check_summary"]["executed"], summary["check_summary"]["observed"],
+            summary["check_summary"]["replayed"], summary["check_summary"]["reported"],
+        ),
         "",
-        "| Scenario | Score | Pass | Hard failures | Requests | Tools | CLI | Input proxy bytes |",
-        "|---|---:|:---:|---:|---:|---:|---:|---:|",
+        "| Scenario | Score | Pass | Verdict basis | Executed | Observed | Replayed | Requests | Tools | CLI | Input proxy bytes |",
+        "|---|---:|:---:|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for result in report["scenarios"]:
         metrics = result["metrics"]
         lines.append(
-            "| `%s` | %.2f | %s | %d | %d | %d | %d | %d |" % (
+            "| `%s` | %.2f | %s | `%s` | %d | %d | %d | %d | %d | %d | %d |" % (
                 result["scenario_id"], result["score"], "yes" if result["passed"] else "no",
-                len(result["hard_failures"]), metrics["request_count"], metrics["tool_count"],
+                result["verdict_basis"], result["check_summary"]["executed"],
+                result["check_summary"]["observed"], result["check_summary"]["replayed"],
+                metrics["request_count"], metrics["tool_count"],
                 metrics["cli_count"], metrics["cumulative_input_proxy_utf8_bytes"],
             )
         )
@@ -138,6 +188,7 @@ def _junit(report):
 
 
 def write_report(output_dir, report, traces):
+    validate_report(report)
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     atomic_write_text(output / "report.json", json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
@@ -165,6 +216,8 @@ def write_report(output_dir, report, traces):
             "scenario_id": scenario_id,
             "score": result["score"],
             "passed": result["passed"],
+            "verdict_basis": result["verdict_basis"],
+            "check_summary": result["check_summary"],
             "hard_failure_count": len(result["hard_failures"]),
             "metrics": result["metrics"],
             "provider_usage": result.get("provider_usage"),
@@ -179,14 +232,152 @@ def write_report(output_dir, report, traces):
     atomic_write_text(output / "junit.xml", _junit(report))
 
 
+def _require_exact_keys(value, expected, where):
+    if not isinstance(value, dict):
+        raise ValidationError("%s must be an object" % where)
+    actual = set(value)
+    if actual != expected:
+        raise ValidationError(
+            "%s keys differ; missing=%s extra=%s" % (
+                where, sorted(expected - actual), sorted(actual - expected),
+            )
+        )
+
+
+def _digest(value, where):
+    if not isinstance(value, str) or len(value) != 64 or any(
+        character not in "0123456789abcdef" for character in value
+    ):
+        raise ValidationError("%s must be a lowercase SHA-256 digest" % where)
+
+
+def validate_report(report, where="report"):
+    _require_exact_keys(report, REPORT_KEYS, where)
+    if report["schema_version"] != SCHEMA_VERSION:
+        raise ValidationError(where + ".schema_version is unsupported")
+    if report["benchmark_version"] != BENCHMARK_VERSION:
+        raise ValidationError(where + ".benchmark_version is unsupported")
+    for key in ("mode", "adapter", "validation_scope"):
+        if not isinstance(report[key], str) or not report[key]:
+            raise ValidationError("%s.%s must be a non-empty string" % (where, key))
+    _digest(report["bundle_sha256"], where + ".bundle_sha256")
+
+    manifest = report["document_manifest"]
+    _require_exact_keys(manifest, DOCUMENT_MANIFEST_KEYS, where + ".document_manifest")
+    _digest(manifest["sha256"], where + ".document_manifest.sha256")
+    if not isinstance(manifest["documents"], list):
+        raise ValidationError(where + ".document_manifest.documents must be a list")
+    manifest_identities = set()
+    for index, document in enumerate(manifest["documents"]):
+        document_where = "%s.document_manifest.documents[%d]" % (where, index)
+        _require_exact_keys(document, DOCUMENT_KEYS, document_where)
+        for key in ("scenario_id", "path", "source"):
+            if not isinstance(document[key], str) or not document[key]:
+                raise ValidationError("%s.%s must be a non-empty string" % (document_where, key))
+        if document["source"] not in ("repository", "fixture", "trace_write", "package_data"):
+            raise ValidationError(document_where + ".source is invalid")
+        if type(document["utf8_bytes"]) is not int or document["utf8_bytes"] < 0:
+            raise ValidationError(document_where + ".utf8_bytes must be non-negative")
+        _digest(document["sha256"], document_where + ".sha256")
+        identity = (document["scenario_id"], document["path"], document["sha256"])
+        if identity in manifest_identities:
+            raise ValidationError(where + ".document_manifest contains duplicate documents")
+        manifest_identities.add(identity)
+    if manifest["sha256"] != sha256_json(manifest["documents"]):
+        raise ValidationError(where + ".document_manifest.sha256 does not match documents")
+
+    if not isinstance(report["scenarios"], list):
+        raise ValidationError(where + ".scenarios must be a list")
+    scenario_ids = set()
+    for index, result in enumerate(report["scenarios"]):
+        result_where = "%s.scenarios[%d]" % (where, index)
+        _require_exact_keys(result, RESULT_KEYS, result_where)
+        for key in ("scenario_id", "title", "category", "verdict_basis"):
+            if not isinstance(result[key], str) or not result[key]:
+                raise ValidationError("%s.%s must be a non-empty string" % (result_where, key))
+        if result["scenario_id"] in scenario_ids:
+            raise ValidationError("%s has duplicate scenario id: %s" % (where, result["scenario_id"]))
+        scenario_ids.add(result["scenario_id"])
+        if isinstance(result["score"], bool) or not isinstance(result["score"], (int, float)):
+            raise ValidationError(result_where + ".score must be a number")
+        if not 0 <= result["score"] <= 100:
+            raise ValidationError(result_where + ".score must be between 0 and 100")
+        if type(result["passed"]) is not bool:
+            raise ValidationError(result_where + ".passed must be a boolean")
+        if not isinstance(result["checks"], list):
+            raise ValidationError(result_where + ".checks must be a list")
+        for check_index, check in enumerate(result["checks"]):
+            check_where = "%s.checks[%d]" % (result_where, check_index)
+            _require_exact_keys(check, CHECK_KEYS, check_where)
+            if not isinstance(check["kind"], str) or not check["kind"]:
+                raise ValidationError(check_where + ".kind must be a non-empty string")
+            if check["pattern"] is not None and not isinstance(check["pattern"], str):
+                raise ValidationError(check_where + ".pattern must be null or a string")
+            if type(check["passed"]) is not bool or type(check["hard"]) is not bool:
+                raise ValidationError(check_where + ".passed and hard must be booleans")
+            if check["hard"] and check["passed"]:
+                raise ValidationError(check_where + ".hard cannot be true for a passing check")
+            if not isinstance(check["detail"], str):
+                raise ValidationError(check_where + ".detail must be a string")
+            if check["origin"] not in CHECK_ORIGINS:
+                raise ValidationError(check_where + ".origin is invalid")
+        expected_check_summary = {
+            origin: sum(1 for check in result["checks"] if check["origin"] == origin)
+            for origin in CHECK_ORIGINS
+        }
+        if result["check_summary"] != expected_check_summary:
+            raise ValidationError(result_where + ".check_summary does not match checks")
+        if not isinstance(result["hard_failures"], list) or any(
+            failure not in result["checks"] or not failure["hard"]
+            for failure in result["hard_failures"]
+        ):
+            raise ValidationError(result_where + ".hard_failures does not match hard checks")
+        _require_exact_keys(result["metrics"], METRIC_KEYS, result_where + ".metrics")
+        for key, metric in result["metrics"].items():
+            metric_where = "%s.metrics.%s" % (result_where, key)
+            if key == "provider_reported_cost_currency":
+                if metric is not None and (not isinstance(metric, str) or not metric):
+                    raise ValidationError(metric_where + " must be null or a non-empty string")
+            elif key == "provider_reported_cost":
+                if metric is not None and (
+                    isinstance(metric, bool) or not isinstance(metric, (int, float)) or metric < 0
+                ):
+                    raise ValidationError(metric_where + " must be null or non-negative")
+            elif key.startswith("provider_"):
+                if metric is not None and (
+                    isinstance(metric, bool) or not isinstance(metric, int) or metric < 0
+                ):
+                    raise ValidationError(metric_where + " must be null or a non-negative integer")
+            elif isinstance(metric, bool) or not isinstance(metric, int) or metric < 0:
+                raise ValidationError(metric_where + " must be a non-negative integer")
+        validate_usage(result["provider_usage"], result_where + ".provider_usage")
+        _digest(result["trace_sha256"], result_where + ".trace_sha256")
+
+    _require_exact_keys(report["summary"], SUMMARY_KEYS, where + ".summary")
+    expected_summary = _summary(report["scenarios"])
+    if report["summary"] != expected_summary:
+        raise ValidationError(where + ".summary does not match scenarios")
+    unknown_manifest_ids = {
+        document["scenario_id"] for document in manifest["documents"]
+    } - scenario_ids
+    if unknown_manifest_ids:
+        raise ValidationError(
+            where + ".document_manifest has unknown scenario ids: %s" % sorted(unknown_manifest_ids)
+        )
+    return report
+
+
 def compare_reports(baseline_path, candidate_path, score_tolerance=0.0, byte_tolerance=0):
     baseline = load_json(baseline_path)
     candidate = load_json(candidate_path)
-    required = {"schema_version", "benchmark_version", "summary", "scenarios"}
-    if not isinstance(baseline, dict) or not required.issubset(baseline):
-        raise ValidationError("baseline is not a benchmark report")
-    if not isinstance(candidate, dict) or not required.issubset(candidate):
-        raise ValidationError("candidate is not a benchmark report")
+    validate_report(baseline, "baseline")
+    validate_report(candidate, "candidate")
+    for key in (
+        "schema_version", "benchmark_version", "bundle_sha256",
+        "document_manifest", "mode", "adapter",
+    ):
+        if baseline[key] != candidate[key]:
+            raise ValidationError("baseline and candidate %s differ" % key)
     baseline_map = {item["scenario_id"]: item for item in baseline["scenarios"]}
     candidate_map = {item["scenario_id"]: item for item in candidate["scenarios"]}
     if set(baseline_map) != set(candidate_map):

@@ -10,6 +10,7 @@ import sys
 import unittest
 from pathlib import Path
 
+sys.dont_write_bytecode = True
 
 TEST_ROOT = Path(__file__).resolve().parent
 REPOSITORY_ROOT = TEST_ROOT.parent
@@ -19,6 +20,7 @@ SUITE_PATHS = {
     "e2e": (TEST_ROOT / "e2e",),
     "regression": (TEST_ROOT / "regression",),
     "benchmark-offline": (TEST_ROOT / "benchmarks",),
+    "release": (TEST_ROOT / "release",),
 }
 ALL_SUITES = ("unit", "smoke", "e2e", "regression", "benchmark-offline")
 
@@ -65,14 +67,15 @@ def main(argv=None):
     tests_passed = runner.run(suite).wasSuccessful()
     benchmark_passed = True
     if args.suite in {"all", "benchmark-offline"}:
-        benchmark = subprocess.run(
-            [sys.executable, str(TEST_ROOT / "benchmarks" / "run.py"), "validate"],
-            cwd=REPOSITORY_ROOT,
-            env=os.environ.copy(),
-            check=False,
-            timeout=30,
-        )
-        benchmark_passed = benchmark.returncode == 0
+        for command in ("validate", "baseline-check"):
+            benchmark = subprocess.run(
+                [sys.executable, str(TEST_ROOT / "benchmarks" / "run.py"), command],
+                cwd=REPOSITORY_ROOT,
+                env=os.environ.copy(),
+                check=False,
+                timeout=30,
+            )
+            benchmark_passed = benchmark_passed and benchmark.returncode == 0
     return 0 if tests_passed and benchmark_passed else 1
 
 

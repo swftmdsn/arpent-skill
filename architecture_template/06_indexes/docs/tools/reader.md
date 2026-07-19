@@ -1,10 +1,13 @@
-# Reader Tool
+# Reader Tool Design
 
-Transversal reader content lives in `05_tools/reader/`.
+Reader is `status: planned` and in construction. It is not invocable in the
+current release, and its declared workspace or database must not be created as
+if a reader runtime existed.
 
-If the reader has a database, it lives in:
+The future design reserves `05_tools/reader/` for runtime material and
+`06_indexes/databases/reader.db` for structured state. Instructions and
+lifecycle declarations remain in `06_indexes/`. Registry `status: installed`
+will be mandatory, but an implementation, dependencies, configuration, and a
+permitted vault mode will also be required.
 
-`06_indexes/databases/reader.db`
-
-Clean, reusable knowledge extracted from reading routes into the vault through normal frontmatter and routing.
-
+This file is explanatory design, not an operational contract.

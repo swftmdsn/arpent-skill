@@ -12,6 +12,7 @@ ESSENTIAL_DIRECTORIES = {
     "02_areas/",
     "02_areas/area__perso__todo__active/",
     "03_resources/",
+    "03_resources/how-tos/",
     "03_resources/agent_infrastructure/",
     "04_archives/",
     "05_tools/",
@@ -35,6 +36,7 @@ ESSENTIAL_FILES = {
     "06_indexes/schemas/frontmatter_policy.yaml",
     "06_indexes/schemas/todo_schema.sql",
     "06_indexes/tools.yaml",
+    "03_resources/templates/howto.template.md",
 }
 
 

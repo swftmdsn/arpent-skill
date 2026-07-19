@@ -1,2 +1,0 @@
-"""Arpent CLI package placeholder."""
-

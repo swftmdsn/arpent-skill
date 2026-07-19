@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
+from . import file_transaction
 from .vault import MUTATION_TRANSACTION_PATHS, Vault
 
 
@@ -28,6 +29,7 @@ _REBUILDABLE_PATHS = {
     "06_indexes/sidecar.json",
     "06_indexes/databases/search.db",
 }
+_REBUILDABLE_DATABASE_PATHS = {"06_indexes/databases/search.db"}
 _VOLATILE_FILE_NAMES = {".DS_Store", "Thumbs.db"}
 _SQLITE_SIDECAR_SUFFIXES = ("-wal", "-shm", "-journal")
 
@@ -105,12 +107,14 @@ def restore_backup(snapshot_path: str | Path, target_path: str | Path) -> dict:
     payload = snapshot / PAYLOAD_NAME
 
     supplied_target = Path(target_path).expanduser()
+    _refuse_symlinked_parents(supplied_target)
     if supplied_target.exists() or supplied_target.is_symlink():
         raise ValueError(f"Restore target must not already exist: {supplied_target}")
     target = supplied_target.resolve(strict=False)
     target.parent.mkdir(parents=True, exist_ok=True)
-    if target.parent.is_symlink():
-        raise ValueError(f"Refusing to restore through a symlinked parent: {target.parent}")
+    _refuse_symlinked_parents(supplied_target)
+    if supplied_target.resolve(strict=False) != target:
+        raise ValueError(f"Restore target parent changed while being prepared: {supplied_target}")
 
     staging = target.parent / f".{target.name}.restore-{uuid.uuid4().hex[:8]}"
     if staging.exists() or staging.is_symlink():
@@ -122,7 +126,10 @@ def restore_backup(snapshot_path: str | Path, target_path: str | Path) -> dict:
         _fsync_tree(staging)
         if target.exists() or target.is_symlink():
             raise ValueError(f"Restore target appeared during restore: {target}")
-        os.rename(staging, target)
+        try:
+            file_transaction.move_no_replace(staging, target)
+        except FileExistsError as exc:
+            raise ValueError(f"Restore target appeared during restore: {target}") from exc
         _fsync_directory(target.parent)
     except BaseException:
         if staging.exists() and not staging.is_symlink():
@@ -173,7 +180,7 @@ def _scan_tree(root: Path, *, apply_exclusions: bool) -> tuple[list[dict], list[
             rel = PurePosixPath(child.name) if prefix is None else prefix / child.name
             relpath = rel.as_posix()
             _validate_relpath(relpath)
-            reason = _exclusion_reason(relpath) if apply_exclusions else None
+            reason = _exclusion_reason(relpath, root=root) if apply_exclusions else None
             if reason:
                 exclusions.append({"path": relpath, "reason": reason})
                 continue
@@ -212,7 +219,7 @@ def _scan_tree(root: Path, *, apply_exclusions: bool) -> tuple[list[dict], list[
     return entries, exclusions
 
 
-def _exclusion_reason(relpath: str) -> str | None:
+def _exclusion_reason(relpath: str, *, root: Path | None = None) -> str | None:
     path = PurePosixPath(relpath)
     if relpath == DEFAULT_BACKUP_RELPATH or relpath.startswith(DEFAULT_BACKUP_RELPATH + "/"):
         return "backup recursion"
@@ -220,6 +227,8 @@ def _exclusion_reason(relpath: str) -> str | None:
         return "rebuildable dependency or VCS metadata"
     if relpath in _REBUILDABLE_PATHS:
         return "rebuildable index"
+    if _rebuildable_database_sidecar(relpath):
+        return "rebuildable database sidecar"
     if relpath in MUTATION_TRANSACTION_PATHS:
         return "interrupted transaction journal"
     if relpath.startswith("06_indexes/logs/") and path.name.endswith(".lock"):
@@ -228,9 +237,33 @@ def _exclusion_reason(relpath: str) -> str | None:
         return "volatile editor or operating-system state"
     if relpath == ".obsidian/workspace.json":
         return "volatile application workspace"
-    if path.name.endswith(_SQLITE_SIDECAR_SUFFIXES):
+    if root is not None and _sqlite_sidecar_is_api_captured(root, relpath):
         return "SQLite sidecar captured through the SQLite backup API"
     return None
+
+
+def _rebuildable_database_sidecar(relpath: str) -> bool:
+    path = PurePosixPath(relpath)
+    for suffix in _SQLITE_SIDECAR_SUFFIXES:
+        if path.name.endswith(suffix) and len(path.name) > len(suffix):
+            database_rel = path.with_name(path.name[:-len(suffix)]).as_posix()
+            return database_rel in _REBUILDABLE_DATABASE_PATHS
+    return False
+
+
+def _sqlite_sidecar_is_api_captured(root: Path, relpath: str) -> bool:
+    path = PurePosixPath(relpath)
+    suffix = next(
+        (candidate for candidate in _SQLITE_SIDECAR_SUFFIXES if path.name.endswith(candidate)),
+        None,
+    )
+    if suffix is None or len(path.name) == len(suffix):
+        return False
+    database_rel = path.with_name(path.name[:-len(suffix)]).as_posix()
+    if _exclusion_reason(database_rel) is not None:
+        return False
+    database = _path_from_rel(root, database_rel)
+    return not database.is_symlink() and database.is_file() and _looks_like_sqlite(database)
 
 
 def _copy_source_entries(vault: Vault, source_entries: list[dict], payload: Path) -> list[dict]:
@@ -585,6 +618,15 @@ def _existing_directory(path: str | Path, *, label: str) -> Path:
     if not resolved.is_dir():
         raise ValueError(f"{label} is not a directory: {resolved}")
     return resolved
+
+
+def _refuse_symlinked_parents(path: Path) -> None:
+    lexical = path if path.is_absolute() else Path.cwd() / path
+    current = Path(lexical.anchor)
+    for part in lexical.parts[1:-1]:
+        current = current / part
+        if current.is_symlink() and os.access(current.parent, os.W_OK):
+            raise ValueError(f"Refusing to restore through a symlinked parent: {current}")
 
 
 def _regular_child(parent: Path, name: str) -> Path:

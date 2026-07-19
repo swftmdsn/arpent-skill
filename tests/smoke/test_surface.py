@@ -11,6 +11,7 @@ from tests.support import CliTestCase, REPOSITORY_ROOT
 
 EXPECTED_CLI_HANDLERS = {
     ("init",): "cmd_init",
+    ("skill", "install"): "cmd_skill_install",
     ("mode", "show"): "cmd_mode_show",
     ("mode", "full"): "cmd_mode_set",
     ("mode", "minimal"): "cmd_mode_set",
@@ -59,16 +60,11 @@ EXPECTED_CLI_HANDLERS = {
     ("todo", "defer"): "cmd_todo_defer",
     ("todo", "block"): "cmd_todo_block",
     ("todo", "archive"): "cmd_todo_archive",
-    ("fleeting",): "cmd_tool_stub",
-    ("reader",): "cmd_tool_stub",
-    ("calendar",): "cmd_tool_stub",
-    ("sport",): "cmd_tool_stub",
-    ("journal",): "cmd_tool_stub",
-    ("crm",): "cmd_tool_stub",
 }
 
 EXPECTED_OPERATION_HANDLERS = {
     "init": "cmd_init",
+    "skill_install": "cmd_skill_install",
     "mode_show": "cmd_mode_show",
     "mode_full": "cmd_mode_set",
     "mode_minimal": "cmd_mode_set",

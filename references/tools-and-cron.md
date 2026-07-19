@@ -1,14 +1,14 @@
 # Tools and cron
 
-This document describes the tool registry, cron registry, and commands that
-exist in the current CLI. Future sub-tools and adapters are parked in
-`developement/roadmap/future-tools-design.md`.
+This operational document describes the tool registry, cron registry, and
+commands delivered by the current CLI. Future sub-tools and adapters are
+planned/in construction; their design records are not invocable behavior.
 
 ## Rule
 
 The skill-facing documentation describes what is invocable now.
 
-Designs for later phases belong in `developement/`, not in the operational
+Designs for later phases belong in `development/`, not in the operational
 surface loaded by agents.
 
 ## Current tool registry
@@ -39,15 +39,19 @@ Current seed entries:
 - `todo` - `status: installed`, daily-flow tool backed by `todo.db` and Markdown lifecycle records
 - `reader` - transversal, planned, writes to `05_tools/reader/`
 - `review` - transversal, planned, writes to `05_tools/review/`
-- `z_backup` - transversal, planned, writes to `06_indexes/backup/`
+- `z_backup` - planned extension, distinct from the delivered core `arpent
+  backup` commands
 
-`planned` entries describe proposed boundaries only. `planned` and `installed`
-are registry states, not availability claims. The current CLI does not change
-tool status or create runtime directories through an installation command.
+`reader`, `review`, and `z_backup` are explicitly planned/in construction. They
+are not invocable tool workflows today and their declared paths must not be
+treated as runtime material. A tool requires `status: installed` before any
+invocation, but registry status alone is still insufficient: an implementation,
+permitted vault mode, dependencies, and configuration must also exist. The
+current CLI does not install, enable, disable, or change tool status.
 
-`fleeting`, `reader`, `calendar`, `sport`, `journal`, and `crm` top-level commands
-are unavailable placeholders. Their parser presence is not a tool-status or
-runtime-availability claim.
+`calendar`, `journal`, `sport`, and `crm` are also planned/in construction and
+are not invocable today. They have no installed tool-registry entry or delivered
+workflow in this release.
 
 ## Todo
 
@@ -56,9 +60,11 @@ The todo tool with `status: installed` stores structured properties in
 `02_areas/area__perso__todo__active/<status>/`. The database is initialized
 lazily from the schema packaged with the installed CLI. The copy at
 `06_indexes/schemas/todo_schema.sql` is a reviewable seed, not runtime authority.
+`todo.db` is authoritative for coordinated structured todo state; Markdown is
+the durable readable counterpart and the CLI verifies their consistency.
 
-The runtime uses packaged schema version 3. A valid v2 database is migrated
-automatically, with existing date-only values interpreted as UTC midnight.
+The runtime uses packaged schema version 4. Valid v2 and v3 databases are
+migrated automatically, with v2 date-only values interpreted as UTC midnight.
 Other, unversioned, incomplete, or altered schemas are rejected.
 
 ```bash
@@ -104,8 +110,8 @@ the content changes. The volatile `created` and `modified` timestamps are exclud
 
 Vault path: `06_indexes/cron.json`.
 
-Arpent does not run a daemon. The only cron execution path implemented in
-Phase 1 is an explicit tick:
+Arpent does not run a daemon. The delivered cron execution path is an explicit
+tick:
 
 ```bash
 arpent cron run --tick --dry-run
@@ -131,7 +137,7 @@ Execution is currently disabled on Windows because Arpent cannot yet guarantee
 termination of the full descendant process tree there; dry runs remain
 available.
 
-The Phase 1 seed contains one disabled job:
+The release seed contains one disabled job:
 
 ```json
 {
@@ -156,8 +162,7 @@ Implemented now:
 - `file` - append to `06_indexes/logs/cron.log`
 - `null` / omitted - no notification
 
-Not implemented in Phase 1: Telegram, Signal, Mattermost, macOS notifications,
-or any other adapter.
+No other notification adapter is delivered.
 
 ## Current maintenance commands
 
@@ -189,10 +194,13 @@ verifies the result, and never merges with an existing vault. Local snapshots
 are unencrypted and do not include delegated memory, Git history, or external
 files.
 
+These core backup commands are delivered directly by Arpent. They do not depend
+on, install, or activate the planned `z_backup` skill.
+
 `arpent sweep ephemeral` reads every tool with `status: installed` and
 `ephemeral: true`,
 scans its `writes_to` roots, and applies the first due lifecycle rule to each
-frontmatter note. `active`, `stable`, `ongoing`, linear notes, maps, and
+frontmatter note. `active`, `stable`, `ongoing`, linear notes, maps, how-tos, and
 `_context.md` are always protected. Automatic transitions may only target
 `stale`; automatic archival accepts only `done` or `stale` content.
 

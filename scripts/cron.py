@@ -14,6 +14,13 @@ from pathlib import Path
 
 TRUST_VALUE = "local-code"
 DEFAULT_TIMEOUT_SECONDS = 300
+CRON_FIELDS = (
+    ("minute", 0, 59),
+    ("hour", 0, 23),
+    ("day-of-month", 1, 31),
+    ("month", 1, 12),
+    ("day-of-week", 0, 7),
+)
 
 
 def run_tick(vault, *, dry_run=False, allow_local_code=False, now=None) -> list[dict]:
@@ -34,9 +41,9 @@ def _run_tick(vault, *, dry_run=False, allow_local_code=False, now=None) -> list
     safe_path = vault.safe_source_path(relpath)
     original = safe_path.read_text(encoding="utf-8")
     data = json.loads(original)
-    if not isinstance(data, dict) or not isinstance(data.get("jobs", []), list):
+    if not isinstance(data, dict) or not isinstance(data.get("jobs"), list):
         raise ValueError("cron.json must contain a jobs list.")
-    jobs = data.get("jobs") or []
+    jobs = data["jobs"]
     results = []
     current_text = original
 
@@ -159,6 +166,9 @@ def _validate_job(job) -> None:
     job_id = job.get("id")
     if not isinstance(job_id, str) or not job_id.strip():
         raise ValueError("Each cron job must have a non-empty id.")
+    if type(job.get("enabled")) is not bool:
+        raise ValueError(f"Cron job '{job_id}' enabled must be a boolean.")
+    _parse_schedule(job.get("schedule"), job_id=job_id)
     if job.get("enabled") and job.get("trust") != TRUST_VALUE:
         raise ValueError(
             f"Enabled cron job '{job_id}' must declare trust: '{TRUST_VALUE}' because its command executes local code."
@@ -180,6 +190,10 @@ def _validate_job(job) -> None:
     timeout = job.get("timeout_seconds", DEFAULT_TIMEOUT_SECONDS)
     if isinstance(timeout, bool) or not isinstance(timeout, int) or not 1 <= timeout <= 86400:
         raise ValueError(f"Cron job '{job_id}' timeout_seconds must be between 1 and 86400.")
+    if job.get("notify_channel") not in {None, "stdout", "file"}:
+        raise ValueError(
+            f"Cron job '{job_id}' notify_channel must be null, 'stdout', or 'file'."
+        )
 
 
 def _persist_registry(vault, relpath, data, *, expected_text, conflict_message):
@@ -202,20 +216,25 @@ def _full_mode_mutation(vault):
 
 
 def _is_due(job: dict, now: datetime) -> bool:
-    schedule = job.get("schedule") or ""
-    fields = schedule.split()
-    if len(fields) != 5:
+    if not isinstance(now, datetime) or now.tzinfo is None:
+        raise ValueError("Cron tick time must be a timezone-aware datetime.")
+    schedule = job["schedule"]
+    fields, values = _parse_schedule(schedule, job_id=job.get("id"))
+    minute, hour, day, month, weekday = values
+    if now.minute not in minute:
         return False
-    minute, hour, day, month, weekday = fields
-    if not _field_matches(minute, now.minute):
+    if now.hour not in hour:
         return False
-    if not _field_matches(hour, now.hour):
+    if now.month not in month:
         return False
-    if not _field_matches(day, now.day):
-        return False
-    if not _field_matches(month, now.month):
-        return False
-    if not _field_matches(weekday, (now.weekday() + 1) % 7):
+    day_matches = now.day in day
+    weekday_matches = (now.weekday() + 1) % 7 in weekday
+    # Vixie/POSIX cron semantics: when both DOM and DOW are restricted, either
+    # may select the day. A wildcard-leading field leaves selection to the other.
+    if not fields[2].startswith("*") and not fields[4].startswith("*"):
+        if not (day_matches or weekday_matches):
+            return False
+    elif not (day_matches and weekday_matches):
         return False
     last_run = job.get("last_run")
     last_started = job.get("last_started")
@@ -226,13 +245,56 @@ def _is_due(job: dict, now: datetime) -> bool:
     )
 
 
-def _field_matches(field: str, value: int) -> bool:
-    if field == "*":
-        return True
+def _parse_schedule(schedule, *, job_id=None) -> tuple[list[str], list[set[int]]]:
+    label = f"Cron job '{job_id}'" if job_id else "Cron schedule"
+    if not isinstance(schedule, str):
+        raise ValueError(f"{label} schedule must be a string.")
+    fields = schedule.split()
+    if len(fields) != 5:
+        raise ValueError(f"{label} schedule must contain exactly five fields.")
+    values = [
+        _parse_field(field, name=name, minimum=minimum, maximum=maximum, label=label)
+        for field, (name, minimum, maximum) in zip(fields, CRON_FIELDS)
+    ]
+    values[4] = {0 if value == 7 else value for value in values[4]}
+    return fields, values
+
+
+def _parse_field(field: str, *, name: str, minimum: int, maximum: int, label: str) -> set[int]:
+    if not field or any(part == "" for part in field.split(",")):
+        raise ValueError(f"{label} has invalid {name} field '{field}'.")
+    values = set()
     for part in field.split(","):
-        if part.isdigit() and int(part) == value:
-            return True
-    return False
+        pieces = part.split("/")
+        if len(pieces) > 2:
+            raise ValueError(f"{label} has invalid {name} field '{field}'.")
+        base = pieces[0]
+        if len(pieces) == 2:
+            if not pieces[1].isdigit() or int(pieces[1]) < 1:
+                raise ValueError(f"{label} has invalid {name} step in '{field}'.")
+            step = int(pieces[1])
+        else:
+            step = 1
+
+        if base == "*":
+            start, end = minimum, maximum
+        elif "-" in base:
+            bounds = base.split("-")
+            if len(bounds) != 2 or not all(bound.isdigit() for bound in bounds):
+                raise ValueError(f"{label} has invalid {name} range in '{field}'.")
+            start, end = map(int, bounds)
+        elif base.isdigit():
+            start = int(base)
+            end = maximum if len(pieces) == 2 else start
+        else:
+            raise ValueError(f"{label} has invalid {name} field '{field}'.")
+
+        if not minimum <= start <= end <= maximum:
+            raise ValueError(
+                f"{label} {name} values must be between {minimum} and {maximum}."
+            )
+        values.update(range(start, end + 1, step))
+    return values
 
 
 def _notify(vault, job: dict, message: str) -> None:

@@ -1,368 +1,220 @@
 # Lifecycle
 
-How notes evolve over time: from creation to maturation, from active use to archive, and from sequential working material to typed child notes. The lifecycle is encoded in the `status` field plus tool-level rules in `tools.yaml`.
+This document explains the lifecycle implemented by the current release.
+Operational syntax comes from `SKILL.md`, the compact workflows, and
+`arpent <command> --help`. Future reader, calendar, journal, sport, CRM, and
+review lifecycle designs are planned/in construction and are not invocable;
+they are outside the current operational contract.
 
-## The eleven statuses
+## Statuses
 
-```
+```text
 inbox      maturing    active    stable    ongoing    standby
 waiting    to-start    done      stale     archived
 ```
 
-### Detailed semantics
-
 | Status | Meaning |
 |---|---|
-| `inbox` | Captured but not yet triaged. Lives in `00_inbox/`. Should leave within hours/days. |
-| `maturing` | Triaged and routed to its final destination, but content not yet finalized. Being actively constructed. |
-| `active` | A project, area, or actionable item currently in use: draft, active reading, or other effort. |
-| `stable` | Finalized reusable knowledge. The normal state for an established concept or durable note. |
-| `ongoing` | Permanent reference, regularly consulted. For things that don't have an end (philosophy notes, profile-like vault entries). |
-| `standby` | Set aside, not abandoned. Will return to active later. |
-| `waiting` | Blocked on an external dependency (waiting for someone, an event, etc.). |
-| `to-start` | Planned to start soon, not yet active. |
-| `done` | Accomplished. Mostly used by ephemeral content (todos, articles read). Triggers archival rotation. |
-| `stale` | Terminal content no longer current and awaiting archival under a tool rule. |
-| `archived` | Moved to archives. Read-only by convention. |
+| `inbox` | Captured but not yet triaged. |
+| `maturing` | Routed content still being developed. |
+| `active` | Currently used or actionable content. |
+| `stable` | Finalized reusable knowledge. |
+| `ongoing` | Permanent, evolving reference or responsibility. |
+| `standby` | Intentionally set aside for possible return. |
+| `waiting` | Blocked on an external dependency. |
+| `to-start` | Planned to begin, not yet active. |
+| `done` | Accomplished terminal work. |
+| `stale` | No longer current and eligible for a declared lifecycle rule. |
+| `archived` | Retained as archive material. |
 
-## Status transitions
+## Status Is Not Location
 
-### Manual (user-initiated)
+Status and filesystem location are deliberately decoupled. Status describes
+lifecycle state; routing fields, type, provenance, and explicit lifecycle
+operations determine location.
 
-The user can transition any note's status at any time via:
+- `inbox` is not an alias for an absolute path. New untriaged captures commonly
+  have both `status: inbox` and an inbox route, but neither fact defines the
+  other.
+- `maturing` does not mean a drafts directory.
+- `arpent note status <id> archived` changes an ordinary note's status but does
+  not perform quarterly archival.
+- An archived linear note has an explicit status/type route because dissolution
+  is a dedicated lifecycle operation.
+
+Change an ordinary note's status with:
 
 ```bash
 arpent note status <id> <new-status>
 ```
 
-Most transitions are user-driven. The agent changes status only when requested,
-except in the narrow automatic cases below.
+Most transitions are user-requested. This release does not run a general
+automatic maturity engine or weekly-review workflow.
 
-### Automatic (event-driven)
+## Delivered Event Transitions
 
-Some transitions are triggered by events, not time:
+The current coordinated operations perform these bounded transitions:
 
-| Event | Transition |
+| Event | Result |
 |---|---|
-| Calendar event date passes | `active → done` (auto, on next `calendar sync`) |
-| Article marked as read in reader | `active → done` (when user runs `reader read <slug>` and confirms read) |
-| Todo marked complete | `active → done` |
-| Fleeting note promoted | `inbox → done` (on the source line in fleeting file) |
-| Linear note dissolved | `maturing/active → archived` (on `note dissolve`) |
-| Project closed | `* → archived` for the project folder |
+| Todo completed with `todo done` | Todo becomes `done`. |
+| Todo archived with `todo archive` | A `done` todo remains represented in `todo.db`; its Markdown record moves to the current quarterly archive. |
+| Eligible linear note dissolved with `note dissolve` | Source becomes `archived` and moves to `04_archives/linear_notes/`. |
+| Ordinary note archived with top-level `archive` | Note becomes `archived` and moves to the current quarterly archive. |
+| Installed ephemeral sweep rule becomes due | The first matching declared transition or archive action is applied. |
 
-These are deterministic and the user is informed when they happen.
+There is no delivered project-close transition. `session end` closes a working
+session into `_context.md`; it does not set project notes to `archived`, move a
+project folder, or infer project completion.
 
-### Automatic (time-driven, ephemeral sweep)
+## Knowledge Maturation
 
-For tools marked `ephemeral: true` in `tools.yaml`, the cron job `ephemeral-sweep` applies time-based transitions. Automatic archival is limited to `done` and `stale`; `active`, `stable`, and `ongoing` always remain in place. See "Ephemeral sweep" below.
+A common documentary arc is:
 
-### Suggested (proposed in review)
-
-The system can **suggest** transitions during weekly review without applying them:
-
-- Knowledge notes `maturing` for > 90 days → "consider promoting to `stable` or archiving"
-- Notes `standby` for > 6 months → "consider archiving"
-- Notes `waiting` with no recent activity on the dependency → "is the dependency still alive?"
-
-The user reviews and confirms. No automatic action.
-
-## The maturation cycle
-
-A note's life often follows this arc:
-
-```
-        ┌─────────────────────────────────────┐
-        │                                     │
-   capture                                    │
-        │                                     │
-        v                                     │
-     inbox  ──[triage]──>  maturing           │
-                              │               │
-                              v               │
-                     active or stable         │
-                              │               │
-                              v               │
-                          ongoing             │
-                              │               │
-                              v               │
-                          standby             │
-                              │               │
-                              └──> archived ──┘
+```text
+inbox -> maturing -> stable
+                  -> active -> standby
+                  -> archived (explicitly)
 ```
 
-Maturation in detail:
+This is guidance, not a mandatory state machine. A finalized concept may become
+`stable`; an actionable draft may become `active`; a permanent evolving map or
+how-to is normally `ongoing`. The user decides when knowledge is stable. `health` can
+surface old maturing notes, but does not promote or archive them.
 
-1. **inbox** - capture lands. Triage decides where it goes.
-2. **maturing** - note is at its destination and still being worked on; useful relations or wording may remain incomplete.
-3. **stable** - reusable knowledge is finalized: its one thesis is autonomous and its useful relations are identified.
-4. **active** - reserved for projects, areas, and content that remains actionable rather than merely known.
-5. **ongoing** - reserved for permanent evolving references (rare).
-6. **standby** - temporary set-aside. Returns to `active` when reactivated.
-7. **archived** - final state.
+## Linear Notes
 
-`maturing` is **a status, not a location**. The note already lives at its final destination. Don't move maturing notes to a "drafts" folder unless they're explicitly `type: draft` tied to a project.
+A `linear` note is sequential working material that may be decomposed into
+independent typed children. Use a final semantic type directly when the material
+already has one identity.
 
-## Decision: who decides "stable"?
-
-A knowledge note transitions from `maturing` to `stable` when the user recognizes it as finalized. The system can suggest candidates in weekly review based on:
-
-- Frontmatter coherence (title, routing, source, and any useful relations)
-- Time since last edit (no edits for 7+ days suggests stability)
-- Has at least 1 useful graph link (`related` for weak links, or `relations` for typed semantic links)
-
-But the agent **never auto-promotes**. The user confirms.
-
-## TTL on `maturing` (passive signal only)
-
-A note `maturing` for > 90 days is flagged in the weekly review report:
-
-```
-Stale maturing notes (12):
-  - concept-20260120-a - "gradient_actionnabilite"  (90 days maturing)
-  - reference-20260115-c - "ahrens_smart_notes"   (95 days maturing)
-  ...
-
-Suggestions: review these and either promote to stable, archive, or continue maturing.
-```
-
-No automatic action. The user decides.
-
-## Linear note dissolution
-
-A `type: linear` note is a sequential, non-atomic working note whose useful parts may later become separate notes. It is defined by this decomposition lifecycle, not by its subject or by the types it will produce. It may contain an annotated reading or listening, a reflection across existing concepts, exploratory thinking, or rough material from which drafts and other notes emerge.
-
-Use `linear` when the note is a temporary source to work through and potentially split. Use the final semantic type directly when the material already has one identity: for example, use `draft` for one production in progress and `concept` for one atomic concept.
-
-In the continuity loop, "produce" means broad useful work, not a command or a
-required note type. Use `type: production` only for an output whose semantic
-identity is a finished production; decisions, plans, drafts, concepts, and
-other useful results keep their own types.
-
-### Phase 1 - Accumulation
-
-The train of thought is still developing. Passages, annotations, arguments, questions, and possible outputs accumulate in sequence.
-
-- Lives at the destination determined by its own routing frontmatter. Reader-managed content may remain in `05_tools/reader/<type>/<slug>/` while it is being consumed.
-- Status: usually `active` while being captured, then `maturing` while being worked through
-
-### Phase 2 - Ready to decompose
-
-The note has enough substance to identify one or more durable outputs. Its routing does not change merely because it reached this level of reflection.
-
-For reader-managed material, finishing the first consumption is one way to reach this phase: `arpent reader finish <slug>` moves the note to the area chosen by the user and sets `status: maturing`.
-
-### Phase 3 - Typed extraction (optional)
-
-The user decides which parts should become independent notes. Every child gets the semantic type that matches what it is, then routes through the normal contract.
+Extract a child:
 
 ```bash
-arpent note extract <linear-id> --type concept --title "Actionability gradient" --resource concepts --body "..."
-arpent note extract <linear-id> --type draft --title "Essay opening" --project knowledge-essay --stdin
+arpent note extract <linear-id> --type concept \
+  --title "Actionability gradient" --resource concepts --body "..."
 ```
 
-Each extraction:
-- Creates a child note of the requested type and routes it from its own frontmatter
-- The new note has `parent: <linear-id>`
-- The linear note's body gets an unambiguous wikilink `[[relative/path/child-title-slug]]` near the relevant passage
+Extraction creates the child with `parent: <linear-id>`, appends its ID to the
+source's `extracted_to`, and adds a source-body link. Every child routes from its
+own metadata.
 
-The user can extract any number and mixture of child types, including `concept`, `draft`, `idea`, `integration`, `reference`, or another `linear` note. Facts and commitments that belong in agentic memory follow the memory-routing rules instead; their IDs go in `observations`, not `extracted_to`.
-
-### Phase 4 - Dissolution
-
-Once all intended children are extracted, the user dissolves the source:
+After at least one child exists and both directions of lineage validate:
 
 ```bash
-arpent note dissolve <linear-id> [--yes]
+arpent note dissolve <linear-id> --yes
 ```
 
-The dissolution:
-- Verifies all `extracted_to` IDs exist as notes with `parent` pointing back
-- Sets status to `archived`
-- Migrates the file to `04_archives/linear_notes/<slug>.md`
-- Updates `extracted_to: [list of all extracted child-note IDs]`
+Dissolution is explicit. It sets `status: archived`, adds archive-event
+metadata, and moves the source to `04_archives/linear_notes/`. A dissolved
+source is immutable through ordinary note edit, route, and status commands.
 
-The dissolution is deliberate and never inferred automatically. `always` and
-`explicit-intent` require `--yes`; `never` executes the user's dissolution
-request without additional confirmation. Validation of every child relation remains
-mandatory in all modes.
+## Archive Events
 
-### Optional path - no extraction
-
-Not every linear note needs to be dissolved. Some working notes remain useful as a whole. A linear note can stay at its routed destination indefinitely with `status: active` or `ongoing`.
-
-## Ephemeral sweep
-
-Installed tools marked `ephemeral: true` in `tools.yaml` have a `lifecycle` config that drives automatic rotation. Example for fleeting:
+`archived` is the lifecycle status. The following keys are lifecycle-only
+extensions added by an explicit archive event:
 
 ```yaml
-fleeting:
-  ephemeral: true
-  lifecycle:
-    - from: inbox
-      after_days: 14
-      to: stale
-    - from: stale
-      after_days: 7
-      action: archive
+archived_at: 19-07-2026-16-00
+archived_from: 03_resources/concepts/actionability_gradient.md
 ```
 
-The cron job `ephemeral-sweep` runs daily at 04:00 (configurable) and:
+They mean “when this archival move happened” and “where the item moved from.”
+They are metadata, not additional statuses, and they are not part of ordinary
+capture frontmatter.
 
-1. Reads `tools.yaml`, identifies tools with `status: installed` and `ephemeral: true`
-2. For each tool, reads its `lifecycle` rules
-3. Walks `writes_to` directory and examines each file's `status` and `modified`
-4. Applies matching transitions, but archives only `done` or `stale` content
-5. Logs every change in `06_indexes/logs/sweep.log`
-6. Produces a summary visible via `arpent sweep status`
+Archive operations are record-specific:
 
-Use `arpent sweep ephemeral --dry-run` to preview due rules without changing
-notes. A run applies at most one rule per note and resets `modified` on a status
-transition, so a second TTL cannot fire in the same run.
+```bash
+arpent archive <ordinary-note-id>
+arpent todo archive <done-todo-id>
+arpent note dissolve <linear-id> --yes
+```
 
-### Sweep actions
+A project folder or arbitrary file has no automatic archive command in this
+release.
 
-Three actions possible for an `archive` step:
+## Ephemeral Sweep
 
-#### `archive`
+`arpent sweep ephemeral` reads `06_indexes/tools.yaml` and considers only tools
+that are both `ephemeral: true` and `status: installed`. A planned tool is never
+processed. The release seed therefore operates the installed todo lifecycle;
+planned reader rules are design only and cannot be invoked today.
 
-Moves the file to `04_archives/<YYYY_qX>/<tool>/`, preserves frontmatter intact, adds:
+```bash
+arpent sweep ephemeral --dry-run
+arpent sweep ephemeral
+arpent sweep status --json
+```
+
+A run applies at most the first due rule per note. Protected content includes
+`active`, `stable`, and `ongoing` notes, maps, how-tos, linear notes, and `_context.md`.
+Automatic archival accepts only `done` or `stale` content.
+
+A how-to is revised in place only after an explicit review. Its ID remains
+stable, the current body replaces superseded guidance, and useful removed
+material is first retained in linked notes. `modified` alone never attests that
+the guidance was reviewed.
+
+Supported rule forms include a status transition:
 
 ```yaml
-archived_at: 19-04-2026-04-00
-archived_from: 02_areas/sport/sessions/seance_force.md
+- from: inbox
+  after_days: 14
+  to: stale
 ```
 
-The file is searchable, readable, but out of the active workspace.
+and an archive action:
 
-#### `archive-with-trace`
-
-Before archiving the markdown, writes a structured row to the tool's DB. Used when:
-
-- The DB capture is rich enough that the markdown can be lightly purged or moved
-- The user values analytics over preserving full markdown history
-
-Example for `todo`:
-
-```sql
--- todo.db trace row retained before markdown archive
-INSERT INTO todos (
-  id, content, priority, status, linked_project_id, created_at
-) VALUES (
-  'todo-20260415-a', 'Validate migration plan', 'priority-high', 'done',
-  'project-arpent-build', '2026-04-15T09:00:00Z'
-)
-ON CONFLICT(id) DO UPDATE SET
-  content = excluded.content,
-  priority = excluded.priority,
-  status = excluded.status,
-  linked_project_id = excluded.linked_project_id;
+```yaml
+- from: done
+  after_days: 30
+  action: archive-with-trace
 ```
 
-The markdown still goes to `04_archives/`, but the DB has the structured trace.
+`archive` moves retained Markdown. `archive-with-trace` first records the
+complete note in the tool's configured database. `delete-after-review` records
+a proposal only; it does not delete content automatically. Every run records a
+summary in `06_indexes/logs/sweep.log`.
 
-#### `delete-after-review`
+The seeded cron job for sweep is disabled. Arpent has no daemon; an external
+scheduler must invoke `arpent cron run --tick`, and actual local-code execution
+requires `--allow-local-code`.
 
-Reserved for content with no historical value. The file is **proposed** for deletion with a summary; the user must confirm. Rarely used. Opt-in only.
+## Session Close And Resume
 
-### Default lifecycles for niveau 1 sub-tools
+Resume is documentary in both modes:
 
-| Tool | Default lifecycle |
-|---|---|
-| `todo` | `done → archive-with-trace` after 30 days |
-| `fleeting` | `inbox → stale` after 14 days; `stale → archive` after 7 more days |
-| `reader` | `done → archive-with-trace` after 60 days; **no expiration on `active`** (queue is sacred) |
-| `calendar` | `done → archive-with-trace` after 14 days |
+1. Read `me.md`.
+2. Read the target project or area `_context.md`.
+3. Read only the notes or sources required for the current work.
 
-These can be overridden per-tool in `tools.yaml`.
+There is no resume command. Optional `MEMORY.md` is absent by default and is not
+part of normal resume.
 
-### Status gate
-
-There is no per-note lifespan override. A note that remains useful must carry a status that says so: `active` for current action, `stable` for established knowledge, or `ongoing` for permanent evolving material. The sweep may archive only `done` or `stale` notes according to the owning tool's delay.
-
-## Manual archival
-
-Beyond the sweep, the user can manually archive one ordinary note by ID:
+Close full-mode work into a target context:
 
 ```bash
-arpent archive <note-id>
+arpent session end --project <slug> --summary "..." \
+  --decision "..." --next-step "..."
 ```
 
-This:
-- Moves the note to `04_archives/<YYYY_qX>/`
-- Sets `status: archived` in frontmatter
-- Adds `archived_at` and `archived_from`
-
-Todos use `arpent todo archive`; linear notes use validated dissolution. A
-folder, project, or arbitrary file requires a separately previewed manual
-procedure.
-
-## End-of-session protocol
-
-At the end of any working session, the agent updates context in a fixed order so the next session starts coherent. This is adapted from Eliott Meunier's IPCRA update order (project context → agent init → memory log).
-
-At the start of the next session, resume documentarily in either mode: read root
-`me.md`, then the target project/area `_context.md`, then only the specific notes
-or sources needed. There is no resume command. Normal resume must not read the
-optional `06_indexes/memory/MEMORY.md` log without a separate explicit read
-request.
-
-The implemented local order is:
-
-1. **Update the `_context.md` by default** for the project or area worked on by
-   appending a timestamped `Session update` block. Full uses a CLI-mediated
-   transaction; minimal applies and verifies the direct-file edit.
-2. **Only in full mode with `--memory-log`, prepend a `MEMORY.md` entry** with
-   the session's target, summary, decisions, and next steps. The flag records a
-   one-use write request; it does not permit later reads.
-3. **Full mode only:** queue supplied observations and traits in
-   `pending_db_writes.yaml`. This CLI-owned queue records deferred intent only;
-   Arpent has no command that flushes it to an external provider. Minimal does
-   not operate this queue.
-
-The CLI exposes this as:
+or:
 
 ```bash
-arpent session end [--project <slug>] [--area <slug>] [--memory-log]
+arpent session end --area <slug> --summary "..."
 ```
 
-The CLI syntax above requires full mode. Minimal updates `_context.md` directly
-and keeps user-provided orientation and durable readable information in files.
-Memory skills and surfaces remain retained but dormant.
+The command preserves existing body sections, updates `modified`, and appends a
+timestamped session block. Minimal mode performs and verifies the equivalent
+direct-file update. Closing a session is not project closure.
 
-A close without `--project` or `--area` must name another explicit sink:
-`--memory-log`, or in full mode at least one `--observation` or `--trait`.
+An explicit full-mode `--memory-log` flag additionally creates or updates the
+optional cross-project `06_indexes/memory/MEMORY.md` log. It is absent by
+default, is not read during normal resume, and each later read requires a
+separate explicit request.
 
-The host remains responsible for persisting durable observations and traits to
-external memory. Queueing them locally does not claim that persistence
-succeeded; see `minimal-mode.md`.
-
-The point: durable local context lives in `_context.md`; `MEMORY.md` is only a
-lightweight, disposable operational thread written by a one-use request. Never
-write session logs into canonical memory, never leave a permanent fact only in
-`MEMORY.md`, and never read that optional log without a separate explicit read
-request.
-
-## The memory wiki has its own, looser lifecycle
-
-`06_indexes/memory/wiki/` is the one zone where the normal cleanliness rules are relaxed. It holds the agent's short-to-medium-term research scratch and tolerates drafts and mess. It is **not** swept by the ephemeral sweep and does **not** follow the vault's status lifecycle. Instead, it is pruned and distilled by the agent during periodic cleaning sessions. Pages that prove durable can be distilled into clean vault notes; the rest can be left or discarded. This full-mode zone is deliberately exempt from the strict discipline applied to the 7 buckets.
-
-## What never gets archived
-
-These items live indefinitely in the active workspace:
-
-- `06_indexes/` content (code, schemas, docs, databases, `MEMORY.md`) - infrastructure
-- `03_resources/concepts/` notes with `status: stable` or `ongoing` - permanent knowledge base
-- `03_resources/maps-of-content/` notes (`type: map`) - permanent navigation, always `status: ongoing`, never rotate or get swept
-- `_context.md` files in projects and areas - they travel with their project/area when archived, never independently
-- `02_areas/<area>/philosophy.md` and similar foundational area docs
-- Any note with `status: active` or `stable`
-- Any note with `status: ongoing`
-
-## Maps of Content never rotate
-
-A `type: map` note is permanent and evolving by design. It is created at a "mental squeeze point" (Nick Milo) when a topic has enough notes that navigation gets hard, and it grows with the user's thinking - links get added, reorganized, annotated; large maps get split. A map is always `status: ongoing`, is exempt from the ephemeral sweep, and only leaves the active workspace if the user explicitly archives it.
-
-## Summary
-
-The lifecycle in one sentence: **the active workspace stays light because ephemerals rotate, while permanent content stays accessible because it never auto-archives**. The user controls what is permanent. The system handles the rotation of what isn't.
+An explicitly enabled external memory provider remains a separate host
+capability. Actionable reminders belong in todo. Non-actionable recall context
+may use a provider buffer only when that provider is enabled; otherwise it was
+not persisted and no fallback store should be claimed.

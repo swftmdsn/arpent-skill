@@ -22,6 +22,7 @@ The confirmation policy and batch threshold live in
 |---|---|
 | Keep readable knowledge | Typed Markdown note |
 | Track execution or completion | Todo in full; clearly untracked inbox note in minimal |
+| Recall context without execution state | External buffer only when an explicitly enabled provider exists |
 | Capture a quick temporary thought | Fleeting daily stream |
 | Organize files | Triage inbox and apply deterministic routing |
 | Find or recall | Search live files in minimal; bounded CLI search in full |
@@ -29,28 +30,28 @@ The confirmation policy and batch threshold live in
 | Close work | Update target `_context.md` |
 | Archive | Preserve content, update lifecycle metadata, and move |
 
-Minimal keeps user-provided orientation in `me.md`, working state in `_context.md`,
-and durable readable material in notes. Full permits CLI-mediated todo, context,
-import, backup, cron, and sweep capabilities when their other prerequisites are
-met; delegated memory also requires provider opt-in.
+Minimal keeps orientation in `me.md`, work state in `_context.md`, and readable
+material in notes. Full adds CLI-mediated capabilities. External memory remains
+a separate, explicitly enabled host capability.
 
 ## Routing
 
 Use `project > resource > area > inbox`. `project` and `resource` are mutually
-exclusive; `area` may accompany either. Never create a missing destination
-silently. Conflicting or unresolved placement goes to `00_inbox/unsure/` with a
-reason.
+exclusive; `area` may accompany either. Reserved resource homes declared by the
+contract may materialize on first write. Never invent another missing
+destination. Conflicting or unresolved placement goes to `00_inbox/unsure/`
+with a reason. Status and physical location are decoupled.
 
 ## Boundaries
 
 Minimal does not emulate coordinated SQLite or multi-file operations. Preserve
 current files and switch to full for todo state, import apply, extraction or
-dissolution, generated indexes and L1 summaries, Arpent backup, cron, sweep, or
-delegated queues.
+dissolution, generated indexes and L1 summaries, Arpent backup, cron, or sweep.
 
 ## Invariants
 
-- Never delete or overwrite user content. Archive.
+- Prevent silent loss: never silently replace a destination or destroy user
+  content. Explicit edits may use checked atomic replacement.
 - Use complete canonical frontmatter on ordinary notes.
 - Never infer `appreciated`, `importance`, or missing effort values.
 - Never invent frontmatter keys, relation types, provider opt-in, or side effects.
@@ -58,3 +59,5 @@ delegated queues.
 - Keep binary files unchanged with separate Markdown companions.
 - Apply the local confirmation policy without weakening validation.
 - Report actual paths and outcomes concisely.
+- `archived` is a status; `archived_at` and `archived_from` are lifecycle event
+  metadata, never statuses.

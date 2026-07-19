@@ -2,6 +2,9 @@
 
 Routing is a pure function of frontmatter.
 
+Lifecycle status and physical location are decoupled. Status alone does not
+assert a path or perform a move.
+
 - `project` set -> `01_projects/<project>/notes/`; use `drafts/` for drafts,
   `meetings/` for meetings, and `sessions/` for logs
 - `area` set -> the exact area folder, or one unambiguous
@@ -17,6 +20,7 @@ Special types may override subfolders:
 
 - `fleeting` -> `00_inbox/fleeting/dd-mm-yyyy.md`
 - `map` -> `03_resources/maps-of-content/`
+- `howto` -> `03_resources/how-tos/`
 - `integration` -> `03_resources/integrations/`
 - `artefact` -> `05_tools/artefacts/`
 - an agent-authored draft without a project -> `03_resources/agent_wiki/drafts/`
@@ -25,6 +29,11 @@ Special types may override subfolders:
 Routing never invents a missing home. Full creates a deliberate project with
 `arpent project create <name>`. Minimal follows the direct project procedure in
 the local Arpent skill.
+
+Reserved resource homes (`concepts`, `maps-of-content`, `how-tos`, `integrations`,
+`templates`, `agent_wiki`, `books`, `articles`, `portraits`, `productions`) are
+declared by the contract and may materialize on first write. Any other missing
+resource, project, or area remains unresolved and routes to `unsure/`.
 
 Triage and transactional ingestion are full-only CLI operations. In minimal,
 inventory inbox files directly, preserve raw sources, and do not claim an atomic
@@ -39,7 +48,9 @@ reference note with complete frontmatter and a `link` to the attachment. Without
 a final home, the original remains in inbox and the companion is untriaged.
 
 Minimal archive preserves one non-linear note, sets `status: archived`, updates
-`modified`, adds `archived_at` and `archived_from`, and moves without replacement
-to `04_archives/<YYYY_qN>/<title>.md`. Inspect source and destination immediately
-before the move and verify afterward. Extraction and linear dissolution remain
-full-only because they coordinate multiple notes.
+`modified`, adds lifecycle-event metadata `archived_at` and `archived_from`, and
+moves without silently replacing a destination to
+`04_archives/<YYYY_qN>/<title>.md`. `archived` is the status; the two extension
+fields record when and from where the move happened. Inspect source and
+destination immediately before the move and verify afterward. Extraction and
+linear dissolution remain full-only because they coordinate multiple notes.

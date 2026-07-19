@@ -2,6 +2,11 @@
 
 Arpent separates tool know-how from tool runtime material.
 
+This is an explanatory architecture document. `06_indexes/tools.yaml` declares
+registry state; the installed CLI determines which commands are actually
+available. Future tool design is planned/in construction and is not invocable
+behavior.
+
 ## Non-negotiable boundary
 
 `06_indexes/` is the control plane. It contains everything required to define,
@@ -14,7 +19,7 @@ create, validate, operate, and evolve a sub-tool:
 - `06_indexes/docs/` - architecture and operational documentation
 - `06_indexes/databases/` - centralized structured runtime state
 
-`05_tools/` is a runtime surface only. It may contain artifacts, queues,
+`05_tools/` is a runtime surface only. It may contain artifacts,
 captures, caches, and other outputs explicitly declared by `writes_to`. It must
 never contain a `SKILL.md`, schema, migration, tool template, command contract,
 or instructions for creating and maintaining tools.
@@ -55,28 +60,34 @@ enablement, dependencies, or runtime availability. The current CLI can inspect
 this registry but does not provide install, uninstall, enable, or disable
 commands.
 
-## Progressive creation
+## Future Installation Design
+
+The current CLI has no install, uninstall, enable, disable, or registry-status
+mutation command. The following is a planned/in-construction design, not a
+procedure an agent may execute today:
 
 1. A real usage need or phase retro selects one tool.
 2. The agent proposes its smallest useful command set and output boundary.
-3. Under the local confirmation policy, the agent creates the skill from
+3. A future development change creates the skill from
    `06_indexes/global_skills/_template_tool.skill.md` and registers the tool as
    `planned`.
 4. The agent adds only the required CLI contract, schema, and migrations in
    `06_indexes/`.
-5. Installation validates the skill, commands, dependencies, storage,
+5. A future installer validates the skill, commands, dependencies, storage,
    non-overlapping `writes_to` paths, and lifecycle dry-run.
-6. The policy-governed installation step may change `status` to `installed` and
+6. Only that delivered installation step may change `status` to `installed` and
    create missing runtime directories in `05_tools/` or an area.
 
-Installation is one prerequisite for tool dispatch. The current sweep executes
+`status: installed` is mandatory but not sufficient for tool dispatch. The
+implementation, permitted mode, dependencies, and configuration must also be
+available. The current sweep executes
 only ephemeral tools with `status: installed`; cron jobs are enabled separately
 in `cron.json` and are not dispatched from this registry.
 
-## Maintenance
+## Current Maintenance Boundary
 
-The agent may maintain runtime content according to the skill declared by a tool
-with `status: installed`. It may
-propose changes to tool know-how, commands, storage, schemas, or lifecycle, but
-those control-plane changes follow the local confirmation policy. Database evolution
-uses migrations; definitions are never copied into runtime folders.
+The agent may maintain runtime content only for a tool with `status: installed`
+and an actually available implementation. Reader, review, and z_backup are
+planned/in construction and are not invocable. Core `arpent backup` remains
+delivered independently of z_backup. Control-plane changes are Arpent
+development work; definitions are never copied into runtime folders.

@@ -11,6 +11,13 @@ requires-python = ">=3.9"
 license = { file = "LICENSE" }
 dependencies = []   # stdlib only, by design
 
+[project.optional-dependencies]
+dev = [
+    "coverage[toml]>=7.2,<8",
+    "setuptools>=61",
+    "wheel>=0.38",
+]
+
 [project.scripts]
 arpent = "scripts.cli:main"
 arp = "scripts.cli:main"
@@ -20,3 +27,22 @@ packages = ["scripts"]
 
 [tool.setuptools.package-data]
 scripts = ["COMPASS.md", "operations.yaml", "todo_schema.sql"]
+
+[tool.setuptools.data-files]
+"share/arpent/skill" = ["SKILL.md"]
+"share/arpent/skill/references" = ["references/*.md"]
+"share/arpent/skill/references/appendices" = ["references/appendices/*.md"]
+"share/arpent/skill/references/assurance" = ["references/assurance/*.md"]
+"share/arpent/skill/references/contracts" = ["references/contracts/*.md"]
+"share/arpent/skill/references/modes" = ["references/modes/*.md"]
+"share/arpent/skill/references/workflows" = ["references/workflows/*.md"]
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+source = ["scripts"]
+
+[tool.coverage.report]
+fail_under = 60
+show_missing = true
+skip_covered = true

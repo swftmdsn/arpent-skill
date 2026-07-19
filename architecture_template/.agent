@@ -22,14 +22,22 @@ The confirmation policy lives in `06_indexes/cli/operations.yaml`.
 
 ## Hard Rules
 
-- Never delete or overwrite user content. Archive.
+- Prevent silent loss: never silently replace a destination or destroy user
+  content. Explicit edits may use checked atomic replacement; archive for
+  lifecycle retention.
 - Never fill `appreciated` or `importance`; do not infer effort values.
 - Never guess a missing route; use `00_inbox/unsure/` with a reason.
+- Reserved resource homes may materialize on first write; never invent another
+  missing project, area, or resource.
 - Never invent frontmatter fields, relation types, memory activation, or side effects.
 - Write public timestamps as `dd-MM-YYYY-HH-mm` in UTC.
 - Keep binary attachments untouched with separate Markdown companions.
 - Do not rewrite `me.md` from inference.
-- Skills remain retained without necessarily being loaded or executable.
+- A tool skill is not executable unless its registry status is `installed` and
+  its runtime implementation and prerequisites are available.
 
 `_context.md` is the default local continuity surface. Minimal keeps approved
-orientation and context in files. Full-mode external memory remains opt-in.
+orientation and context in files. External host memory remains opt-in and is not
+enabled by vault mode.
+Actionable reminders are todo; non-actionable buffer context is provider-bound
+and is not persisted when no provider is enabled.

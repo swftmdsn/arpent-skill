@@ -1,4 +1,4 @@
-version: 0.4.0
+version: 0.4.1
 serialization:
   shape: complete_all_fields
   unused_scalar: null
@@ -109,6 +109,18 @@ fields:
 subjective_user_only:
   - appreciated
   - importance
+lifecycle_extensions:
+  archive_event:
+    applies_when_status: archived
+    capture_required: false
+    fields:
+      archived_at:
+        type: timestamp
+        format: dd-MM-YYYY-HH-mm
+        meaning: archive_event_time
+      archived_from:
+        type: string
+        meaning: pre_archive_vault_path
 defaults:
   type: note
   status: inbox
@@ -129,6 +141,7 @@ rules:
   depth: integer from 1 to 5 when meaningful
   effort: active actionables may use effort_cadence heavylift|slowburn and effort_level low|medium|high; never infer missing values
   relations: list of mappings with type and target; type must be in enums.relation_type
+  howto: one explicitly reviewed current practical answer; project and resource remain null; detailed and superseded material remains in annotated linked notes
   sweep: archive only done or stale; active, stable, and ongoing remain
 enums:
   type:
@@ -148,6 +161,7 @@ enums:
     - angle
     - production
     - map
+    - howto
     - artefact
   status:
     - inbox

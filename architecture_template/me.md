@@ -1,6 +1,8 @@
 # me.md - User Orientation
 
-This file is human-owned. It gives agents concise, user-provided orientation before they operate the vault.
+This file is human-owned. It is authoritative only for concise, user-provided
+orientation before agents operate the vault; operational state belongs in the
+target `_context.md`.
 
 It is not the delegated memory profile, not an observations log, and not a place for agents to accumulate inferred traits. Agents may propose edits, but should not rewrite this file from inference without an explicit user request.
 

@@ -1,30 +1,26 @@
 ---
 name: arpent
-description: Operate an Arpent vault for typed capture, todo, retrieval, routing, projects, lifecycle, and filesystem-first personal knowledge. Use when the user asks to save, remember, organize, find, move, archive, mature, import, or continue personal information or work in an Arpent vault.
+description: Operate an Arpent vault for local continuity, typed documents, todo, retrieval, routing, projects, lifecycle, import, and administration. Use when the user asks to save, organize, find, move, archive, import, or continue work in an Arpent vault.
 ---
 
 # Arpent
 
-Arpent is a filesystem-native personal operating system. Markdown is canonical.
-Minimal uses direct-file operation; full uses CLI-mediated routing,
-transactions, SQLite-backed tools, indexes, and recovery. Operate with the
+Arpent is a filesystem-native continuity layer. Markdown is canonical for
+documents; `todo.db` is authoritative for coordinated todo state. Minimal uses
+direct files; full adds CLI transactions, tools, indexes, and recovery. Use the
 smallest sufficient context.
 
 ## Start
 
-1. Locate the vault and read its small `.arpent` marker before choosing how to act.
-2. Read `references/workflows/COMPASS.md` only when the operation is not already
-   clear from the hot paths below.
-3. In full mode, let the command apply and report the local confirmation policy.
-   In minimal mode, or before planning a batch, read it from
-   `06_indexes/cli/operations.yaml`.
-4. Read `references/modes/full.md` in full mode or
-   `references/modes/minimal.md` in minimal mode.
-5. If a minimal marker sets `auto_full: true`, the first mode-gated CLI command
-   requests guarded vault-mode promotion. When the confirmation policy requires
-   it, run `arpent mode full --yes` first. An explicit return to minimal cancels
-   the pending request.
-6. Load one detailed workflow or contract only when the operation needs it.
+1. Read the vault's `.arpent` marker before acting.
+2. Use the hot paths below; read `references/workflows/COMPASS.md` only for an
+   unclear operation and load at most one detailed contract when needed.
+3. Follow `references/modes/full.md` or `references/modes/minimal.md`. Full-mode
+   commands apply local confirmation policy; minimal and batch planning read it
+   from `06_indexes/cli/operations.yaml`.
+4. With minimal `auto_full: true`, a mode-gated command requests promotion. Run
+   `arpent mode full --yes` first when policy requires it. Explicit minimal
+   cancels the request.
 
 Do not read the root README, complete architecture, full COMPASS, or all
 references for an ordinary capture.
@@ -34,32 +30,31 @@ references for an ordinary capture.
 ### Typed note
 
 Use for readable knowledge: notes, ideas, meetings, journal entries, references,
-drafts, concepts, integrations, maps, and production.
+drafts, concepts, integrations, maps, how-tos, and production.
 
 - Prefer one reusable thesis per note.
 - Use `note` when a more specific type adds no value.
 - `project` and `resource` are mutually exclusive; `area` may accompany either.
+- Reserved resource homes declared by the routing contract may be materialized
+  on first write. Never invent any other missing project, area, or resource.
 - Keep source URLs in `link`, not the body.
 - Use `source: captured` only with an external URL; otherwise describe the real
   provenance.
 - Route uncertainty to `00_inbox/unsure/` with a reason.
-
-Direct CLI capture:
+- `howto` is reviewed current global guidance; `map` is navigation. Keep detail
+  and history linked. See `references/workflows/maintain-howto.md`.
 
 ```text
 arpent note new <title> --type <type> [options] --body <body> --json
 ```
-
-Reviewed CLI capture:
 
 ```text
 arpent note new <same arguments> --dry-run --json
 arpent note new <same arguments> --plan-hash <plan_sha256> --json
 ```
 
-Minimal capture: build complete canonical frontmatter, compute the route,
-create without replacement, then read back and verify. Detailed procedure:
-`references/workflows/capture-note.md`.
+Minimal: build complete frontmatter, route, create without replacement, then
+verify. See `references/workflows/capture-note.md`.
 
 ### Todo
 
@@ -67,15 +62,16 @@ Use for work requiring execution, tracking, completion, deferral, or blocking.
 Do not infer optional dates, priority, duration, project, dependency, or
 assignee.
 
+“Remember to do X” is a todo. Non-actionable recall context is provider-bound;
+without provider opt-in, report it unpersisted. Todo does not promise alerts.
+
 ```text
 arpent todo add <content> [options] --json
 ```
 
-Use `--dry-run --json` then `--plan-hash` when the confirmation policy requires
-a second checkpoint. Todo's coordinated SQLite and Markdown state requires full
-mode. In minimal mode, offer
-an ordinary inbox capture and identify it as untracked. Detailed procedure:
-`references/workflows/capture-todo.md`.
+Use `--dry-run --json` then `--plan-hash` when policy requires review. Todo's
+SQLite/Markdown state requires full mode; minimal may offer an explicitly
+untracked inbox note. See `references/workflows/capture-todo.md`.
 
 ### Fleeting
 
@@ -103,10 +99,8 @@ The local `confirmation` contract supports:
 Clarification is not confirmation. Ask for missing meaning when needed. In
 `never`, do not pause merely to restate a valid plan.
 
-A direct CLI invocation is presumed to express a bounded request. Agents must
-establish that intent before invoking it; the CLI does not infer intent from
-natural language. A preview supports inspection, and a plan hash binds an exact
-generated plan, but neither proves human review nor grants permission.
+Agents establish intent before invoking the CLI. A preview supports inspection
+and a plan hash binds a plan; neither proves review nor grants permission.
 
 ## Other Operations
 
@@ -128,11 +122,8 @@ generated plan, but neither proves human review nor grants permission.
 ## Writing Rules
 
 - Primary language: English. Adaptive languages: French.
-- Adapt prose to the active conversation or source when natural. Keep metadata
-  keys, enums, IDs, syntax, and paths unchanged.
-- Use ordinary Obsidian-compatible Markdown.
-- Do not repeat the title as H1.
-- Do not repeat the source URL in the body.
+- Adapt prose to the conversation; keep metadata syntax unchanged.
+- Use ordinary Obsidian Markdown; repeat neither title as H1 nor source URL.
 - Concepts, ideas, and integrations must stand on their own.
 - Preview a split only when independent theses remain useful independently.
 
@@ -148,21 +139,27 @@ generated plan, but neither proves human review nor grants permission.
 - Use only declared relation types.
 - Preserve IDs, creation dates, user-owned fields, and body sections on edits.
 
-The full field order and policies are in
-`references/contracts/frontmatter.md` and `references/frontmatter.md`.
+See `references/contracts/frontmatter.md` and `references/frontmatter.md`.
+
+Status and location are decoupled. `archived` is a status;
+`archived_at`/`archived_from` describe explicit archive events.
 
 ## Safety
 
-- Never delete or overwrite user content. Archive.
+- Prevent silent loss: never silently replace a destination or destroy user
+  content. Explicitly requested edits may use checked atomic replacement.
 - Never silently choose between plausible destinations.
-- Never invent a missing project, area, resource, field, relation type, memory
-  destination, or successful side effect.
+- Never invent an undeclared missing project, area, resource, field, relation
+  type, memory destination, or successful side effect.
 - Never replace a CLI-mediated full-mode operation with direct file mutation.
 - Keep binary files byte-for-byte intact and use separate Markdown companions.
 - Keep tool know-how in `06_indexes/`; `05_tools/` is runtime material only.
 - Minimal mode keeps user-provided orientation in `me.md`, working state in
-  `_context.md`, and durable readable information in notes. Full-mode external
-  memory remains disabled until provider opt-in at the host level.
+  `_context.md`, and durable readable information in notes. External host memory
+  remains unavailable until provider opt-in and confirmed provider persistence.
+- `session end` writes target context by default. Only an explicit
+  `--memory-log` request writes optional `MEMORY.md`, which is never read during
+  normal resume.
 - `me.md` is human-owned; do not rewrite it from inference.
 
 ## Output Discipline
@@ -173,10 +170,3 @@ full-content verification commands.
 
 For paginated output, never mistake one page for a complete result. Follow the
 cursor or use `--all`/`--full` when the task requires completeness.
-
-## Complete Method
-
-The compact skill does not replace Arpent's detailed model. The complete
-architecture, schema examples, lifecycle rationale, memory rules, direct-file
-procedures, and edge cases remain indexed in
-`references/appendices/complete-reference-index.md`.

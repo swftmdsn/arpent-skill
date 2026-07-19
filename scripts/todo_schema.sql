@@ -1,14 +1,23 @@
--- Version 3 schema for 06_indexes/databases/todo.db.
+-- Version 4 schema for 06_indexes/databases/todo.db.
 -- Selection values are tool-defined TEXT keys so the available options can
--- evolve without a database migration.
+-- evolve without a database migration. Status is constrained because it drives
+-- the Markdown/SQLite lifecycle contract.
 -- Relation columns contain stable Arpent IDs. They are intentionally soft
 -- references because their targets are Markdown objects outside this database.
 
+BEGIN IMMEDIATE;
+
 CREATE TABLE IF NOT EXISTS todos (
-  id TEXT PRIMARY KEY,
+  id TEXT PRIMARY KEY CHECK (
+    substr(id, 1, 5) = 'todo-'
+    AND substr(id, 6, 8) GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
+    AND substr(id, 14, 1) = '-'
+    AND length(id) >= 15
+    AND substr(id, 15) NOT GLOB '*[^a-z]*'
+  ),
   content TEXT NOT NULL,
   priority TEXT,
-  status TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('active', 'waiting', 'done')),
   due_date TEXT,
   do_date TEXT,
   duration TEXT,
@@ -51,4 +60,6 @@ BEGIN
   SELECT RAISE(ABORT, 'todos.created_at is immutable');
 END;
 
-PRAGMA user_version = 3;
+PRAGMA user_version = 4;
+
+COMMIT;

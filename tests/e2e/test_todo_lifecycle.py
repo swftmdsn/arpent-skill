@@ -77,6 +77,40 @@ class TodoLifecycleE2ETests(unittest.TestCase):
             self.assertNotEqual(generic.returncode, 0)
             self.assertIn("tool-owned", generic.stderr)
 
+    def test_sweep_rejects_waiting_to_stale_for_dual_state_todo(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = initialize(Path(temporary))
+            added = json_result(run_cli(
+                root,
+                "todo", "add", "Wait for external review",
+                "--depends-on", "todo-external",
+                "--json",
+            ))
+            todo_id = added["id"]
+            tools_path = root / "06_indexes/tools.yaml"
+            tools_path.write_text(
+                tools_path.read_text(encoding="utf-8").replace(
+                    "    lifecycle:\n      - from: done",
+                    "    lifecycle:\n"
+                    "      - from: waiting\n"
+                    "        after_days: 0\n"
+                    "        to: stale\n"
+                    "      - from: done",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            swept = run_cli(root, "sweep", "ephemeral", "--yes")
+            self.assertNotEqual(swept.returncode, 0)
+            self.assertIn("Markdown and database states must change together", swept.stderr)
+
+            unchanged = json_result(run_cli(root, "todo", "show", todo_id, "--json"))
+            self.assertEqual(unchanged["status"], "waiting")
+            self.assertEqual(unchanged["lifecycle_status"], "waiting")
+            metadata, _ = frontmatter.read_note(root / unchanged["path"])
+            self.assertEqual(metadata["status"], "waiting")
+
     def _assert_record(self, root: Path, item: dict, *, markdown_status: str) -> None:
         metadata, body = frontmatter.read_note(root / item["path"])
         self.assertEqual(metadata["id"], item["id"])

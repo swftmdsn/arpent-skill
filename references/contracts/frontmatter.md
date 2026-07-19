@@ -24,10 +24,13 @@ Rules required for capture:
 - `depth` is `1..5` only when the score adds information.
 - Do not infer an effort profile.
 - `project` and `resource` are mutually exclusive; `area` is contextual.
+- `howto` is global: leave `project` and `resource` null; `area` may remain
+  contextual.
 - Relation types are limited to `supports`, `contradicts`, `depends_on`,
   `derived_from`, and `example_of`.
 - Public timestamps use `dd-MM-YYYY-HH-mm` in UTC. Machine-owned values may
   retain ISO 8601, and daily fleeting filenames remain date-only.
 
 Archive-only fields `archived_at` and `archived_from` are lifecycle extensions,
-not normal capture fields.
+not normal capture fields and never lifecycle statuses. `archived` is the
+status.

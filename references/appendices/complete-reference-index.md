@@ -1,8 +1,9 @@
 # Complete reference index
 
-The compact skill and workflows are an operational loading strategy, not a
-reduction of Arpent's model. The following retained documents contain the full
-explanations, examples, edge cases, and design rationale:
+The compact skill, mode documents, and workflows are operationally
+authoritative for agent procedure. The installed CLI is authoritative for
+syntax. The following documents are explanatory, historical, or design
+references; they must not create capabilities absent from the runtime:
 
 | Subject | Complete document |
 |---|---|
@@ -17,7 +18,7 @@ explanations, examples, edge cases, and design rationale:
 | Minimal direct-file operation and ingestion | `../minimal-mode.md` |
 | External import and migration | `../import-and-migration.md` |
 | Current product surface and examples | `../../README.md` |
-| Historical complete-router rationale | `complete-COMPASS.md` |
+| Historical router rationale | `complete-COMPASS.md` |
 | Orchestration summary | `../arpent-use.md` |
 | CLI/filesystem capability comparison | `../assurance/capability-matrix.md` |
 

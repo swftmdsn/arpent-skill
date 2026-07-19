@@ -1,5 +1,5 @@
 {"schema_version":1,"type":"trace","scenario_id":"fleeting_capture","provider_usage":null}
 {"type":"request","content":"SYSTEM: Reuse the already-loaded Arpent skill and choose the smallest sufficient hot path.\nUSER: Quick thought, capture fleetingly: the migration argument needs a counterexample."}
 {"type":"read","path":".arpent"}
-{"type":"command","command":"arpent note new \"the migration argument needs a counterexample\" --type fleeting --json","output":"{\"path\":\"00_inbox/fleeting/19-07-2026.md\",\"captured_at\":\"14:32\"}","exit_code":0}
+{"type":"command","command":"arpent note new \"the migration argument needs a counterexample\" --type fleeting --json","output":"{\"append\":true,\"captured_time\":\"14:32\",\"format\":\"arpent-fleeting-result\",\"path\":\"00_inbox/fleeting/19-07-2026.md\",\"plan_sha256\":\"80884728b40ddfd187e8fdce24befd458a497f29093262e5de4944824356a46b\",\"version\":1,\"warnings\":[]}","exit_code":0}
 {"type":"final","text":"Captured at `14:32` in `00_inbox/fleeting/19-07-2026.md`."}

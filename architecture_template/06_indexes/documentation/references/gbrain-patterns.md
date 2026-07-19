@@ -1,4 +1,0 @@
-# gbrain Patterns
-
-Reference placeholder.
-

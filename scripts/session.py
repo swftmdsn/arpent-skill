@@ -14,14 +14,11 @@ SESSION_JOURNAL_REL = "06_indexes/logs/session-transaction.json"
 
 
 def end_session(vault, *, project=None, area=None, summary, decisions=None,
-                  next_steps=None, observations=None, traits=None,
-                  memory_log=False) -> dict:
-    """Apply explicitly selected session-end context, log, and queue writes."""
+                  next_steps=None, memory_log=False) -> dict:
+    """Apply explicitly selected session-end context and optional log writes."""
     decisions = decisions or []
     next_steps = next_steps or []
-    observations = observations or []
-    traits = traits or []
-    if not project and not area and not memory_log and not observations and not traits:
+    if not project and not area and not memory_log:
         raise ValueError(
             "session end needs --project or --area; use --memory-log only when the "
             "optional cross-project log is explicitly wanted"
@@ -29,7 +26,6 @@ def end_session(vault, *, project=None, area=None, summary, decisions=None,
     with vault.exclusive_lock("mutations"):
         _recover_session_transaction(vault)
         now = fmlib.now_note_timestamp()
-        operational_now = fmlib.now_iso()
         folder = _target_folder(vault, project=project, area=area) if project or area else None
         prepared = []
         context_path = None
@@ -47,12 +43,6 @@ def end_session(vault, *, project=None, area=None, summary, decisions=None,
                 decisions=decisions, next_steps=next_steps,
             )
             prepared.append((memory_rel, memory_content))
-        pending = _prepare_memory_writes(
-            vault, operational_now, observations=observations, traits=traits,
-        )
-        queued = pending[2]
-        if pending[0] is not None:
-            prepared.append((pending[0], pending[1]))
         journal = file_transaction.prepare(
             vault,
             SESSION_JOURNAL_REL,
@@ -73,7 +63,6 @@ def end_session(vault, *, project=None, area=None, summary, decisions=None,
         return {
             "context_path": context_path,
             "memory_path": memory_path,
-            "queued_writes": queued,
         }
 
 
@@ -230,40 +219,3 @@ def _session_block(now: str, summary: str, decisions: list[str], next_steps: lis
         lines.append("- Next steps:")
         lines.extend(f"  - {item}" for item in next_steps)
     return "\n".join(lines)
-
-
-def _prepare_memory_writes(vault, now: str, *, observations, traits) -> tuple[str | None, str | None, int]:
-    entries = []
-    for item in observations:
-        entries.append((now, "observation", {"content": item}))
-    for item in traits:
-        entries.append((now, "profile", {"content": item}))
-    if not entries:
-        return None, None, 0
-
-    relpath = "06_indexes/pending_db_writes.yaml"
-    path = vault.safe_output_path(relpath)
-    if path.exists():
-        text = vault.safe_source_path(relpath).read_text(encoding="utf-8")
-    else:
-        text = "version: 0.1.0\npending: []\n"
-    if "pending: []" in text:
-        text = text.replace("pending: []", "pending:")
-    elif "pending:" not in text:
-        text = text.rstrip() + "\npending:\n"
-
-    blocks = []
-    for timestamp, role, payload in entries:
-        blocks.extend([
-            f"  - timestamp: {_yaml_string(timestamp)}",
-            f"    role: {role}",
-            "    payload:",
-        ])
-        for key, value in payload.items():
-            blocks.append(f"      {key}: {_yaml_string(value)}")
-    content = text.rstrip() + "\n" + "\n".join(blocks) + "\n"
-    return relpath, content, len(entries)
-
-
-def _yaml_string(value: str) -> str:
-    return json.dumps(value, ensure_ascii=True)

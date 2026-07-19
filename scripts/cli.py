@@ -2,7 +2,7 @@
 cli.py - command-line interface (argparse), zero dependencies.
 
 Implemented commands:
-  init, import, status, health, index, context, triage, efforts, search, backup, project, session, cron, tools
+  init, skill, import, status, health, index, context, triage, efforts, search, backup, project, session, cron, tools
   note new | edit | ingest | read | find | status | route | extract | dissolve
   archive, sweep
   todo add | list | show | edit | done | defer | block | archive
@@ -33,6 +33,7 @@ from . import operations as operations_mod
 from . import projects as projects_mod
 from . import routing
 from . import session as session_mod
+from . import skill_bundle as skill_bundle_mod
 from . import sweep as sweep_mod
 from . import todo as todo_mod
 from . import tools as tools_mod
@@ -292,6 +293,9 @@ def _promote_to_full(vault: Vault, *, automatic=False) -> bool:
 def _vault_mode_guard(args):
     """Keep the checked mode stable until the current CLI command completes."""
     command = getattr(args, "command", None)
+    if command == "skill":
+        yield
+        return
     if command == "init":
         root = Path(args.path).expanduser().resolve()
         candidate = Vault(root)
@@ -326,7 +330,7 @@ def _vault_mode_guard(args):
                 return
             if not marker["auto_full"]:
                 sys.exit(
-                    f"`arpent {command}` is mode-gated in minimal mode. "
+                    f"`arpent {command}` is not available in minimal mode; it is mode-gated. "
                     "Use direct-file operations, or run `arpent mode full`."
                 )
         try:
@@ -343,6 +347,17 @@ def _vault_mode_guard(args):
 # --------------------------------------------------------------------------- #
 # Commands
 # --------------------------------------------------------------------------- #
+
+def cmd_skill_install(args):
+    result = skill_bundle_mod.install_skill_bundle(args.to, replace=args.replace)
+    if args.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        print(
+            f"Installed Arpent skill bundle at {result['destination']} "
+            f"({result['file_count']} files, {result['total_bytes']} bytes)"
+        )
+
 
 def cmd_init(args):
     structure = None
@@ -731,6 +746,15 @@ def cmd_context_show(args):
         l1 = entry.get("l1") or {}
         if not l1.get("summary"):
             sys.exit(f"No L1 summary for '{normalized}' ({l1.get('status') or 'missing'}).")
+        try:
+            live_hash = index_mod.current_context_hash(v, normalized, entry.get("kind"))
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            sys.exit(f"Cannot validate L1 summary for '{normalized}': {exc}")
+        if live_hash != l1.get("source_hash"):
+            sys.exit(
+                f"L1 summary for '{normalized}' is stale; run `arpent index` "
+                "and regenerate it."
+            )
         if l1.get("status") != "fresh":
             print(f"Warning: L1 summary is {l1.get('status')}.", file=sys.stderr)
         print(l1["summary"])
@@ -947,85 +971,87 @@ def cmd_backup_restore(args):
 
 def cmd_note_new(args):
     v = _need_vault()
-    body = _read_body(args)
-    if args.type == "fleeting" and not body:
-        body = args.title
-    try:
-        plan = notes_mod.plan_note_new(
-            v, title=args.title, ntype=args.type, body=body, status=args.status,
-            project=args.project, area=args.area, resource=args.resource,
-            tags=_split_tags(args.tags), source=args.source, author=args.author,
-            description=args.description, link=args.link,
-            chosen_location=args.chosen_location,
-            effort_cadence=args.effort_cadence,
-            effort_level=args.effort_level,
-            expected_plan_hash=args.plan_hash,
-        )
-    except ValueError as e:
-        sys.exit(str(e))
-    public_plan = notes_mod.public_note_new_plan(plan)
-    try:
-        confirmation_required = _confirmation_required(v, "note_new")
-    except ValueError as e:
-        sys.exit(str(e))
-    public_plan["confirmation_required"] = confirmation_required
-    if args.dry_run or (confirmation_required and not args.plan_hash):
-        if args.json:
-            print(json.dumps(public_plan, indent=2, ensure_ascii=False, sort_keys=True))
-        else:
-            print(f"Planned note → {plan['destination_path']}")
-            print(f"Plan hash: {plan['plan_sha256']}")
-            for warning in plan["warnings"]:
-                print(f"Warning: {warning}")
-            if confirmation_required and not args.dry_run:
-                print("Review the plan, then re-run with --plan-hash <plan_sha256>.")
+    # Keep ID planning and publication in one interprocess critical section.
+    with v.exclusive_lock("mutations"):
+        body = _read_body(args)
+        if args.type == "fleeting" and not body:
+            body = args.title
+        try:
+            plan = notes_mod.plan_note_new(
+                v, title=args.title, ntype=args.type, body=body, status=args.status,
+                project=args.project, area=args.area, resource=args.resource,
+                tags=_split_tags(args.tags), source=args.source, author=args.author,
+                description=args.description, link=args.link,
+                chosen_location=args.chosen_location,
+                effort_cadence=args.effort_cadence,
+                effort_level=args.effort_level,
+                expected_plan_hash=args.plan_hash,
+            )
+        except ValueError as e:
+            sys.exit(str(e))
+        public_plan = notes_mod.public_note_new_plan(plan)
+        try:
+            confirmation_required = _confirmation_required(v, "note_new")
+        except ValueError as e:
+            sys.exit(str(e))
+        public_plan["confirmation_required"] = confirmation_required
+        if args.dry_run or (confirmation_required and not args.plan_hash):
+            if args.json:
+                print(json.dumps(public_plan, indent=2, ensure_ascii=False, sort_keys=True))
+            else:
+                print(f"Planned note → {plan['destination_path']}")
+                print(f"Plan hash: {plan['plan_sha256']}")
+                for warning in plan["warnings"]:
+                    print(f"Warning: {warning}")
+                if confirmation_required and not args.dry_run:
+                    print("Review the plan, then re-run with --plan-hash <plan_sha256>.")
+            usage_mod.set_result(
+                args, subject_kind="note", subject_type=plan["frontmatter"]["type"],
+                status_after=plan["frontmatter"]["status"], outcome="dry_run",
+                changed=False, count=1,
+            )
+            return
+        for warning in plan["warnings"]:
+            print(f"Warning: {warning}", file=sys.stderr)
+        try:
+            dest, r, fm = notes_mod.apply_note_new(v, plan)
+        except ValueError as e:
+            sys.exit(str(e))
         usage_mod.set_result(
-            args, subject_kind="note", subject_type=plan["frontmatter"]["type"],
-            status_after=plan["frontmatter"]["status"], outcome="dry_run",
-            changed=False, count=1,
+            args, subject_kind="note", subject_type=fm["type"],
+            status_after=fm["status"], outcome="captured", changed=True, count=1,
         )
-        return
-    for warning in plan["warnings"]:
-        print(f"Warning: {warning}", file=sys.stderr)
-    try:
-        dest, r, fm = notes_mod.apply_note_new(v, plan)
-    except ValueError as e:
-        sys.exit(str(e))
-    usage_mod.set_result(
-        args, subject_kind="note", subject_type=fm["type"],
-        status_after=fm["status"], outcome="captured", changed=True, count=1,
-    )
-    rel = dest.relative_to(v.root).as_posix()
-    if args.json:
-        if r.append:
-            result = {
-                "format": "arpent-fleeting-result",
-                "version": 1,
-                "path": rel,
-                "append": True,
-                "captured_time": r.entry_time,
-                "warnings": plan["warnings"],
-                "plan_sha256": plan["plan_sha256"],
-            }
+        rel = dest.relative_to(v.root).as_posix()
+        if args.json:
+            if r.append:
+                result = {
+                    "format": "arpent-fleeting-result",
+                    "version": 1,
+                    "path": rel,
+                    "append": True,
+                    "captured_time": r.entry_time,
+                    "warnings": plan["warnings"],
+                    "plan_sha256": plan["plan_sha256"],
+                }
+            else:
+                result = {
+                    "format": "arpent-note-new-result",
+                    "version": 1,
+                    "id": fm["id"],
+                    "path": rel,
+                    "frontmatter": fm,
+                    "warnings": plan["warnings"],
+                    "plan_sha256": plan["plan_sha256"],
+                }
+            print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
+            return
+        if r.reason:
+            print(f"⚠ Routed to unsure: {rel}")
+            print("  " + r.reason.replace("\n", "\n  "))
+        elif r.append:
+            print(f"Captured fleeting → {rel}")
         else:
-            result = {
-                "format": "arpent-note-new-result",
-                "version": 1,
-                "id": fm["id"],
-                "path": rel,
-                "frontmatter": fm,
-                "warnings": plan["warnings"],
-                "plan_sha256": plan["plan_sha256"],
-            }
-        print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
-        return
-    if r.reason:
-        print(f"⚠ Routed to unsure: {rel}")
-        print("  " + r.reason.replace("\n", "\n  "))
-    elif r.append:
-        print(f"Captured fleeting → {rel}")
-    else:
-        print(f"Created {fm['id']} → {rel}")
+            print(f"Created {fm['id']} → {rel}")
 
 
 def cmd_note_route(args):
@@ -1403,20 +1429,24 @@ def cmd_project_create(args):
     except (OSError, ValueError) as exc:
         sys.exit(str(exc))
     usage_mod.set_result(
-        args, subject_kind="project", outcome="created", changed=True, count=1,
+        args,
+        subject_kind="project",
+        outcome="created" if result["created"] else "no_change",
+        changed=result["created"],
+        count=1 if result["created"] else 0,
     )
     if result["name"] != result["slug"]:
         print(f"Name: {result['name']}")
     relpath = result["project_path"].relative_to(v.root).as_posix()
-    print(f"Created project '{result['slug']}' -> {relpath}/")
+    if result["created"]:
+        print(f"Created project '{result['slug']}' -> {relpath}/")
+    else:
+        print(f"Project '{result['slug']}' already exists -> {relpath}/")
 
 
 def cmd_session_end(args):
     v = _need_vault()
-    item_count = max(
-        1,
-        len(args.decision) + len(args.next_step) + len(args.observation) + len(args.trait),
-    )
+    item_count = max(1, len(args.decision) + len(args.next_step))
     _require_confirmation_flag(args, v, "session_end", count=item_count)
     try:
         result = session_mod.end_session(
@@ -1426,8 +1456,6 @@ def cmd_session_end(args):
             summary=args.summary,
             decisions=args.decision,
             next_steps=args.next_step,
-            observations=args.observation,
-            traits=args.trait,
             memory_log=args.memory_log,
         )
     except ValueError as e:
@@ -1439,8 +1467,6 @@ def cmd_session_end(args):
         print(f"Updated context: {result['context_path'].relative_to(v.root).as_posix()}")
     if result["memory_path"]:
         print(f"Updated optional memory log: {result['memory_path'].relative_to(v.root).as_posix()}")
-    if result["queued_writes"]:
-        print(f"Queued deferred memory writes: {result['queued_writes']}")
 
 
 def cmd_tools_list(args):
@@ -1806,10 +1832,6 @@ def cmd_usage_report(args):
         print(usage_mod.format_report(report), end="")
 
 
-def cmd_tool_stub(args):
-    sys.exit(f"`arpent {args.tool}` is an unavailable placeholder command.")
-
-
 # --------------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------------- #
@@ -1883,6 +1905,27 @@ Create a deliberate project destination with: arpent project create <name>""",
         help="create Areas, Resources, and/or projects declared in a .json or .md file",
     )
     sp.set_defaults(func=cmd_init)
+
+    skill = sub.add_parser(
+        "skill",
+        help="install the host-neutral Arpent agent skill bundle",
+    ).add_subparsers(dest="skill_cmd", required=True)
+    sk = skill.add_parser(
+        "install",
+        help="copy the complete bundle to one exact directory",
+    )
+    sk.add_argument(
+        "--to",
+        required=True,
+        help="exact destination directory; never host-inferred",
+    )
+    sk.add_argument(
+        "--replace",
+        action="store_true",
+        help="explicitly replace an existing directory after validating the new bundle",
+    )
+    sk.add_argument("--json", action="store_true", help="emit a versioned install result")
+    sk.set_defaults(func=cmd_skill_install)
 
     mode = sub.add_parser(
         "mode",
@@ -2227,13 +2270,13 @@ Create a deliberate project destination with: arpent project create <name>""",
     session = sub.add_parser("session", help="local continuity operations").add_subparsers(dest="session_cmd", required=True)
     s = session.add_parser(
         "end",
-        help="close a session into project or area context",
+        help="close a session into context and an optional explicit memory log",
         description=(
             "By default, record summary, decisions, and next steps in project/area "
             "_context.md. The cross-project MEMORY.md log is disabled unless "
             "--memory-log is passed, and agents must not read it later without a separate "
-            "explicit read request. A no-target close requires --memory-log or observation/trait "
-            "queue writes. This CLI operation is full-mode only."
+            "explicit read request. A no-target close requires --memory-log. "
+            "This CLI operation is full-mode only."
         ),
     )
     s.add_argument("--project", default=None)
@@ -2242,8 +2285,6 @@ Create a deliberate project destination with: arpent project create <name>""",
     s.add_argument("--decision", action="append", default=[])
     s.add_argument("--next-step", action="append", default=[])
     s.add_argument("--memory-log", action="store_true", help="request one create or update of the optional cross-project MEMORY.md log")
-    s.add_argument("--observation", action="append", default=[])
-    s.add_argument("--trait", action="append", default=[])
     s.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     s.set_defaults(func=cmd_session_end)
 
@@ -2370,11 +2411,6 @@ Create a deliberate project destination with: arpent project create <name>""",
     td.add_argument("--yes", action="store_true", help=CONFIRMATION_HELP)
     td.set_defaults(func=cmd_todo_archive)
 
-    for tool_name in ("fleeting", "reader", "calendar", "sport", "journal", "crm"):
-        tp = sub.add_parser(tool_name, help=f"{tool_name} placeholder (unavailable)")
-        tp.add_argument("args", nargs=argparse.REMAINDER)
-        tp.set_defaults(func=cmd_tool_stub, tool=tool_name)
-
     return p
 
 
@@ -2393,6 +2429,10 @@ def main(argv=None):
         exit_code = exc.code if isinstance(exc.code, int) else 1
         success = exit_code == 0
         raise
+    except (OSError, ValueError, sqlite3.Error) as exc:
+        print(f"arpent: {exc}", file=sys.stderr)
+        exit_code = 1
+        success = False
     except BaseException:
         exit_code = 1
         raise
@@ -2404,7 +2444,8 @@ def main(argv=None):
             started_at=started_at,
             started_monotonic=started_monotonic,
         )
+    return exit_code
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

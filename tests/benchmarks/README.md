@@ -15,8 +15,11 @@ Run these from the repository root with Python 3.9 or later:
 
 ```bash
 python3 tests/benchmarks/run.py validate
+python3 tests/benchmarks/run.py baseline-check
 python3 tests/benchmarks/run.py offline --output build/benchmarks/offline
 python3 tests/benchmarks/run.py live --adapter replay --output build/benchmarks/replay
+python3 tests/benchmarks/run.py live --adapter stateful-cli \
+  --scenario full_first_capture --output build/benchmarks/stateful
 python3 tests/benchmarks/run.py live --adapter command-jsonl \
   --adapter-command "python3 path/to/adapter.py" \
   --output build/benchmarks/live
@@ -30,15 +33,29 @@ python3 tests/benchmarks/run.py compare \
 python3 -m unittest discover -s tests/benchmarks -p 'test_*.py'
 ```
 
-`offline` scores the checked-in ideal traces. `live --adapter replay` exercises
-the same traces through the adapter interface. A live command adapter is one
+`validate` and `offline` validate the checked-in corpus, goldens, traces, and
+scorer. They do not execute or validate an agent. `live --adapter replay`
+exercises the same static traces through the adapter interface.
+
+`stateful-cli` initializes a real temporary vault, materializes fixture documents,
+executes each declared `arpent`/`arp` command without a shell, captures its actual
+exit code and output, and applies declared direct write events. It deliberately
+replays requests, reads, claims, and finals, so it validates CLI state transitions
+without claiming to be a model. Reports identify the mode as `stateful`, not as an
+agent run. Its pass/fail verdict uses only executed command/write checks and
+observed postconditions; replayed checks remain visible but cannot make a
+stateful scenario pass. Select only scenarios marked `stateful_eligible` with
+repeated `--scenario` options; other selections are rejected before execution.
+
+A real agent evaluation requires the external `command-jsonl` adapter. It is one
 long-running subprocess; it receives and emits one JSON object per line and must
-flush every response. Any scenario failure makes evaluation exit 1. Invalid
-data, adapter failure, or CLI misuse exits 2. Comparison exits 1 on regression.
+flush every response. Any scenario failure makes evaluation exit 1. Invalid data,
+adapter failure, or CLI misuse exits 2. Comparison exits 1 on regression.
 
 Each evaluation output contains:
 
-- `report.json`: complete scores, checks, static metrics, and trace hashes;
+- `report.json`: complete scores, check origins, static metrics, trace hashes,
+  and the resolved-document SHA-256 manifest;
 - `events.jsonl`: run events, every auditable trace event, and results;
 - `report.md`: human-readable summary;
 - `junit.xml`: CI-compatible scenario failures.
@@ -53,7 +70,7 @@ requests/tools/CLI calls, and reduced stable-prefix reuse as regressions. Use
 The harness sends this strict request shape on stdin:
 
 ```json
-{"protocol_version":1,"type":"evaluate","scenario":{"schema_version":1,"id":"...","title":"...","category":"...","description":"...","conversation_id":"...","turn_index":1,"prompt":"...","fixture":{"vault_mode":"full","skill_loaded":false,"confirmation":"explicit-intent","documents":[{"path":".arpent","content":"..."}]},"tags":["..."]}}
+{"protocol_version":1,"type":"evaluate","scenario":{"schema_version":1,"id":"...","title":"...","category":"...","description":"...","conversation_id":"...","turn_index":1,"prompt":"...","fixture":{"vault_mode":"full","skill_loaded":false,"confirmation":"explicit-intent","documents":[{"path":".arpent","content":"..."}]},"tags":["..."],"stateful_eligible":true}}
 ```
 
 The adapter returns exactly one line per request:
@@ -91,9 +108,10 @@ embedding copies in traces.
 `corpus/scenarios.jsonl` has one closed-shape scenario per line. Scenario IDs are
 lowercase underscore slugs; turns are ordered within a conversation; fixture
 paths are safe relative POSIX paths. Required coverage tags are enforced by the
-validator.
+validator. `stateful_eligible` is true only for scenarios whose initialized vault
+and fixture documents are sufficient to execute every declared mutation.
 
-Each `goldens/<scenario_id>.json` has exactly these keys:
+Each `goldens/<scenario_id>.json` supports these closed-schema keys:
 
 ```json
 {
@@ -107,10 +125,23 @@ Each `goldens/<scenario_id>.json` has exactly these keys:
   "forbidden_claims": [],
   "required_writes": [],
   "forbidden_writes": [],
+  "command_results": [{"command": "^arpent note new", "exit_code": 0, "output_json": {"format": "arpent-note-new-result", "version": 1}}],
+  "command_bindings": [{"source_command": "--dry-run", "source_json_field": "plan_sha256", "target_command": "--plan-hash", "target_option": "--plan-hash"}],
+  "write_results": [{"path": "^00_inbox/result.md$", "content": null, "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}],
+  "postconditions": [{"kind": "command_json_path_exists", "command": "^arpent note new", "field": "path"}],
   "final_size": {"min_utf8_bytes": 1, "max_utf8_bytes": 500},
-  "hard_failures": ["forbidden_read", "forbidden_command", "forbidden_claim", "forbidden_write", "missing_final"]
+  "hard_failures": ["forbidden_read", "forbidden_command", "forbidden_claim", "forbidden_write", "missing_final", "command_failure", "write_mismatch"]
 }
 ```
+
+These four result/binding/postcondition lists are optional. Required commands and
+command-result expectations are matched in order. Every command event must exit
+zero; a declared command result cannot waive that rule. Declared JSON outputs must
+include a versioned `format`/`version`; nested declared values are matched as a
+strict subset of the parsed output. Bindings require an apply argument to equal a
+field from an earlier preview JSON result. Declared writes compare exact content,
+UTF-8 SHA-256, or both. Stateful postconditions can check literal paths, JSON
+fields, and paths returned by actual command JSON.
 
 All patterns use Python `re.search`. Every pattern and final-size bound is one
 equally weighted objective assertion. Any failed assertion fails the scenario.

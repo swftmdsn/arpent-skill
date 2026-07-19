@@ -10,6 +10,73 @@ from tests.e2e._support import initialize, json_result, require_success, run_cli
 
 
 class FullLifecycleE2ETests(unittest.TestCase):
+    def test_howto_creation_and_explicit_revision_preserve_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = initialize(Path(temporary))
+            first_body = """## Current conclusion
+
+Rotate credentials in two phases.
+
+Last explicit review: 19-07-2026-12-00
+
+## Why
+
+Both credentials remain valid during deployment.
+
+## How
+
+1. Add the new credential.
+2. Remove the old credential after verification.
+
+## Examples
+
+Use overlapping API keys.
+
+## Applicability and limits
+
+The provider must support two active credentials.
+
+## Linked notes
+
+- [[credential_rotation_history]] - detailed decisions and superseded guidance
+"""
+            created = json_result(run_cli(
+                root,
+                "note", "new", "Rotate credentials without downtime",
+                "--type", "howto",
+                "--source", "derived",
+                "--body", first_body,
+                "--json",
+            ))
+
+            self.assertEqual(
+                created["path"],
+                "03_resources/how-tos/rotate_credentials_without_downtime.md",
+            )
+            guide_path = root / created["path"]
+            metadata, body = frontmatter.read_note(guide_path)
+            self.assertEqual(metadata["type"], "howto")
+            self.assertEqual(metadata["status"], "ongoing")
+            self.assertEqual(metadata["id"], created["id"])
+            self.assertIn("Rotate credentials in two phases.", body)
+
+            revised_body = first_body.replace(
+                "Rotate credentials in two phases.",
+                "Rotate credentials with a verified overlap window.",
+            ).replace("19-07-2026-12-00", "20-07-2026-09-30")
+            require_success(run_cli(
+                root,
+                "note", "edit", created["id"],
+                "--body", revised_body,
+                "--json",
+            ))
+
+            revised, revised_text = frontmatter.read_note(guide_path)
+            self.assertEqual(revised["id"], created["id"])
+            self.assertIn("verified overlap window", revised_text)
+            self.assertNotIn("Rotate credentials in two phases.", revised_text)
+            self.assertIn("[[credential_rotation_history]]", revised_text)
+
     def test_project_capture_context_index_search_and_archive(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = initialize(Path(temporary))

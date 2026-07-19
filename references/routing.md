@@ -7,6 +7,10 @@ vaults receive the same contract at `06_indexes/cli/operations.yaml`.
 `scripts/routing.py` interprets that contract. This document explains the
 intent and the ambiguity policy; it does not duplicate routing tables.
 
+Lifecycle status and physical location are separate. Routing uses home fields,
+type, provenance, and only the explicit status/type exceptions declared in the
+contract. A status such as `inbox` is not an absolute path alias.
+
 ## Core contract
 
 A routed vault note uses two mutually exclusive homes and one contextual dimension:
@@ -36,7 +40,10 @@ semantic slug, for example `area: sport`.
 
 A concept belongs in `03_resources/concepts/` when it is understandable and reusable outside the project where it emerged. Projects reference it with ordinary Obsidian wikilinks and backlinks; the concept does not set `project`.
 
-Material belongs in `01_projects/<project>/notes/` when it exists only to execute or document that project. It sets `project + area` and leaves `resource: null`. This keeps global resources Zettelkasten-like without hiding project-specific material among them.
+Material belongs in `01_projects/<project>/notes/` when it exists only to execute
+or document that project. It sets `project`, may carry an optional contextual
+`area`, and leaves `resource: null`. This keeps global resources Zettelkasten-like
+without hiding project-specific material among them.
 
 ## Ambiguity policy
 
@@ -53,14 +60,26 @@ the slug. Full creates a deliberate project with `arpent project create
 <name>`; minimal creates the same canonical structure directly. Routing never
 creates one implicitly. Area creation remains deliberate.
 
+Reserved resources are the one explicit distinction. The routing contract
+declares `concepts`, `maps-of-content`, `how-tos`, `integrations`, `templates`,
+`agent_wiki`, `books`, `articles`, `portraits`, and `productions` as valid homes.
+Their directories may be materialized on first write because the home already
+exists semantically in the contract. This is not permission to invent arbitrary
+resources: any other absent resource is unresolved and routes to `unsure/`
+until deliberately created.
+
 ## Type and status refinements
 
 Type-specific and status-specific refinements are data, not prose. Examples:
 
 - append-only fleeting capture files
-- map and integration destinations
+- map, how-to, and integration destinations
 - type-specific subfolders such as meetings or sessions
 - archived linear notes
+
+Changing status alone does not generally move a note. Use the explicit archive,
+todo archive, or linear dissolution operation when a lifecycle event must also
+change location.
 
 To change those rules, edit `scripts/operations.yaml` and update tests. Do not
 add a second table here.

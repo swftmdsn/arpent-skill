@@ -3,7 +3,7 @@
 ## Trigger
 
 Use for readable knowledge: a thought, idea, meeting, source, journal entry,
-reference, observation, draft, concept, integration, map, or production.
+reference, observation, draft, concept, integration, map, how-to, or production.
 Actions belong in todo in full mode. In minimal, user-provided orientation belongs in
 `me.md`, work state in `_context.md`, and durable readable material in notes.
 
@@ -18,6 +18,8 @@ Actions belong in todo in full mode. In minimal, user-provided orientation belon
 5. Use `source: captured` with a URL in `link` for external web material;
    otherwise use the provenance table in
    `../contracts/provenance-and-body.md`.
+6. Use `howto` for one explicitly reviewed current practical answer and `map`
+   for subject navigation. Follow `maintain-howto.md` for creation or revision.
 
 ## Full path
 
@@ -49,7 +51,7 @@ verify it.
 3. Normalize the title and compute the destination.
 4. Scan existing frontmatter before selecting an ID and recheck the destination
    immediately before creating the file.
-5. Create without replacing an existing path.
+5. Create without silently replacing an existing destination.
 6. Write ordinary Markdown without a repeated H1 or source URL.
 7. Read the result back and verify its frontmatter, body, route, and filename.
 8. Mention that generated indexes can be rebuilt later; do not maintain them by

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import sys
+import tempfile
 from pathlib import Path
 
 BENCHMARK_DIR = Path(__file__).resolve().parent
@@ -10,7 +11,7 @@ if str(BENCHMARK_DIR) not in sys.path:
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from benchlib.adapters import CommandJsonlAdapter, ReplayAdapter
+from benchlib.adapters import CommandJsonlAdapter, ReplayAdapter, StatefulCliAdapter
 from benchlib.corpus import load_bundle
 from benchlib.errors import BenchmarkError
 from benchlib.performance import run_performance, write_performance
@@ -23,14 +24,18 @@ def _parser():
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("validate", help="strictly validate corpus, goldens, and ideal traces")
+    subparsers.add_parser(
+        "baseline-check", help="verify the checked-in offline baseline matches this checkout",
+    )
 
     offline = subparsers.add_parser("offline", help="score ideal traces and emit static reports")
     offline.add_argument("--output", required=True, help="report output directory")
 
     live = subparsers.add_parser("live", help="evaluate scenarios through an adapter")
-    live.add_argument("--adapter", required=True, choices=("replay", "command-jsonl"))
+    live.add_argument("--adapter", required=True, choices=("replay", "stateful-cli", "command-jsonl"))
     live.add_argument("--adapter-command", help="quoted command for the command-jsonl adapter")
     live.add_argument("--adapter-timeout", type=float, default=120.0, help="seconds per adapter response")
+    live.add_argument("--scenario", action="append", help="scenario id to evaluate (repeatable)")
     live.add_argument("--output", required=True, help="report output directory")
 
     compare = subparsers.add_parser("compare", help="compare a candidate report with a baseline")
@@ -71,6 +76,44 @@ def _validate_ideal_scores(bundle):
     return report
 
 
+def _validate_stateful_selection(bundle, selected):
+    known = {scenario["id"]: scenario for scenario in bundle.scenarios}
+    unknown = sorted(set(selected) - set(known))
+    if unknown:
+        raise BenchmarkError("unknown scenario ids: %s" % ", ".join(unknown))
+    ineligible = sorted(
+        scenario_id for scenario_id in set(selected)
+        if not known[scenario_id]["stateful_eligible"]
+    )
+    if ineligible:
+        raise BenchmarkError(
+            "scenarios are not stateful-eligible (fixtures are incomplete): %s"
+            % ", ".join(ineligible)
+        )
+
+
+def _check_baseline(bundle):
+    adapter = ReplayAdapter(bundle.traces)
+    report, traces = evaluate(bundle, adapter, REPOSITORY_ROOT, "offline")
+    baseline = BENCHMARK_DIR / "baselines" / "offline"
+    with tempfile.TemporaryDirectory(prefix="arpent-baseline-check-") as temporary:
+        output = Path(temporary)
+        write_report(output, report, traces)
+        filenames = ("report.json", "events.jsonl", "report.md", "junit.xml")
+        mismatches = [
+            filename for filename in filenames
+            if not (baseline / filename).is_file()
+            or (baseline / filename).read_text(encoding="utf-8")
+            != (output / filename).read_text(encoding="utf-8")
+        ]
+    if mismatches:
+        raise BenchmarkError(
+            "offline baseline does not match checkout: %s; regenerate with the offline command"
+            % ", ".join(mismatches)
+        )
+    return report
+
+
 def main(argv=None):
     arguments = _parser().parse_args(argv)
     try:
@@ -106,16 +149,37 @@ def main(argv=None):
                 len(bundle.scenarios), len(bundle.goldens), len(bundle.traces), report["summary"]["mean_score"]
             ))
             return 0
+        if arguments.command == "baseline-check":
+            report = _check_baseline(bundle)
+            print("baseline current: %d scenarios, bundle %s" % (
+                report["summary"]["scenario_count"], report["bundle_sha256"],
+            ))
+            return 0
 
         if arguments.command == "offline":
             adapter = ReplayAdapter(bundle.traces)
             mode = "offline"
         else:
-            mode = "live"
+            mode = "stateful" if arguments.adapter == "stateful-cli" else "live"
+            selected = arguments.scenario
+            if selected:
+                known = {scenario["id"] for scenario in bundle.scenarios}
+                unknown = sorted(set(selected) - known)
+                if unknown:
+                    raise BenchmarkError("unknown scenario ids: %s" % ", ".join(unknown))
             if arguments.adapter == "replay":
                 if arguments.adapter_command:
                     raise BenchmarkError("--adapter-command is invalid with replay")
                 adapter = ReplayAdapter(bundle.traces)
+            elif arguments.adapter == "stateful-cli":
+                if arguments.adapter_command:
+                    raise BenchmarkError("--adapter-command is invalid with stateful-cli")
+                if not selected:
+                    raise BenchmarkError("--scenario is required with stateful-cli")
+                _validate_stateful_selection(bundle, selected)
+                if arguments.adapter_timeout <= 0:
+                    raise BenchmarkError("--adapter-timeout must be positive")
+                adapter = StatefulCliAdapter(bundle.traces, REPOSITORY_ROOT, arguments.adapter_timeout)
             else:
                 if not arguments.adapter_command:
                     raise BenchmarkError("--adapter-command is required with command-jsonl")
@@ -124,7 +188,10 @@ def main(argv=None):
                 adapter = CommandJsonlAdapter(arguments.adapter_command, arguments.adapter_timeout)
 
         try:
-            report, traces = evaluate(bundle, adapter, REPOSITORY_ROOT, mode)
+            report, traces = evaluate(
+                bundle, adapter, REPOSITORY_ROOT, mode,
+                arguments.scenario if arguments.command == "live" else None,
+            )
         finally:
             adapter.close()
         write_report(arguments.output, report, traces)

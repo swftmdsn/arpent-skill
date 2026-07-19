@@ -1,13 +1,18 @@
 ---
 name: replace-with-tool-name
+status: planned
 description: Replace with the concrete purpose and trigger boundary of this Arpent sub-tool.
 ---
 
 # Tool Name
 
-## Trigger
+> This template starts `planned` and is not invocable. Registry
+> `status: installed` plus an implementation and all runtime prerequisites are
+> mandatory before an agent may use the resulting skill.
 
-State exactly when the agent should use this tool.
+## Intended Trigger
+
+State the future trigger boundary without presenting the planned tool as active.
 
 ## Input
 
@@ -28,4 +33,5 @@ Describe the user-visible result and structured confirmation.
 - Keep all know-how in `06_indexes/`; never place instructions in `05_tools/`.
 - Keep the tool `planned` until its paths, commands, storage, and lifecycle validate.
 - Do not add speculative commands or storage before real usage requires them.
-- Apply the confirmation policy before changing the tool to `installed`.
+- The current CLI cannot install a tool or change its status. Treat installation
+  as Arpent development until an installer is delivered.

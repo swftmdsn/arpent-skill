@@ -19,4 +19,9 @@ Rules:
 - Tool-specific data belongs in a tool database, documented body format, or reviewed schema field; there is no universal `extra` map.
 - `relations[].type` is limited to `supports`, `contradicts`, `depends_on`, `derived_from`, `example_of`.
 - Bodies contain one reusable thesis, no repeated H1 or source URL, and only simple Obsidian-compatible Markdown by default.
+- A `howto` contains one explicitly reviewed current practical answer. Detailed
+  reasoning, history, and superseded conclusions remain in annotated linked
+  notes; a MOC remains the navigation layer.
 - Binary/non-text files never contain frontmatter; they use a separate complete Markdown companion reference whose `link` points to the untouched attachment.
+- `archived` is a lifecycle status. `archived_at` and `archived_from` are
+  lifecycle-only event metadata added by explicit archival, never statuses.

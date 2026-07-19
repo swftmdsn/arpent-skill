@@ -9,10 +9,12 @@ acting. It is the compact operational companion to the complete vault-local
 1. Identify the intent: capture, action, retrieval, organization, lifecycle,
    project continuity, import, or maintenance.
 2. Locate the vault and read its `.arpent` marker.
-3. Decide the information layer. Minimal keeps user-provided orientation in `me.md`,
-   current work in `_context.md`, and durable readable material in notes. Full
-   may additionally use CLI-mediated todo and any configured memory or research
-   capability whose runtime prerequisites are met.
+3. Decide the information layer. Actionable reminders are todo; non-actionable
+   recall context may use an explicitly enabled external provider buffer.
+   Minimal keeps user-provided orientation in `me.md`, current work in
+   `_context.md`, and durable readable material in notes. Full may additionally
+   use CLI-mediated todo. External memory is a separate host capability and is
+   available only after explicit provider opt-in and confirmed persistence.
 4. Let full-mode commands apply and report the local confirmation policy. In
    minimal mode or before a batch, read the `confirmation` section in
    `06_indexes/cli/operations.yaml`.
@@ -25,6 +27,7 @@ acting. It is the compact operational companion to the complete vault-local
 | Intent | Workflow |
 |---|---|
 | Keep a normal thought, source, meeting, idea, or reference | `capture-note.md` |
+| Maintain the current practical answer to a recurring problem | `maintain-howto.md` |
 | Record an actionable task | `capture-todo.md` |
 | Append a quick temporary thought | `capture-fleeting.md` |
 | Organize inbox material | `../routing.md` and the triage sections of the complete method |
@@ -72,12 +75,15 @@ For coordinated database or transactional operations, state the boundary clearly
 
 ## Invariants always in context
 
-- Never overwrite or delete user content. Archive when lifecycle requires it.
+- Prevent silent loss: do not silently replace a destination or destroy user
+  content. Explicit edits may use checked atomic replacement; archive when
+  lifecycle requires it.
 - Never invent frontmatter keys or relation types.
 - Never infer `appreciated`, `importance`, or missing effort values.
 - Keep title and filename in lowercase ASCII `snake_case`; IDs stay in metadata.
 - Keep source URLs in `link`, not duplicated in the body.
-- Never silently create a missing project, area, or resource destination.
+- Reserved resource homes may materialize on first write; never invent another
+  missing project, area, or resource destination.
 - External memory requires provider opt-in at the host level.
 - Report actual changes and paths; do not claim unavailable side effects.
 

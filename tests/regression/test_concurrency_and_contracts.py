@@ -82,8 +82,6 @@ class ParserOperationContractRegressionTests(unittest.TestCase):
         walk(cli.build_parser())
         covered = set()
         for path, function_name in parser_paths:
-            if function_name == "cmd_tool_stub":
-                continue
             key = "_".join(path)
             if key == "backup":
                 covered.update({"backup", "backup_create"})

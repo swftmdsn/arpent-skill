@@ -48,6 +48,7 @@ def routing_contract(path: str | Path | None = None) -> dict:
     mirrored = local_data.get("routing") or {}
     if not isinstance(mirrored, dict):
         raise ValueError("Vault operations.yaml has no valid routing contract.")
+    _validate_route_paths(mirrored)
 
     merged = deepcopy(packaged)
     overlays = local_data.get("routing_overrides") or {}
@@ -126,6 +127,15 @@ def requires_confirmation(operation: str, *, count=1,
 
 
 def _validate_route_paths(routing: dict) -> None:
+    reserved = routing.get("reserved_resources")
+    if not isinstance(reserved, list) or not reserved:
+        raise ValueError("Routing reserved_resources must be a non-empty list.")
+    for index, value in enumerate(reserved):
+        _validate_relative_route(
+            value, f"reserved_resources.{index}", single_component=True,
+        )
+    if len(reserved) != len(set(reserved)):
+        raise ValueError("Routing reserved_resources must contain unique names.")
     for key, value in (routing.get("type_subfolders") or {}).items():
         _validate_relative_route(value, f"type_subfolders.{key}", single_component=True)
     for group in ("type_overrides", "status_type_overrides"):

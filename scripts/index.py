@@ -14,6 +14,7 @@ import mimetypes
 import os
 import sqlite3
 import tempfile
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -43,7 +44,8 @@ def build_index(vault: Vault) -> dict:
 
 def _build_index(vault: Vault) -> dict:
     vault.refuse_foreign_transactions()
-    source_signature = _search_source_signature(vault)
+    inventory_signature = _inventory_source_signature(vault)
+    search_signature = _search_source_signature(vault)
     for relpath in (
         "06_indexes/index.json",
         "06_indexes/sidecar.json",
@@ -53,7 +55,7 @@ def _build_index(vault: Vault) -> dict:
         vault.safe_output_path(relpath)
 
     folders, files, notes = build_inventory(vault)
-    if _search_source_signature(vault) != source_signature:
+    if _inventory_source_signature(vault) != inventory_signature:
         raise ValueError("Vault sources changed during indexing; retry the index operation.")
 
     sidecar = {
@@ -68,11 +70,17 @@ def _build_index(vault: Vault) -> dict:
         bucket = rel.split("/", 1)[0]
         by_bucket[bucket] = by_bucket.get(bucket, 0) + 1
 
-    search_available = build_search_db(
-        vault, notes, source_signature=source_signature,
+    generation = uuid.uuid4().hex
+    context_index = context_mod.prepare_context_index(
+        vault, folders=folders, files=files, generation=generation,
     )
+    search_temporary = _prepare_search_db(
+        vault, notes, source_signature=search_signature,
+    )
+    search_available = search_temporary is not None
     index = {
         "version": 2,
+        "generation": generation,
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "note_count": len(notes),
         "file_count": len(files),
@@ -86,10 +94,62 @@ def _build_index(vault: Vault) -> dict:
         "search_backend": "fts5" if search_available else "text-fallback",
     }
 
-    context_mod.refresh_context_index(vault, folders=folders, files=files)
-    vault.atomic_write_text("06_indexes/index.json", json.dumps(index, indent=2) + "\n")
-    vault.atomic_write_text("06_indexes/sidecar.json", json.dumps(sidecar, indent=2) + "\n")
-    return index
+    staged = {}
+    try:
+        staged["06_indexes/sidecar.json"] = _stage_text(
+            vault, "06_indexes/sidecar.json", json.dumps(sidecar, indent=2) + "\n",
+        )
+        staged["06_indexes/context_index.json"] = _stage_text(
+            vault,
+            "06_indexes/context_index.json",
+            json.dumps(context_index, indent=2, ensure_ascii=False) + "\n",
+        )
+        staged["06_indexes/index.json"] = _stage_text(
+            vault, "06_indexes/index.json", json.dumps(index, indent=2) + "\n",
+        )
+        if _inventory_source_signature(vault) != inventory_signature:
+            raise ValueError("Vault sources changed while preparing index publication; retry.")
+
+        # index.json is the commit marker. A crash before its replacement leaves
+        # a detectable generation mismatch instead of a silently mixed context.
+        for relpath in ("06_indexes/sidecar.json", "06_indexes/context_index.json"):
+            target = vault.safe_output_path(relpath)
+            os.replace(staged.pop(relpath), target)
+            vault.fsync_directory(target.parent)
+        search_path = vault.safe_output_path("06_indexes/databases/search.db")
+        if search_temporary is not None:
+            os.replace(search_temporary, search_path)
+            search_temporary = None
+            vault.fsync_directory(search_path.parent)
+        elif search_path.exists():
+            search_path.unlink()
+            vault.fsync_directory(search_path.parent)
+        index_path = vault.safe_output_path("06_indexes/index.json")
+        os.replace(staged.pop("06_indexes/index.json"), index_path)
+        vault.fsync_directory(index_path.parent)
+        return index
+    finally:
+        for temporary in staged.values():
+            temporary.unlink(missing_ok=True)
+        if search_temporary is not None:
+            search_temporary.unlink(missing_ok=True)
+
+
+def _stage_text(vault: Vault, relpath: str, content: str) -> Path:
+    target = vault.safe_output_path(relpath)
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=target.parent, prefix=f".{target.name}.", suffix=".stage",
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
+    return temporary
 
 
 def build_inventory(vault: Vault, *, start_rel=".") -> tuple[list[dict], list[dict], list[tuple]]:
@@ -121,7 +181,11 @@ def build_inventory(vault: Vault, *, start_rel=".") -> tuple[list[dict], list[di
         for name in sorted(file_names):
             path = current_path / name
             rel = _relative(vault, path)
-            if name in EXCLUDED_FILE_NAMES or rel in GENERATED_INDEX_PATHS:
+            if (
+                name in EXCLUDED_FILE_NAMES
+                or rel in GENERATED_INDEX_PATHS
+                or _generated_staging_path(rel)
+            ):
                 continue
             if path.is_symlink():
                 files.append(_symlink_entry(vault, path))
@@ -392,7 +456,17 @@ def build_search_db(vault: Vault, notes=None, *, source_signature=None) -> bool:
             for path, fm, body in vault.iter_notes()
         ]
     source_signature = source_signature or _search_source_signature(vault)
+    temporary = _prepare_search_db(vault, notes, source_signature=source_signature)
+    if temporary is None:
+        return False
+    db_path = vault.safe_output_path("06_indexes/databases/search.db")
+    os.replace(temporary, db_path)
+    vault.fsync_directory(db_path.parent)
+    return True
 
+
+def _prepare_search_db(vault: Vault, notes, *, source_signature: str) -> Path | None:
+    """Build and validate search.db without publishing it."""
     db_path = vault.safe_output_path("06_indexes/databases/search.db")
     fd, temporary_name = tempfile.mkstemp(
         dir=db_path.parent,
@@ -405,7 +479,7 @@ def build_search_db(vault: Vault, notes=None, *, source_signature=None) -> bool:
         con = sqlite3.connect(temporary)
     except sqlite3.Error:
         temporary.unlink(missing_ok=True)
-        return False
+        return None
     try:
         con.execute("DROP TABLE IF EXISTS notes_fts")
         con.execute(
@@ -425,9 +499,8 @@ def build_search_db(vault: Vault, notes=None, *, source_signature=None) -> bool:
             """
         )
         con.execute("CREATE TABLE search_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
-        rows = []
-        for rel, fm, body in notes:
-            rows.append((
+        rows = (
+            (
                 fm.get("id"),
                 rel,
                 fm.get("title") or "",
@@ -438,7 +511,9 @@ def build_search_db(vault: Vault, notes=None, *, source_signature=None) -> bool:
                 fm.get("status") or "",
                 fm.get("source") or "",
                 fm.get("author") or "",
-            ))
+            )
+            for rel, fm, body in notes
+        )
         con.executemany(
             """
             INSERT INTO notes_fts(
@@ -455,7 +530,7 @@ def build_search_db(vault: Vault, notes=None, *, source_signature=None) -> bool:
     except sqlite3.Error:
         con.close()
         temporary.unlink(missing_ok=True)
-        return False
+        return None
     finally:
         try:
             con.close()
@@ -469,8 +544,7 @@ def build_search_db(vault: Vault, notes=None, *, source_signature=None) -> bool:
     if current_signature != source_signature:
         temporary.unlink(missing_ok=True)
         raise ValueError("Vault sources changed while building search.db; retry indexing.")
-    os.replace(temporary, db_path)
-    return True
+    return temporary
 
 
 def search_fts(vault: Vault, query: str) -> list[dict] | None:
@@ -521,6 +595,62 @@ def search_fts(vault: Vault, query: str) -> list[dict] | None:
         con.close()
 
 
+def _inventory_source_signature(vault: Vault) -> str:
+    """Hash names and stat data for every source represented in the inventory."""
+    digest = hashlib.sha256()
+    for current, dir_names, file_names in os.walk(
+        vault.root,
+        followlinks=False,
+        onerror=raise_walk_error,
+    ):
+        current_path = Path(current)
+        current_rel = _relative(vault, current_path)
+        digest.update(f"dir\0{current_rel}\0".encode("utf-8"))
+        kept_dirs = []
+        for name in sorted(dir_names):
+            child = current_path / name
+            rel = _relative(vault, child)
+            if child.is_symlink():
+                _update_inventory_signature(digest, rel, child)
+            elif not _excluded_directory(rel, name):
+                kept_dirs.append(name)
+        dir_names[:] = kept_dirs
+        for name in sorted(file_names):
+            path = current_path / name
+            rel = _relative(vault, path)
+            if (
+                name in EXCLUDED_FILE_NAMES
+                or rel in GENERATED_INDEX_PATHS
+                or _generated_staging_path(rel)
+            ):
+                continue
+            _update_inventory_signature(digest, rel, path)
+    return digest.hexdigest()
+
+
+def _update_inventory_signature(digest, relpath: str, path: Path) -> None:
+    stat = path.lstat()
+    digest.update(relpath.encode("utf-8"))
+    digest.update(b"\0")
+    digest.update(":".join(str(value) for value in _stat_signature(stat)).encode("ascii"))
+    if path.is_symlink():
+        digest.update(b"\0link\0")
+        digest.update(os.fsencode(os.readlink(path)))
+    digest.update(b"\0")
+
+
+def _generated_staging_path(relpath: str) -> bool:
+    if "/" not in relpath:
+        return False
+    parent, name = relpath.rsplit("/", 1)
+    return any(
+        target.rsplit("/", 1)[0] == parent
+        and name.startswith(f".{target.rsplit('/', 1)[1]}.")
+        and name.endswith(".stage")
+        for target in GENERATED_INDEX_PATHS
+    )
+
+
 def _search_source_signature(vault: Vault) -> str:
     """Hash paths and stat data for every Markdown file eligible to become a note."""
     digest = hashlib.sha256()
@@ -542,7 +672,7 @@ def _search_source_signature(vault: Vault) -> str:
                 continue
             path = current_path / name
             rel = _relative(vault, path)
-            if _note_infrastructure_path(rel):
+            if path.is_symlink() or _note_infrastructure_path(rel):
                 continue
             source = vault.safe_source_path(rel)
             stat = source.stat()

@@ -4,6 +4,8 @@
 
 Use when the information requires execution, tracking, completion, deferral, or
 blocking. A todo is structured state, not an ordinary knowledge note.
+“Remember to do X” is a todo. Only non-actionable context belongs in an external
+buffer, and only when that provider is explicitly enabled.
 
 ## Full path
 

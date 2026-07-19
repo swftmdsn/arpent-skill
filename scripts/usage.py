@@ -8,7 +8,7 @@ import os
 import re
 import time
 import uuid
-from collections import Counter
+from collections import Counter, defaultdict, deque
 from datetime import date, datetime, time as datetime_time, timezone
 from pathlib import Path
 
@@ -20,6 +20,9 @@ from .vault import Vault
 
 
 USAGE_RELPATH = "06_indexes/logs/usage.log"
+MAX_USAGE_EVENTS = 100_000
+MAX_USAGE_LINE_BYTES = 1024 * 1024
+MAX_USAGE_RETAINED_BYTES = 32 * 1024 * 1024
 SUBJECT_KINDS = {
     "import", "index", "ingestion", "note", "project", "search", "session", "todo",
     "triage", "vault",
@@ -116,71 +119,115 @@ def append_usage(
                 and getattr(args, "command", None) != "mode"
             ):
                 return
-            path = vault.safe_output_path(USAGE_RELPATH)
             line = json.dumps(event, sort_keys=True, separators=(",", ":")) + "\n"
-            with vault.exclusive_lock("usage"):
-                with path.open("a", encoding="utf-8") as stream:
-                    stream.write(line)
-                    stream.flush()
-                    os.fsync(stream.fileno())
-    except BaseException:
+            with vault.exclusive_lock("mutations"):
+                path = vault.safe_output_path(USAGE_RELPATH)
+                with vault.exclusive_lock("usage"):
+                    with path.open("a", encoding="utf-8") as stream:
+                        stream.write(line)
+                        stream.flush()
+                        os.fsync(stream.fileno())
+    except (OSError, ValueError):
         return
 
 
-def read_usage(vault: Vault, *, since=None) -> dict:
+def read_usage(vault: Vault, *, since=None, max_events=MAX_USAGE_EVENTS) -> dict:
     """Read mixed v1/v2 JSONL, skipping and counting malformed records."""
+    if (
+        isinstance(max_events, bool)
+        or not isinstance(max_events, int)
+        or not 1 <= max_events <= MAX_USAGE_EVENTS
+    ):
+        raise ValueError(f"max_events must be between 1 and {MAX_USAGE_EVENTS}.")
     threshold = parse_since(since) if since is not None else None
     path = vault.safe_output_path(USAGE_RELPATH)
-    events = []
+    events = deque()
+    event_sizes = deque()
+    retained_bytes = 0
     malformed = 0
     v1_count = 0
     v2_count = 0
+    dropped_events = 0
     if not path.exists():
         return {
-            "events": events,
+            "events": [],
             "malformed_lines": malformed,
             "v1_count": v1_count,
             "v2_count": v2_count,
+            "dropped_events": dropped_events,
+            "event_limit": max_events,
+            "retained_byte_limit": MAX_USAGE_RETAINED_BYTES,
         }
 
     try:
-        lines = vault.safe_source_path(USAGE_RELPATH).read_bytes().splitlines()
+        source = vault.safe_source_path(USAGE_RELPATH)
+        stream = source.open("rb")
     except (OSError, ValueError):
-        return {"events": [], "malformed_lines": 1, "v1_count": 0, "v2_count": 0}
-    for line in lines:
-        try:
-            event = json.loads(line.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError, TypeError):
-            malformed += 1
-            continue
-        if not isinstance(event, dict):
-            malformed += 1
-            continue
-        if not isinstance(event.get("command"), str) or _parse_timestamp(event.get("timestamp")) is None:
-            malformed += 1
-            continue
-        version = event.get("schema_version", 1)
-        if version not in (None, 1, 2):
-            malformed += 1
-            continue
-        if version == 2 and not _valid_v2_event(event):
-            malformed += 1
-            continue
-        if threshold is not None:
-            timestamp = _parse_timestamp(event.get("timestamp"))
-            if timestamp is None or timestamp < threshold:
+        return {
+            "events": [], "malformed_lines": 1, "v1_count": 0, "v2_count": 0,
+            "dropped_events": 0, "event_limit": max_events,
+            "retained_byte_limit": MAX_USAGE_RETAINED_BYTES,
+        }
+    with stream:
+        for line in _bounded_lines(stream):
+            if line is None:
+                malformed += 1
                 continue
-        if version == 2:
-            v2_count += 1
-        else:
-            v1_count += 1
-        events.append(event)
+            try:
+                event = json.loads(line.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError, TypeError):
+                malformed += 1
+                continue
+            if not isinstance(event, dict):
+                malformed += 1
+                continue
+            if not isinstance(event.get("command"), str) or _parse_timestamp(event.get("timestamp")) is None:
+                malformed += 1
+                continue
+            version = event.get("schema_version", 1)
+            if version not in (None, 1, 2):
+                malformed += 1
+                continue
+            if version == 2 and not _valid_v2_event(event):
+                malformed += 1
+                continue
+            if threshold is not None:
+                timestamp = _parse_timestamp(event.get("timestamp"))
+                if timestamp is None or timestamp < threshold:
+                    continue
+            if version == 2:
+                v2_count += 1
+            else:
+                v1_count += 1
+            events.append(event)
+            event_sizes.append(len(line))
+            retained_bytes += len(line)
+            while len(events) > max_events or retained_bytes > MAX_USAGE_RETAINED_BYTES:
+                events.popleft()
+                retained_bytes -= event_sizes.popleft()
+                dropped_events += 1
     return {
-        "events": events,
+        "events": list(events),
         "malformed_lines": malformed,
         "v1_count": v1_count,
         "v2_count": v2_count,
+        "dropped_events": dropped_events,
+        "event_limit": max_events,
+        "retained_byte_limit": MAX_USAGE_RETAINED_BYTES,
     }
+
+
+def _bounded_lines(stream):
+    while True:
+        line = stream.readline(MAX_USAGE_LINE_BYTES + 1)
+        if not line:
+            return
+        if len(line) > MAX_USAGE_LINE_BYTES:
+            while line and not line.endswith(b"\n"):
+                line = stream.readline(MAX_USAGE_LINE_BYTES + 1)
+            yield None
+            continue
+        yield line
 
 
 def usage_report(vault: Vault, *, since=None, now=None) -> dict:
@@ -203,20 +250,27 @@ def usage_report(vault: Vault, *, since=None, now=None) -> dict:
         event.get("command") for event in events
         if isinstance(event.get("command"), str) and event["command"]
     )
-    command_details = {}
-    for command in sorted(by_command):
-        command_events = [event for event in events if event.get("command") == command]
-        command_durations = [
-            event["duration_ms"] for event in command_events
-            if event.get("schema_version") == 2
+    detail_durations = defaultdict(list)
+    detail_successes = Counter()
+    for event in events:
+        command = event.get("command")
+        if not isinstance(command, str) or not command:
+            continue
+        detail_successes[command] += _event_success(event)
+        if (
+            event.get("schema_version") == 2
             and type(event.get("duration_ms")) in (int, float)
             and event["duration_ms"] >= 0
-        ]
-        command_successes = sum(_event_success(event) for event in command_events)
+        ):
+            detail_durations[command].append(event["duration_ms"])
+    command_details = {}
+    for command in sorted(by_command):
+        command_durations = detail_durations[command]
+        command_successes = detail_successes[command]
         command_details[command] = {
-            "count": len(command_events),
+            "count": by_command[command],
             "success": command_successes,
-            "failure": len(command_events) - command_successes,
+            "failure": by_command[command] - command_successes,
             "duration_ms": {
                 "covered": len(command_durations),
                 "p50": _percentile(command_durations, 50),
@@ -300,6 +354,8 @@ def usage_report(vault: Vault, *, since=None, now=None) -> dict:
             "v1_events": log["v1_count"],
             "v2_events": log["v2_count"],
             "malformed_lines": log["malformed_lines"],
+            "dropped_events": log["dropped_events"],
+            "event_limit": log["event_limit"],
             "v2_coverage_percent": round(log["v2_count"] * 100 / observed_total, 1) if observed_total else 0.0,
         },
         "unavailable_metrics": list(UNAVAILABLE_METRICS),
@@ -331,7 +387,7 @@ def format_report(report: dict) -> str:
         "Triage age buckets: " + ", ".join(
             f"{name}={count}" for name, count in triage["age_buckets"].items()
         ),
-        f"Log coverage: v1={log['v1_events']}, v2={log['v2_events']} ({log['v2_coverage_percent']}%), malformed={log['malformed_lines']}",
+        f"Log coverage: v1={log['v1_events']}, v2={log['v2_events']} ({log['v2_coverage_percent']}%), malformed={log['malformed_lines']}, retained-limit-drops={log['dropped_events']}",
         "Effective subject types: " + _display_counts(report["effective_subject_types"]),
         "Status transitions: " + _display_counts(report["status_transitions"]),
         "Unavailable metrics:",
@@ -369,6 +425,8 @@ def parse_since(value) -> datetime:
 
 
 def _usage_root(args) -> Path | None:
+    if getattr(args, "command", None) == "skill":
+        return None
     if getattr(args, "command", None) == "init":
         return Path(args.path).expanduser().resolve()
     vault = Vault.find()
@@ -410,7 +468,7 @@ def _command_name(args) -> str:
     for attr in (
         "note_cmd", "project_cmd", "context_cmd", "backup_cmd", "session_cmd",
         "tools_cmd", "cron_cmd", "sweep_cmd", "todo_cmd", "usage_cmd", "import_cmd",
-        "mode_cmd",
+        "mode_cmd", "skill_cmd",
     ):
         value = getattr(args, attr, None)
         if value:

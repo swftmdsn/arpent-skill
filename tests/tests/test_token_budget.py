@@ -85,6 +85,26 @@ class TokenBudgetTests(unittest.TestCase):
             (ROOT / "architecture_template/06_indexes/global_skills/context_summary.skill.md").read_text(encoding="utf-8"),
         )
         self.assertEqual(
+            vault_mod.READER_SKILL_STUB,
+            (ROOT / "architecture_template/06_indexes/global_skills/reader.skill.md").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            vault_mod.REVIEW_SKILL_STUB,
+            (ROOT / "architecture_template/06_indexes/global_skills/review.skill.md").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            vault_mod.BACKUP_SKILL_STUB,
+            (ROOT / "architecture_template/06_indexes/global_skills/z_backup.skill.md").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            vault_mod.MENTAL_MODEL_STUB,
+            (ROOT / "architecture_template/06_indexes/docs/mental-model.md").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            vault_mod.TOOLS_STUB,
+            (ROOT / "architecture_template/06_indexes/tools.yaml").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
             vault_mod.AGENT_WIKI_README_STUB,
             (ROOT / "architecture_template/03_resources/agent_wiki/_README.md").read_text(encoding="utf-8"),
         )
@@ -103,6 +123,10 @@ class TokenBudgetTests(unittest.TestCase):
         self.assertEqual(
             vault_mod.AREA_CONTEXT_TEMPLATE_STUB,
             (ROOT / "architecture_template/02_areas/_context.template.md").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            vault_mod.HOWTO_TEMPLATE_STUB,
+            (ROOT / "architecture_template/03_resources/templates/howto.template.md").read_text(encoding="utf-8"),
         )
         self.assertEqual(
             vault_mod.GITIGNORE_STUB,

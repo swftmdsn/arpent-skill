@@ -488,6 +488,62 @@ class ImportPipelineTests(unittest.TestCase):
             )
             self.assertTrue(vault.root.joinpath("03_resources/books/note.md").is_file())
 
+    def test_resume_rejects_note_modified_after_commit_before_state_event(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            source = base / "legacy"
+            books = source / "Books"
+            books.mkdir(parents=True)
+            (books / "note.txt").write_text("original body", encoding="utf-8")
+            plan_path = base / "plan.json"
+            plan = import_manifest.scan_source(source, plan_path)
+            import_manifest.review_plan(plan, accept_suggestions=True)
+            import_manifest.save_plan(plan_path, plan)
+            vault = init_vault(base / "vault", minimal=False)
+
+            with mock.patch.object(
+                import_executor, "_append_state", side_effect=KeyboardInterrupt,
+            ):
+                with self.assertRaises(KeyboardInterrupt):
+                    import_executor.apply_import(vault, plan_path, plan)
+
+            destination = vault.root / "03_resources/books/note.md"
+            destination.write_bytes(destination.read_bytes() + b"\nUser change.\n")
+
+            resumed = import_executor.apply_import(vault, plan_path, plan)
+
+            self.assertEqual(resumed["counts"]["failed"], 1)
+            self.assertIn("already exists", resumed["failures"][0]["error"])
+            self.assertIn("User change.", destination.read_text(encoding="utf-8"))
+
+    def test_resume_rejects_binary_modified_after_commit_before_state_event(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            source = base / "legacy"
+            books = source / "Books"
+            books.mkdir(parents=True)
+            (books / "guide.pdf").write_bytes(b"%PDF-1.7\x00original")
+            plan_path = base / "plan.json"
+            plan = import_manifest.scan_source(source, plan_path)
+            import_manifest.review_plan(plan, accept_suggestions=True)
+            import_manifest.save_plan(plan_path, plan)
+            vault = init_vault(base / "vault", minimal=False)
+
+            with mock.patch.object(
+                import_executor, "_append_state", side_effect=KeyboardInterrupt,
+            ):
+                with self.assertRaises(KeyboardInterrupt):
+                    import_executor.apply_import(vault, plan_path, plan)
+
+            attachment = vault.root / "03_resources/books/attachments/guide.pdf"
+            attachment.write_bytes(b"user replacement")
+
+            resumed = import_executor.apply_import(vault, plan_path, plan)
+
+            self.assertEqual(resumed["counts"]["failed"], 1)
+            self.assertIn("already exists", resumed["failures"][0]["error"])
+            self.assertEqual(attachment.read_bytes(), b"user replacement")
+
     def test_status_detects_deleted_completed_output(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)

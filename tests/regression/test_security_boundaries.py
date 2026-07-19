@@ -132,6 +132,63 @@ class SecurityBoundaryRegressionTests(unittest.TestCase):
                 backup.restore_backup(snapshot, target)
             self.assertFalse(target.exists())
 
+    def test_backup_preserves_user_file_with_journal_suffix(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            vault = initialized(parent)
+            user_file = vault.root / "00_inbox/interview-journal"
+            user_file.write_bytes(b"Interview decisions.\n")
+
+            result = backup.create_backup(vault, parent / "snapshots")
+            manifest_paths = {entry["path"] for entry in result["entries"]}
+            restored = parent / "restored"
+            backup.restore_backup(result["snapshot_path"], restored)
+
+            self.assertIn("00_inbox/interview-journal", manifest_paths)
+            self.assertEqual(
+                (restored / "00_inbox/interview-journal").read_bytes(),
+                user_file.read_bytes(),
+            )
+
+    def test_backup_excludes_rebuildable_database_sidecars_without_orphan_restore(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            vault = initialized(parent)
+            database = vault.root / "06_indexes/databases/search.db"
+            database.write_bytes(b"rebuildable")
+            wal = vault.root / "06_indexes/databases/search.db-wal"
+            wal.write_bytes(b"orphan sidecar")
+
+            result = backup.create_backup(vault, parent / "snapshots")
+            exclusion = next(
+                item for item in result["excluded"] if item["path"].endswith("search.db-wal")
+            )
+            self.assertEqual(exclusion["reason"], "rebuildable database sidecar")
+            restored = parent / "restored-sidecar"
+            backup.restore_backup(result["snapshot_path"], restored)
+            self.assertFalse((restored / "06_indexes/databases/search.db").exists())
+            self.assertFalse((restored / "06_indexes/databases/search.db-wal").exists())
+
+    def test_restore_rejects_lexical_symlink_ancestor(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            vault = initialized(parent)
+            result = backup.create_backup(vault, parent / "snapshots")
+            real_parent = parent / "real-parent"
+            real_parent.mkdir()
+            linked_parent = parent / "linked-parent"
+            try:
+                linked_parent.symlink_to(real_parent, target_is_directory=True)
+            except OSError as exc:
+                self.skipTest(f"symlinks unavailable: {exc}")
+
+            with self.assertRaisesRegex(ValueError, "symlinked parent"):
+                backup.restore_backup(
+                    result["snapshot_path"], linked_parent / "restored",
+                )
+
+            self.assertFalse((real_parent / "restored").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

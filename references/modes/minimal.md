@@ -22,7 +22,8 @@ promotion before they can run.
 2. Read the relevant compact workflow and contract.
 3. Inspect the destination and any source immediately before writing.
 4. Preserve user-owned metadata and body sections.
-5. Never replace an existing destination.
+5. Never silently replace an existing destination or destroy user content;
+   explicit edits may use checked atomic replacement.
 6. Write the smallest complete change.
 7. Read back the result and verify path, frontmatter, and body.
 8. Leave generated indexes alone; they can be rebuilt from canonical files.
@@ -32,6 +33,11 @@ For ordinary capture, load `../contracts/frontmatter.md`,
 zero-install vault uses its local `06_indexes/schemas/frontmatter_policy.yaml`
 and `06_indexes/cli/operations.yaml` instead. Generate IDs as
 `<type>-<UTC YYYYMMDD>-<a..z,aa..>` after scanning every existing frontmatter ID.
+
+Reserved resource homes declared by the routing contract may be materialized on
+first write. Never invent any other missing home. Lifecycle status and physical
+location are decoupled; an archive requires both metadata update and verified
+movement.
 
 For an operation that depends on coordinated database or multi-file state, say:
 

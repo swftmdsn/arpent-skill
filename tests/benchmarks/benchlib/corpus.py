@@ -1,3 +1,5 @@
+import hashlib
+import re
 from pathlib import Path
 
 from .errors import ValidationError
@@ -24,10 +26,11 @@ REQUIRED_COVERAGE = {
 
 
 class Bundle:
-    def __init__(self, scenarios, goldens, traces, digest):
+    def __init__(self, scenarios, goldens, traces, document_manifest, digest):
         self.scenarios = scenarios
         self.goldens = goldens
         self.traces = traces
+        self.document_manifest = document_manifest
         self.digest = digest
 
 
@@ -46,6 +49,57 @@ def _load_trace(path, scenario):
         "events": records[1:],
     }
     return validate_trace(trace, scenario, str(path))
+
+
+def _document_manifest(repository_root, scenarios, traces):
+    documents = []
+    seen = set()
+    for scenario in scenarios:
+        state = {
+            document["path"]: (document["content"], "fixture")
+            for document in scenario["fixture"]["documents"]
+        }
+        for event in traces[scenario["id"]]["events"]:
+            if event["type"] == "write":
+                state[event["path"]] = (event["content"], "trace_write")
+                continue
+            if event["type"] != "read":
+                continue
+            if event["path"] in state:
+                content, source = state[event["path"]]
+            elif event["path"] == "06_indexes/cli/operations.yaml":
+                content = (repository_root / "scripts" / "operations.yaml").read_text(encoding="utf-8")
+                policy = scenario["fixture"]["confirmation"]
+                if policy in ("always", "explicit-intent", "never"):
+                    content = re.sub(r"(?m)^(  policy: ).+$", r"\g<1>" + policy, content, count=1)
+                source = "package_data"
+            else:
+                path = (repository_root / event["path"]).resolve()
+                try:
+                    path.relative_to(repository_root)
+                except ValueError as exc:
+                    raise ValidationError("read path escapes repository: %s" % event["path"]) from exc
+                if not path.is_file():
+                    raise ValidationError("read event cannot be resolved: %s" % event["path"])
+                try:
+                    content = path.read_text(encoding="utf-8")
+                except (OSError, UnicodeError) as exc:
+                    raise ValidationError("read event is not a UTF-8 document: %s" % event["path"]) from exc
+                source = "repository"
+            encoded = content.encode("utf-8")
+            digest = hashlib.sha256(encoded).hexdigest()
+            identity = (scenario["id"], event["path"], digest)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            documents.append({
+                "scenario_id": scenario["id"],
+                "path": event["path"],
+                "source": source,
+                "utf8_bytes": len(encoded),
+                "sha256": digest,
+            })
+    return {"sha256": sha256_json(documents), "documents": documents}
 
 
 def load_bundle(benchmark_dir, require_traces=True):
@@ -106,9 +160,14 @@ def load_bundle(benchmark_dir, require_traces=True):
                 )
             )
 
+    repository_root = benchmark_dir.parent.parent.resolve()
+    document_manifest = _document_manifest(repository_root, scenarios, traces) if require_traces else {
+        "sha256": sha256_json([]), "documents": [],
+    }
     digest = sha256_json({
         "scenarios": scenarios,
         "goldens": goldens,
         "traces": traces if require_traces else None,
+        "document_manifest": document_manifest,
     })
-    return Bundle(scenarios, goldens, traces, digest)
+    return Bundle(scenarios, goldens, traces, document_manifest, digest)

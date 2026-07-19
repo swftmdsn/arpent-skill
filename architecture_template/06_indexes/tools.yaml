@@ -22,6 +22,7 @@ tools:
         after_days: 30
         action: archive-with-trace
   reader:
+    # Planned/in construction; not invocable and not processed by sweep.
     category: transversal
     ephemeral: true
     skill: 06_indexes/global_skills/reader.skill.md
@@ -34,6 +35,7 @@ tools:
         after_days: 60
         action: archive-with-trace
   review:
+    # Planned/in construction; no generic review workflow is delivered.
     category: transversal
     ephemeral: false
     skill: 06_indexes/global_skills/review.skill.md
@@ -43,6 +45,7 @@ tools:
     status: planned
     lifecycle: []
   z_backup:
+    # Planned extension; core `arpent backup` is delivered independently.
     category: transversal
     ephemeral: false
     skill: 06_indexes/global_skills/z_backup.skill.md

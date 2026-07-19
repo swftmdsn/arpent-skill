@@ -6,6 +6,17 @@ from .errors import ValidationError
 
 
 CLI_RE = re.compile(r"(?:^|\s)(?:arpent|arp)(?:\s|$)")
+METRIC_KEYS = {
+    "prompt_utf8_bytes", "request_utf8_bytes", "document_utf8_bytes",
+    "unique_document_utf8_bytes", "repeated_document_utf8_bytes",
+    "command_utf8_bytes", "command_output_utf8_bytes", "write_utf8_bytes",
+    "claim_utf8_bytes", "final_utf8_bytes", "cumulative_input_proxy_utf8_bytes",
+    "utf8_byte_quarter_estimate", "stable_prefix_utf8_bytes", "request_count",
+    "tool_count", "command_count", "cli_count", "provider_input_tokens",
+    "provider_output_tokens", "provider_total_tokens", "provider_cached_input_tokens",
+    "provider_cache_read_input_tokens", "provider_cache_creation_input_tokens",
+    "provider_reported_cost", "provider_reported_cost_currency",
+}
 
 
 def utf8_bytes(text):
@@ -26,6 +37,7 @@ def common_prefix_bytes(left, right):
 class DocumentResolver:
     def __init__(self, repository_root, scenario):
         self.repository_root = Path(repository_root).resolve()
+        self.scenario = scenario
         self.fixture_documents = {
             document["path"]: document["content"]
             for document in scenario["fixture"]["documents"]
@@ -37,6 +49,12 @@ class DocumentResolver:
     def read(self, relative_path):
         if relative_path in self.fixture_documents:
             return self.fixture_documents[relative_path]
+        if relative_path == "06_indexes/cli/operations.yaml":
+            content = (self.repository_root / "scripts" / "operations.yaml").read_text(encoding="utf-8")
+            policy = self.scenario["fixture"]["confirmation"]
+            if policy in ("always", "explicit-intent", "never"):
+                content = re.sub(r"(?m)^(  policy: ).+$", r"\g<1>" + policy, content, count=1)
+            return content
         candidate = (self.repository_root / relative_path).resolve()
         try:
             candidate.relative_to(self.repository_root)

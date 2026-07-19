@@ -379,6 +379,7 @@ class VaultModeTests(unittest.TestCase):
             "manual", "generated", "imported", "captured", "conversation", "derived",
         ])
         self.assertEqual(generated["enums"]["author"], ["user", "agent", "imported"])
+        self.assertIn("howto", generated["enums"]["type"])
         self.assertEqual(generated["defaults"], {
             "type": "note",
             "status": "inbox",
@@ -413,6 +414,12 @@ class VaultModeTests(unittest.TestCase):
                 (vault.root / "02_areas/_context.template.md").read_text(encoding="utf-8"),
                 vault_mod.AREA_CONTEXT_TEMPLATE_STUB,
             )
+            self.assertEqual(
+                (vault.root / "03_resources/templates/howto.template.md").read_text(
+                    encoding="utf-8"
+                ),
+                vault_mod.HOWTO_TEMPLATE_STUB,
+            )
 
     def test_zero_install_starter_contains_direct_capture_and_project_contracts(self):
         skill = (
@@ -421,7 +428,7 @@ class VaultModeTests(unittest.TestCase):
         readme = (ROOT / "architecture_template/README.md").read_text(encoding="utf-8")
 
         self.assertIn("06_indexes/schemas/frontmatter_policy.yaml", skill)
-        self.assertIn("06_indexes/docs/architecture/routing.md", skill)
+        self.assertIn("routing contract", skill)
         self.assertIn("<type>-<UTC YYYYMMDD>-<a..z,aa..>", skill)
         self.assertIn("In minimal, create a project directly", readme)
         self.assertIn("_template_project/_context.md", readme)

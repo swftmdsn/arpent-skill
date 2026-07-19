@@ -22,7 +22,7 @@ TRANSACTION_RELPATH = "06_indexes/logs/todo-transaction.json"
 SCHEMA_PATH = Path(__file__).with_name("todo_schema.sql")
 TODO_ROOT = "02_areas/area__perso__todo__active"
 TODO_STATUSES = ("active", "waiting", "done")
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 SCHEMA_OBJECT_NAMES = (
     "todos",
     "todos_assignee_idx",
@@ -102,9 +102,13 @@ def _initialize_connection(connection) -> None:
             raise ValueError(
                 f"Unsupported unversioned todo database; expected schema version {SCHEMA_VERSION}."
             )
-        connection.executescript(schema_text())
-    elif version == 2:
-        _migrate_v2_to_v3(connection)
+        try:
+            connection.executescript(schema_text())
+        except sqlite3.Error:
+            connection.rollback()
+            raise
+    elif version in (2, 3):
+        _migrate_to_v4(connection, version)
     elif version != SCHEMA_VERSION:
         raise ValueError(
             f"Unsupported todo database schema version {version}; expected {SCHEMA_VERSION}."
@@ -123,10 +127,10 @@ def _initialize_connection(connection) -> None:
         )
 
 
-def _migrate_v2_to_v3(connection) -> None:
-    """Add UTC minute precision to todo dates while preserving v2 values."""
+def _migrate_to_v4(connection, source_version: int) -> None:
+    """Rebuild v2/v3 safely with v4 constraints and preserve legacy values."""
     if _table_columns(connection) != list(SCHEMA_COLUMNS) or _unexpected_schema_objects(connection):
-        raise ValueError("todo.db does not match schema version 2.")
+        raise ValueError(f"todo.db does not match schema version {source_version}.")
     actual_objects = {
         (row[0], row[1])
         for row in connection.execute(
@@ -140,42 +144,51 @@ def _migrate_v2_to_v3(connection) -> None:
         ("trigger", "todos_created_at_immutable"),
     }
     if actual_objects != expected_objects:
-        raise ValueError("todo.db does not match schema version 2.")
+        raise ValueError(f"todo.db does not match schema version {source_version}.")
 
     columns = ", ".join(SCHEMA_COLUMNS)
     migrated_values = ", ".join(
         (
             f"CASE WHEN {column} IS NULL THEN NULL "
             f"ELSE {column} || 'T00:00:00Z' END AS {column}"
-            if column in {"due_date", "do_date"}
+            if source_version == 2 and column in {"due_date", "do_date"}
             else column
         )
         for column in SCHEMA_COLUMNS
     )
-    version_pragma = f"PRAGMA user_version = {SCHEMA_VERSION};"
-    current_schema = schema_text()
-    if not current_schema.rstrip().endswith(version_pragma):
-        raise RuntimeError("todo schema is missing its version pragma")
-    schema_without_version = current_schema[:current_schema.rfind(version_pragma)]
+    schema_statements = _schema_statements_without_transaction()
     try:
         connection.executescript(
             f"""
             BEGIN IMMEDIATE;
-            ALTER TABLE todos RENAME TO todos_v2;
-            CREATE TEMP TABLE todos_v3_values AS
-            SELECT {migrated_values} FROM todos_v2;
-            DROP TABLE todos_v2;
-            {schema_without_version}
+            ALTER TABLE todos RENAME TO todos_legacy;
+            CREATE TEMP TABLE todo_migration_values AS
+            SELECT {migrated_values} FROM todos_legacy;
+            DROP TABLE todos_legacy;
+            {schema_statements}
             INSERT INTO todos ({columns})
-            SELECT {columns} FROM todos_v3_values;
-            DROP TABLE todos_v3_values;
-            {version_pragma}
+            SELECT {columns} FROM todo_migration_values;
+            DROP TABLE todo_migration_values;
+            PRAGMA user_version = {SCHEMA_VERSION};
             COMMIT;
             """
         )
     except sqlite3.Error:
         connection.rollback()
         raise
+
+
+def _schema_statements_without_transaction() -> str:
+    current_schema = schema_text()
+    begin = "BEGIN IMMEDIATE;"
+    version_pragma = f"PRAGMA user_version = {SCHEMA_VERSION};"
+    commit = "COMMIT;"
+    begin_index = current_schema.find(begin)
+    version_index = current_schema.rfind(version_pragma)
+    commit_index = current_schema.rfind(commit)
+    if not (0 <= begin_index < version_index < commit_index):
+        raise RuntimeError("todo schema transaction or version pragma is invalid")
+    return current_schema[begin_index + len(begin):version_index]
 
 
 def _table_columns(connection) -> list[str]:
@@ -669,6 +682,7 @@ def edit_todo(
             updated_frontmatter["title"] = routing.slugify(values["content"])
             body = values["content"] + "\n"
         updated_frontmatter["modified"] = fmlib.now_note_timestamp()
+        notes_mod.normalize_frontmatter_fields(updated_frontmatter)
         notes_mod.validate_frontmatter_values(updated_frontmatter)
         destination_rel = _record_relpath(
             updated_frontmatter["status"], updated_frontmatter["title"]
@@ -735,6 +749,7 @@ def archive_todo(vault, todo_id, *, now=None) -> dict:
         archived["modified"] = fmlib.format_note_timestamp(now)
         archived["archived_at"] = archived["modified"]
         archived["archived_from"] = source_rel
+        notes_mod.normalize_frontmatter_fields(archived)
         notes_mod.validate_frontmatter_values(archived)
         archived_content = fmlib.compose_note(archived, body)
         journal = _start_transaction(

@@ -15,11 +15,12 @@ reported as missing or stale.
 |---|---|
 | `06_indexes/index.json` | Complete folder and file inventory with sizes and hashes |
 | `06_indexes/sidecar.json` | Frontmatter metadata for recognized notes |
-| `06_indexes/databases/search.db` | FTS5 note search index |
+| `06_indexes/databases/search.db` | FTS5 note search index, created only when SQLite exposes FTS5; otherwise search uses a live text fallback |
 | `06_indexes/context_index.json` | L0/L1/L2 context cache keyed by relative path |
 
-Canonical generated files remain complete. Agents use bounded query commands
-rather than byte-truncating those JSON artifacts.
+Generated derivatives remain complete. Agents use bounded query commands rather
+than byte-truncating those JSON artifacts. Markdown remains canonical for
+documents; `todo.db` remains authoritative for coordinated todo state.
 
 ## Hashes and levels
 

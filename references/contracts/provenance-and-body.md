@@ -25,3 +25,15 @@ source value that describes its actual origin rather than a fabricated link.
 - Use ordinary Obsidian-compatible Markdown without decorative callouts unless
   requested.
 - Preserve quotations and source-language terminology.
+
+### How-to body
+
+A `howto` contains only the explicitly reviewed, currently applicable answer to
+one practical problem. Use `Current conclusion`, `Why`, `How`, `Examples`,
+`Applicability and limits`, and `Linked notes`. Record the last explicit review
+timestamp in the body. Keep detailed development, raw research, alternatives,
+and superseded conclusions in annotated linked notes, not in the current guide.
+
+A `map` navigates a subject; a `howto` prescribes what to do now. A subject map
+may link several how-tos. Revising a how-to preserves its ID and first preserves
+any useful removed material in a linked note.

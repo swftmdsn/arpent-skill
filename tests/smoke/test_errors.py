@@ -58,9 +58,9 @@ class ErrorSmokeTests(CliTestCase):
         )
         self.assertIn("dd-MM-YYYY-HH-mm", timestamp.output)
 
-    def test_uninstalled_tool_stubs_fail_cleanly(self):
+    def test_planned_tool_designs_are_not_cli_commands(self):
         for tool in ("fleeting", "reader", "calendar", "sport", "journal", "crm"):
             with self.subTest(tool=tool):
-                result = self.assertCliFailure(self.cli(tool, "ignored", "arguments"))
-                self.assertIn("Phase 2+ sub-tool", result.output)
+                result = self.assertCliFailure(self.cli(tool), code=2)
+                self.assertIn("invalid choice", result.output)
                 self.assertIn(tool, result.output)

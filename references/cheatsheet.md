@@ -3,6 +3,9 @@
 Référence rapide des principales commandes de la CLI Arpent. `arp` est l'alias
 court de `arpent`.
 
+Cette fiche est opérationnelle mais non exhaustive. La syntaxe installée rendue
+par `arpent <commande> --help` fait autorité.
+
 ## Quand la CLI est accessible
 
 Le fichier `.arpent` sélectionne le mode du vault. La simple présence de la CLI
@@ -100,6 +103,18 @@ Capture fleeting implémentée:
 arpent note new "<texte>" --type fleeting --json
 ```
 
+Guide pratique global maintenu à jour après revue explicite:
+
+```bash
+arpent note new "<problématique précise>" --type howto \
+  --source derived --body "<conclusion actuelle et liens>" --json
+arpent note edit <howto-id> --body "<version revue>" --json
+```
+
+Un `howto` va dans `03_resources/how-tos/` avec `status: ongoing`; une MOC
+reste une carte de navigation. Le détail et les conclusions remplacées restent
+dans les notes liées.
+
 ### Modifier, router et archiver
 
 ```bash
@@ -113,6 +128,9 @@ arpent archive <id> [--yes]
 
 `note route` remplace les champs de routage. `archive` conserve l'historique et
 refuse les IDs todo ou les sources linear qui ont leur propre lifecycle.
+Statut et emplacement sont découplés: `note status ... archived` ne réalise pas
+le déplacement trimestriel. `archived` est le statut; `archived_at` et
+`archived_from` sont les métadonnées de l'événement d'archivage.
 
 ### Ingérer un fichier de l'inbox
 
@@ -174,19 +192,21 @@ Clôturer une session en full:
 
 ```bash
 arpent session end --summary <text> [--project SLUG] [--area SLUG] \
-  [--decision TEXT ...] [--next-step TEXT ...] \
-  [--memory-log] [--observation TEXT ...] [--trait TEXT ...] [--yes]
+  [--decision TEXT ...] [--next-step TEXT ...] [--memory-log] [--yes]
 ```
 
-En minimal, mettre à jour directement le `_context.md` cible. `--memory-log` est
-une demande d'écriture unique; elle ne constitue pas une demande de lecture
-future de `MEMORY.md`. La mémoire déléguée exige le mode full et un provider
-opt-in.
+Utiliser une cible projet ou area, sauf pour une écriture explicitement limitée
+à `--memory-log`. En minimal, mettre à jour directement le `_context.md` cible.
+Le log optionnel est absent par défaut et n'est jamais lu automatiquement. La
+clôture de session ne ferme ni n'archive un projet.
 
 ## Todos
 
 Toutes les commandes todo nécessitent le mode full et maintiennent ensemble
 SQLite et leur trace Markdown.
+Une action à exécuter ou suivre, y compris « rappelle-moi de faire X », est un
+todo. Un buffer externe ne convient qu'à un contexte sans état d'exécution et
+seulement avec un provider explicitement activé.
 
 ```bash
 arpent todo add <content> [--priority KEY] [--status active|waiting|done] \
@@ -226,6 +246,8 @@ arpent cron run --tick --allow-local-code [--yes]
   `status: installed` et des règles déclarées.
 - Cron n'est pas un daemon. Un scheduler externe doit appeler `--tick`.
 - L'exécution cron est désactivée sur Windows; le dry-run reste disponible.
+- Reader, review et z_backup restent `planned`/en construction et ne sont pas
+  invocables. Le backup core ci-dessous est livré indépendamment de z_backup.
 
 ## Backups
 
@@ -238,15 +260,3 @@ arpent backup restore <snapshot> --to <new-directory> [--yes]
 La création exige un vault full. `verify` et `restore` peuvent être lancés hors
 d'un vault; depuis un vault minimal découvert, ils restent mode-gated. La cible
 de restauration ne doit pas déjà exister.
-
-## Commandes indisponibles
-
-Les namespaces suivants sont des placeholders et échouent explicitement:
-
-```text
-fleeting  reader  calendar  sport  journal  crm
-```
-
-Utiliser `arpent note new "..." --type fleeting` pour la capture fleeting
-implémentée. Il n'existe pas de commande générique `arpent review`; la revue
-d'import est `arpent import review`.

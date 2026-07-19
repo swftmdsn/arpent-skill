@@ -1,4 +1,0 @@
-# Markdown Extensions
-
-Cheatsheet placeholder.
-

@@ -7,6 +7,7 @@ vault remains the source of truth; indexes and views are rebuildable.
 
 from __future__ import annotations
 
+import codecs
 import hashlib
 import os
 from datetime import datetime, timedelta, timezone
@@ -14,10 +15,13 @@ from pathlib import Path
 
 from . import frontmatter as fmlib
 from . import index as index_mod
+from .vault import is_index_excluded
 
 
 CADENCE_ORDER = {"heavylift": 0, "slowburn": 1}
 LEVEL_ORDER = {"high": 0, "medium": 1, "low": 2}
+MAX_TRIAGE_ITEMS = 10_000
+MAX_TRIAGE_TEXT_BYTES = 256 * 1024
 
 
 def status(vault) -> dict:
@@ -43,7 +47,7 @@ def status(vault) -> dict:
     }
 
 
-def triage_items(vault, *, now=None) -> list[dict]:
+def triage_items(vault, *, now=None, max_items=MAX_TRIAGE_ITEMS) -> list[dict]:
     """Return a safe, independent inventory of inbox items needing disposition."""
     inbox = vault.root / "00_inbox"
     if inbox.is_symlink():
@@ -60,7 +64,11 @@ def triage_items(vault, *, now=None) -> list[dict]:
         for name in sorted(dir_names):
             child = current_path / name
             rel = child.relative_to(vault.root).as_posix()
-            if rel.startswith("00_inbox/fleeting/") or rel == "00_inbox/fleeting":
+            if (
+                rel.startswith("00_inbox/fleeting/")
+                or rel == "00_inbox/fleeting"
+                or is_index_excluded(rel, directory=True)
+            ):
                 continue
             if child.is_symlink():
                 paths.append(child)
@@ -68,6 +76,11 @@ def triage_items(vault, *, now=None) -> list[dict]:
                 kept_dirs.append(name)
         dir_names[:] = kept_dirs
         paths.extend(current_path / name for name in sorted(file_names))
+        if len(paths) > max_items:
+            raise ValueError(
+                f"Inbox triage exceeds the safety limit of {max_items} items; "
+                "reduce or partition 00_inbox before retrying."
+            )
 
     for path in sorted(paths):
         rel = path.relative_to(vault.root).as_posix()
@@ -85,11 +98,16 @@ def triage_items(vault, *, now=None) -> list[dict]:
 def efforts(vault) -> list[dict]:
     """Return active actionables grouped by explicit effort profile."""
     rows = []
-    for base, kind in ((vault.root / "01_projects", "project"), (vault.root / "02_areas", "area")):
-        if not base.exists():
+    for base_rel, kind in (("01_projects", "project"), ("02_areas", "area")):
+        raw_base = vault.root / base_rel
+        if not raw_base.exists() and not raw_base.is_symlink():
             continue
-        for folder in sorted(p for p in base.iterdir() if p.is_dir()):
-            context = _context_frontmatter(folder)
+        base = vault.safe_directory_path(base_rel)
+        for candidate in sorted(base.iterdir()):
+            if candidate.is_symlink() or not candidate.is_dir() or candidate.name.startswith("_"):
+                continue
+            folder = vault.safe_directory_path(candidate.relative_to(vault.root).as_posix())
+            context = _context_frontmatter(vault, folder)
             if context.get("status") == "active":
                 rows.append(_effort_row(
                     context,
@@ -98,14 +116,20 @@ def efforts(vault) -> list[dict]:
                     path=(folder / "_context.md").relative_to(vault.root).as_posix(),
                 ))
 
-    for path, fm, _ in vault.iter_notes():
-        if path.name == "_context.md" or fm.get("status") != "active":
+    for path, fm, _ in vault.iter_notes(skip_invalid=True):
+        rel = path.relative_to(vault.root).as_posix()
+        if (
+            path.name == "_context.md"
+            or fm.get("status") != "active"
+            or fm.get("type") == "template"
+            or rel.startswith("03_resources/templates/")
+        ):
             continue
         rows.append(_effort_row(
             fm,
             kind=fm.get("type") or "note",
             label=fm.get("title") or path.stem,
-            path=path.relative_to(vault.root).as_posix(),
+            path=rel,
         ))
 
     return sorted(rows, key=_effort_sort_key)
@@ -212,21 +236,31 @@ def _triage_item(vault, path: Path, rel: str, now: datetime) -> dict:
 
     try:
         source = vault.safe_source_path(rel)
-        raw = source.read_bytes()
+        digest, raw, truncated, valid_utf8 = _read_triage_source(source)
     except (OSError, ValueError) as exc:
         base["reason"] = f"Cannot read inbox item: {exc}"
         return base
 
-    base["sha256"] = hashlib.sha256(raw).hexdigest()
-    try:
-        text = raw.decode("utf-8")
-    except UnicodeDecodeError:
+    base["sha256"] = digest
+    if not valid_utf8:
         base.update({
             "kind": "binary",
             "preview": f"Binary or non-UTF-8 file: {path.name}",
             "actions": ["ingest", "leave"],
         })
         return _with_unsure_reason(vault, path, rel, base)
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        if truncated:
+            text = raw.decode("utf-8", errors="ignore")
+        else:
+            base.update({
+                "kind": "binary",
+                "preview": f"Binary or non-UTF-8 file: {path.name}",
+                "actions": ["ingest", "leave"],
+            })
+            return _with_unsure_reason(vault, path, rel, base)
     if _looks_binary(text):
         base.update({
             "kind": "binary",
@@ -240,7 +274,7 @@ def _triage_item(vault, path: Path, rel: str, now: datetime) -> dict:
     except ValueError as exc:
         base.update({
             "kind": "malformed",
-            "preview": _preview(text),
+            "preview": _preview(text) + (" (preview truncated)" if truncated else ""),
             "reason": f"Malformed frontmatter: {exc}",
             "actions": ["ingest", "leave"],
         })
@@ -252,7 +286,7 @@ def _triage_item(vault, path: Path, rel: str, now: datetime) -> dict:
             "id": fm.get("id"),
             "title": fm.get("title"),
             "type": fm.get("type") or extension,
-            "preview": _preview(body),
+            "preview": _preview(body) + (" (preview truncated)" if truncated else ""),
             "actions": ["edit", "leave"] if fm.get("id") else ["ingest", "leave"],
         })
         created = _parse_datetime(fm.get("created"))
@@ -263,7 +297,7 @@ def _triage_item(vault, path: Path, rel: str, now: datetime) -> dict:
     else:
         base.update({
             "kind": "text",
-            "preview": _preview(text),
+            "preview": _preview(text) + (" (preview truncated)" if truncated else ""),
             "actions": ["ingest", "leave"],
         })
     return _with_unsure_reason(vault, path, rel, base)
@@ -301,11 +335,38 @@ def _preview(body: str) -> str:
     return "(empty)"
 
 
-def _context_frontmatter(folder) -> dict:
+def _read_triage_source(path: Path) -> tuple[str, bytes, bool, bool]:
+    """Hash a source completely while retaining only a bounded UTF-8 preview."""
+    digest = hashlib.sha256()
+    decoder = codecs.getincrementaldecoder("utf-8")()
+    captured = bytearray()
+    total = 0
+    valid_utf8 = True
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+            total += len(chunk)
+            if len(captured) < MAX_TRIAGE_TEXT_BYTES:
+                captured.extend(chunk[:MAX_TRIAGE_TEXT_BYTES - len(captured)])
+            if valid_utf8:
+                try:
+                    decoder.decode(chunk, final=False)
+                except UnicodeDecodeError:
+                    valid_utf8 = False
+    if valid_utf8:
+        try:
+            decoder.decode(b"", final=True)
+        except UnicodeDecodeError:
+            valid_utf8 = False
+    return digest.hexdigest(), bytes(captured), total > len(captured), valid_utf8
+
+
+def _context_frontmatter(vault, folder) -> dict:
     context = folder / "_context.md"
-    if not context.exists():
+    if context.is_symlink() or not context.exists():
         return {}
-    fm, _ = fmlib.read_note(context)
+    rel = context.relative_to(vault.root).as_posix()
+    fm, _ = fmlib.read_note(vault.safe_source_path(rel))
     return fm
 
 

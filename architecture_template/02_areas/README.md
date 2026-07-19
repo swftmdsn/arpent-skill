@@ -1,9 +1,11 @@
 # Areas
 
-Areas are ongoing responsibilities. They do not end like projects.
+Areas are optional ongoing responsibilities. A vault does not need an area for
+every subject, and a project may use `area: null`.
 
 Area folders use a direct lowercase snake-case slug:
 
 `<area_name>`
 
-Each instrumented area should carry an `_context.md` at its root when it becomes actively maintained by an agent or tool.
+An area carries `_context.md` only when the user chooses to maintain operational
+continuity for it. Do not create areas as a routing side effect.

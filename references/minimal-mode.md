@@ -36,14 +36,7 @@ vault-mode promotion by setting `auto_full: true`.
 
 External memory is not part of minimal mode. User-provided orientation belongs
 in `me.md`, working state in `_context.md`, and durable readable information in
-ordinary notes. Do not create an automatic memory dump or local queue.
-
-### No manual deferred-memory queue
-
-`06_indexes/pending_db_writes.yaml` is owned by the implemented
-`arpent session end` workflow. Arpent has no `pending apply` command and agents
-must not append to or flush this file manually. It records deferred intent for
-future integration work; it does not prove that external memory was updated.
+ordinary notes. Do not create automatic fallback memory storage.
 
 ### Manual sidecar updates
 
@@ -52,7 +45,8 @@ future integration work; it does not prove that external memory was updated.
 - Don't try to maintain them - they will be out of sync
 - After several manual file changes, advise the user: "Run `arpent index` later to rebuild the indexes."
 
-This is acceptable - the indexes are derivatives, the markdown files are canonical.
+This is acceptable: the indexes are derivatives. Markdown is canonical for
+documents; retained `todo.db` remains authoritative for coordinated todo state.
 
 ## Manual file creation - full procedure
 
@@ -100,6 +94,8 @@ If any check fails, fix or surface the issue.
 ### 5. Compute the path
 
 Apply the pure routing function. If ambiguous → `00_inbox/unsure/` with `_reason.txt`.
+Reserved resource homes declared by the contract may be materialized on first
+write; do not invent any other missing project, area, or resource.
 
 ### 6. Apply confirmation policy
 
@@ -137,8 +133,8 @@ and a selected project, area, or resource, the transaction moves that original
 to the home's `attachments/` and creates a separate Markdown companion reference
 note with complete universal frontmatter whose `link` points to the attachment.
 Without a final home, the original stays in inbox and the companion reference
-note is untriaged. The transaction never overwrites note or attachment
-collisions and removes the inbox source only after the destination commits.
+note is untriaged. The transaction never silently replaces a colliding note or
+attachment and removes the inbox source only after the destination commits.
 
 For a batch, preview every item and obtain one confirmation when the policy
 requires it, then invoke the individual transactions sequentially. Report
@@ -157,7 +153,7 @@ arpent import scan ~/legacy --output ~/migration/legacy-plan.json
 arpent import review ~/migration/legacy-plan.json
 arpent import validate ~/migration/legacy-plan.json --sources
 arpent import apply ~/migration/legacy-plan.json --dry-run --json
-arpent import apply ~/migration/legacy-plan.json
+arpent import apply ~/migration/legacy-plan.json --yes --json
 ```
 
 The scan is read-only, folder decisions are inherited, and actual application
@@ -196,22 +192,27 @@ Common operations and their direct-file equivalents:
 | `arpent note ingest <path>` | Preserve the raw source; create an additive reference note when useful, without claiming a coordinated move |
 | `arpent archive <target>` | Move file to `04_archives/<YYYY_qX>/...` and update frontmatter `status: archived` |
 | `arpent efforts` | find notes and contexts with `status: active`, then group explicit `effort_cadence` + `effort_level`; missing profiles are `unclassified` |
-| `arpent session end` | Append a `_context.md` session block; do not operate `MEMORY.md` or the CLI-owned queue |
+| `arpent session end` | Append a `_context.md` session block; the full-mode command writes optional `MEMORY.md` only with explicit `--memory-log` |
 
 ## End-of-session protocol in minimal mode
 
 The direct-file protocol is:
 
 1. **Update `_context.md`** under the local confirmation policy, preserving body sections and the complete universal frontmatter set.
-2. **Do not create, update, or read `MEMORY.md` in minimal mode.** Promote to full before a separately requested memory-log write.
+2. **Do not create, update, or read `MEMORY.md` during a direct minimal-mode close.** The delivered full-mode command writes it only when `--memory-log` is explicitly passed.
 3. **Keep user-provided orientation in `me.md`, operational state in `_context.md`, and durable readable material in notes.**
+
+Status and location remain decoupled. A direct archive operation must both set
+`status: archived` and perform the verified move; changing status text alone is
+not a physical archive.
 
 ## Coordinated-state boundary
 
 Some operations **require full mode**:
 
 - **Atomic multi-file operations** (e.g., dissolving a linear note: needs to update source + create children + maintain `parent`/`extracted_to` consistency)
-- **DB consistency** (FTS5 indexes get out of sync if updated outside the CLI)
+- **Generated search consistency** (`search.db` when FTS5 is available, or the
+  live text fallback selected by the CLI)
 - **Sweep operations** (require reading `tools.yaml`, walking many files, updating statuses)
 - **Cron** (requires the CLI tick mechanism)
 
@@ -237,7 +238,7 @@ After this, normal CLI operation resumes in full mode.
 
 Minimal mode is **not** a fallback or a hack. It is a designed property of the system:
 
-- Markdown files remain the source of truth
+- Markdown files remain canonical for documents
 - Index and search databases are rebuildable derivatives; authoritative tool
   state such as `todo.db` remains retained and dormant
 - The CLI is a productivity layer, not a dependency for survival

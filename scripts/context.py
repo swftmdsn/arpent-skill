@@ -20,65 +20,81 @@ else:  # pragma: no cover - not used on Windows
 CONTEXT_REL_PATH = "06_indexes/context_index.json"
 
 
-def refresh_context_index(vault, *, folders: list[dict], files: list[dict]) -> dict:
+def refresh_context_index(
+    vault, *, folders: list[dict], files: list[dict], generation: str | None = None,
+) -> dict:
     """Refresh deterministic levels and retain AI summaries with matching hashes."""
-    with _context_lock(vault):
-        old = load_context_index(vault, required=False)
-        old_entries = old.get("entries") or {}
-        reusable = _summaries_by_hash(old_entries)
-        entries = {}
-
-        for item in [*folders, *files]:
-            path = item["path"]
-            source_hash = item["context_hash"]
-            eligible = item["kind"] in {"folder", "note", "text"}
-            previous = old_entries.get(path, {}).get("l1") or {}
-
-            if previous.get("source_hash") != source_hash:
-                previous = reusable.get((item["kind"], source_hash), previous)
-            if not eligible:
-                previous = {}
-
-            summary = previous.get("summary")
-            summary_hash = previous.get("source_hash")
-            if not eligible:
-                status = "unsupported"
-            elif summary and summary_hash == source_hash:
-                status = "fresh"
-            elif summary:
-                status = "stale"
-            else:
-                status = "missing"
-
-            entries[path] = {
-                "kind": item["kind"],
-                "source_hash": source_hash,
-                "l0": _l0(item),
-                "l1": {
-                    "status": status,
-                    "summary": summary,
-                    "source_hash": summary_hash,
-                    "updated_at": previous.get("updated_at"),
-                    "provider": previous.get("provider"),
-                },
-                "l2": _l2(item),
-            }
-
-        result = {
-            "version": 1,
-            "generated": _now_iso(),
-            "levels": {
-                "L0": "Deterministic one-line orientation, safe to load broadly.",
-                "L1": "Optional AI summary, valid only for its recorded source_hash.",
-                "L2": "Source pointer or folder children, loaded only on demand.",
-            },
-            "entries": dict(sorted(entries.items())),
-        }
+    with vault.exclusive_lock("mutations"), _context_lock(vault):
+        result = prepare_context_index(
+            vault, folders=folders, files=files, generation=generation,
+        )
         _write_context_index(vault, result)
         return result
 
 
-def load_context_index(vault, *, required: bool = True) -> dict:
+def prepare_context_index(
+    vault, *, folders: list[dict], files: list[dict], generation: str | None = None,
+) -> dict:
+    """Build a context generation in memory for coordinated index publication."""
+    old = load_context_index(vault, required=False, validate_generation=False)
+    old_entries = old.get("entries") or {}
+    reusable = _summaries_by_hash(old_entries)
+    entries = {}
+
+    for item in [*folders, *files]:
+        path = item["path"]
+        source_hash = item["context_hash"]
+        eligible = item["kind"] in {"folder", "note", "text"}
+        previous = old_entries.get(path, {}).get("l1") or {}
+
+        if previous.get("source_hash") != source_hash:
+            previous = reusable.get((item["kind"], source_hash), previous)
+        if not eligible:
+            previous = {}
+
+        summary = previous.get("summary")
+        summary_hash = previous.get("source_hash")
+        if not eligible:
+            status = "unsupported"
+        elif summary and summary_hash == source_hash:
+            status = "fresh"
+        elif summary:
+            status = "stale"
+        else:
+            status = "missing"
+
+        entries[path] = {
+            "kind": item["kind"],
+            "source_hash": source_hash,
+            "l0": _l0(item),
+            "l1": {
+                "status": status,
+                "summary": summary,
+                "source_hash": summary_hash,
+                "updated_at": previous.get("updated_at"),
+                "provider": previous.get("provider"),
+            },
+            "l2": _l2(item),
+        }
+
+    result = {
+        "version": 1,
+        "generated": _now_iso(),
+        "levels": {
+            "L0": "Deterministic one-line orientation, safe to load broadly.",
+            "L1": "Optional AI summary, valid only for its recorded source_hash.",
+            "L2": "Source pointer or folder children, loaded only on demand.",
+        },
+        "entries": dict(sorted(entries.items())),
+    }
+    if generation is not None:
+        result["generation"] = generation
+    return result
+
+
+def load_context_index(
+    vault, *, required: bool = True, validate_generation: bool = True,
+) -> dict:
     raw_path = vault.root / CONTEXT_REL_PATH
     if not raw_path.exists() and not raw_path.is_symlink():
         if required:
@@ -97,6 +113,20 @@ def load_context_index(vault, *, required: bool = True) -> dict:
         raise ValueError(
             f"Invalid structure in {CONTEXT_REL_PATH}; the existing file was preserved."
         )
+    generation = data.get("generation")
+    if validate_generation and generation is not None:
+        index_relpath = "06_indexes/index.json"
+        raw_index = vault.root / index_relpath
+        if not raw_index.exists() and not raw_index.is_symlink():
+            raise ValueError("Context index publication is incomplete; run `arpent index` again.")
+        try:
+            index_data = json.loads(
+                vault.safe_source_path(index_relpath).read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            raise ValueError(f"Cannot validate context index generation: {exc}") from exc
+        if not isinstance(index_data, dict) or index_data.get("generation") != generation:
+            raise ValueError("Context index generation is incomplete; run `arpent index` again.")
     return data
 
 
@@ -136,7 +166,8 @@ def set_summary(
     if not text:
         raise ValueError("Summary cannot be empty.")
 
-    with _context_lock(vault):
+    with vault.exclusive_lock("mutations"), _context_lock(vault):
+        vault.refuse_foreign_transactions()
         data = load_context_index(vault)
         entries = data.get("entries") or {}
         entry = entries.get(normalized)

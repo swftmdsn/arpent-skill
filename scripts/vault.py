@@ -4,6 +4,7 @@ vault.py - vault location, scaffolding, and discovery helpers.
 
 from __future__ import annotations
 
+import errno
 import json
 import os
 import re
@@ -62,6 +63,7 @@ SCAFFOLD = [
     "03_resources",
     "03_resources/concepts",
     "03_resources/maps-of-content",
+    "03_resources/how-tos",
     "03_resources/integrations",
     "03_resources/templates",
     "03_resources/agent_wiki",
@@ -94,10 +96,19 @@ SCAFFOLD = [
     "06_indexes/logs",
 ]
 
-RESERVED_RESOURCE_SLUGS = [
-    "concepts", "maps-of-content", "integrations", "templates",
-    "agent_wiki", "books", "articles", "portraits", "productions",
-]
+WINDOWS_RESERVED_NAMES = {
+    "aux", "clock$", "con", "conin$", "conout$", "nul", "prn",
+    *(f"com{number}" for number in range(1, 10)),
+    *(f"lpt{number}" for number in range(1, 10)),
+}
+_UNSUPPORTED_LINK_ERRNOS = {
+    errno.EACCES,
+    errno.EPERM,
+    errno.EXDEV,
+    getattr(errno, "ENOSYS", -1),
+    getattr(errno, "ENOTSUP", -1),
+    getattr(errno, "EOPNOTSUPP", -1),
+}
 
 class Vault:
     def __init__(self, root: Path):
@@ -150,7 +161,7 @@ class Vault:
         base = self.root / "01_projects"
         return [
             p.name for p in base.iterdir()
-            if p.is_dir() and not p.is_symlink() and not p.name.startswith("_")
+            if p.is_dir() and not p.is_symlink() and not p.name.startswith(("_", "."))
         ] if base.exists() else []
 
     def area_slugs(self):
@@ -160,7 +171,9 @@ class Vault:
     def resource_slugs(self):
         base = self.root / "03_resources"
         found = [p.name for p in base.iterdir() if p.is_dir() and not p.is_symlink()] if base.exists() else []
-        return sorted(set(found) | set(RESERVED_RESOURCE_SLUGS))
+        operations_path = self.safe_source_path("06_indexes/cli/operations.yaml")
+        reserved = operations_mod.routing_contract(operations_path)["reserved_resources"]
+        return sorted(set(found) | set(reserved))
 
     def iter_notes(self, *, skip_invalid=False):
         """Yield (path, frontmatter, body) for every .md note in the vault."""
@@ -302,7 +315,7 @@ class Vault:
                 stream.write(content)
                 stream.flush()
                 os.fsync(stream.fileno())
-            os.link(temporary, target)
+            self._link_or_copy_no_replace(temporary, target)
             self.fsync_directory(target.parent)
         finally:
             temporary.unlink(missing_ok=True)
@@ -312,7 +325,7 @@ class Vault:
         """Move a file without ever replacing an existing destination."""
         source = self.safe_source_path(source_relpath)
         destination = self.safe_output_path(destination_relpath)
-        os.link(source, destination)
+        self._link_or_copy_no_replace(source, destination)
         self.fsync_directory(destination.parent)
         try:
             source.unlink()
@@ -322,6 +335,53 @@ class Vault:
             self.fsync_directory(destination.parent)
             raise
         return destination
+
+    @staticmethod
+    def _link_or_copy_no_replace(source: Path, destination: Path) -> None:
+        try:
+            os.link(source, destination)
+            return
+        except OSError as exc:
+            if exc.errno not in _UNSUPPORTED_LINK_ERRNOS:
+                raise
+
+        descriptor = None
+        created = False
+        try:
+            with source.open("rb") as input_stream:
+                before = os.fstat(input_stream.fileno())
+                before_signature = (
+                    before.st_dev, before.st_ino, before.st_size,
+                    before.st_mtime_ns, before.st_ctime_ns,
+                )
+                descriptor = os.open(
+                    destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600,
+                )
+                created = True
+                with os.fdopen(descriptor, "wb") as output_stream:
+                    descriptor = None
+                    shutil.copyfileobj(input_stream, output_stream, length=1024 * 1024)
+                    output_stream.flush()
+                    os.fsync(output_stream.fileno())
+                after = os.fstat(input_stream.fileno())
+                current = source.lstat()
+                after_signature = (
+                    after.st_dev, after.st_ino, after.st_size,
+                    after.st_mtime_ns, after.st_ctime_ns,
+                )
+                if (
+                    before_signature != after_signature
+                    or (current.st_dev, current.st_ino) != before_signature[:2]
+                ):
+                    raise ValueError(
+                        f"Source changed while copying without replacement: {source}"
+                    )
+        except BaseException:
+            if descriptor is not None:
+                os.close(descriptor)
+            if created:
+                destination.unlink(missing_ok=True)
+            raise
 
     @contextmanager
     def exclusive_lock(self, name: str):
@@ -392,13 +452,24 @@ class Vault:
 
     def _safe_relative_path(self, relpath: str) -> Path:
         candidate = Path(relpath)
-        if candidate.is_absolute() or ".." in candidate.parts:
+        if candidate.is_absolute() or ".." in candidate.parts or "\\" in str(relpath):
             raise ValueError("Vault path must be relative and cannot contain '..'.")
+        for part in candidate.parts:
+            portable = part.rstrip(" .")
+            device_name = portable.split(".", 1)[0].casefold()
+            if portable != part or device_name in WINDOWS_RESERVED_NAMES:
+                raise ValueError(f"Vault path uses a Windows-reserved name: {part}")
         return self.root / candidate
 
 
 def is_index_excluded(relpath: str, *, directory=False) -> bool:
     parts = Path(relpath).parts
+    if (
+        len(parts) >= 3
+        and parts[:2] == ("00_inbox", "captures")
+        and parts[2].startswith(".arpent-import-")
+    ):
+        return True
     if any(part in INDEX_EXCLUDED_DIR_NAMES for part in parts):
         return True
     for prefix in INDEX_EXCLUDED_DIR_PATHS:
@@ -419,11 +490,14 @@ COMPASS_STUB = Path(__file__).with_name("COMPASS.md").read_text(encoding="utf-8"
 
 ARPENT_STUB = """# Arpent Constitution
 
-This vault is an Arpent vault: a filesystem-native personal life OS.
+This vault is an Arpent vault: a filesystem-native local continuity and
+administration layer.
 
-- Files over apps. Markdown + JSON are the source of truth.
+- Files over apps. Markdown is canonical for documents; `todo.db` is
+  authoritative for coordinated todo state.
 - Delegated memory is optional and disabled by default; the vault is a clean knowledge base, not a memory dump.
-- Routing is deterministic. Nothing is ever deleted - only archived.
+- Routing is deterministic. Prevent silent replacement or destruction; explicit
+  checked atomic edits are allowed, and lifecycle retention uses archives.
 - Confirmation follows the local operation policy; the user owns the vault.
 
 See 06_indexes/global_skills/ for the operating skill.
@@ -470,18 +544,25 @@ The confirmation policy lives in `06_indexes/cli/operations.yaml`.
 
 ## Hard Rules
 
-- Never delete or overwrite user content. Archive.
+- Prevent silent loss: never silently replace a destination or destroy user
+  content. Explicit edits may use checked atomic replacement; archive for
+  lifecycle retention.
 - Never fill `appreciated` or `importance`; do not infer effort values.
 - Never guess a missing route; use `00_inbox/unsure/` with a reason.
-- Never invent frontmatter fields, relation types, provider opt-in, or side effects.
+- Reserved resource homes may materialize on first write; never invent another
+  missing project, area, or resource.
+- Never invent frontmatter fields, relation types, memory activation, or side effects.
 - Write public timestamps as `dd-MM-YYYY-HH-mm` in UTC.
 - Keep binary attachments untouched with separate Markdown companions.
 - Do not rewrite `me.md` from inference.
-- Skills remain retained without necessarily being loaded or executable.
+- A tool skill is not executable unless its registry status is `installed` and
+  its runtime implementation and prerequisites are available.
 
-`_context.md` is the default local continuity surface. Minimal keeps user-provided
-orientation and context in files. Full-mode external memory requires provider
-opt-in.
+`_context.md` is the default local continuity surface. Minimal keeps approved
+orientation and context in files. External host memory remains opt-in and is not
+enabled by vault mode.
+Actionable reminders are todo; non-actionable buffer context is provider-bound
+and is not persisted when no provider is enabled.
 """
 
 MENTAL_MODEL_STUB = """# Arpent Mental Model
@@ -493,22 +574,32 @@ When information arrives, decide which role it plays:
 | Long-form content to open, read, and edit | Vault |
 | User-provided orientation | `me.md` in both modes |
 | Durable readable knowledge | Vault note in both modes |
-| Personal trait or fact for opportunistic recall | Delegated profile/observation only when the full-mode integration is enabled |
+| Action or reminder to execute, follow, complete, defer, or block | Todo (coordinated in full; clearly untracked inbox note in minimal) |
+| Personal trait or fact for opportunistic recall | External profile/observation only when a host provider is explicitly enabled |
 | Time-bound operational context | target `_context.md` in both modes |
-| Time-bound personal reminder | Delegated buffer only when the full-mode integration is enabled |
+| Temporary recall context without execution state | External buffer only when a host provider is explicitly enabled |
 | Unsupervised agent research scratch | `06_indexes/memory/wiki/` in full; retained dormant in minimal |
 | Default cross-session operational continuity | project/area `_context.md` |
-| Optional cross-project log | `06_indexes/memory/MEMORY.md`, only after a one-use full-mode write request |
+| Optional cross-project log | `06_indexes/memory/MEMORY.md`, only after explicit full-mode `session end --memory-log` |
 
-Delegated-memory destinations require full mode and provider opt-in. When the
-integration is not enabled, report that provider-bound information was not
-persisted; do not silently substitute a note or local queue.
+External-memory destinations require provider opt-in and confirmed persistence;
+vault mode does not enable them. When no provider is enabled, report that
+provider-bound information was not persisted; do not silently substitute a note
+or fallback store.
 
-The vault is not memory. It is the clean shared knowledge base.
+“Remember to do X” is a todo, not a buffer. Use a buffer only when no action or
+completion state must be tracked.
 
-`MEMORY.md` is disabled and unseeded by default. Normal resume must not read it;
-use `me.md`, the target `_context.md`, then only the notes/sources needed. Reading
-the optional log requires a separate explicit read request.
+The vault is a clean shared document and continuity layer, not an automatic
+memory log. Markdown is canonical for documents; `todo.db` is authoritative for
+coordinated todo state.
+
+`MEMORY.md` is unseeded. The delivered `session end` command writes it only when
+`--memory-log` is explicitly passed. Normal resume reads `me.md`, then the target
+`_context.md`, then only needed notes/sources; reading the optional log requires
+a separate explicit request.
+
+`me.md` is a root-level orientation file. It is read early by agents, but it is not a dump for inferred traits or automatic memory writes.
 """
 
 MEMORY_STUB = """# MEMORY - optional working log
@@ -623,6 +714,9 @@ ROUTING_DOC_STUB = """# Routing
 
 Routing is a pure function of frontmatter.
 
+Lifecycle status and physical location are decoupled. Status alone does not
+assert a path or perform a move.
+
 - `project` set -> `01_projects/<project>/notes/`; use `drafts/` for drafts,
   `meetings/` for meetings, and `sessions/` for logs
 - `area` set -> the exact area folder, or one unambiguous
@@ -638,6 +732,7 @@ Special types may override subfolders:
 
 - `fleeting` -> `00_inbox/fleeting/dd-mm-yyyy.md`
 - `map` -> `03_resources/maps-of-content/`
+- `howto` -> `03_resources/how-tos/`
 - `integration` -> `03_resources/integrations/`
 - `artefact` -> `05_tools/artefacts/`
 - an agent-authored draft without a project -> `03_resources/agent_wiki/drafts/`
@@ -646,6 +741,11 @@ Special types may override subfolders:
 Routing never invents a missing home. Full creates a deliberate project with
 `arpent project create <name>`. Minimal follows the direct project procedure in
 the local Arpent skill.
+
+Reserved resource homes (`concepts`, `maps-of-content`, `how-tos`, `integrations`,
+`templates`, `agent_wiki`, `books`, `articles`, `portraits`, `productions`) are
+declared by the contract and may materialize on first write. Any other missing
+resource, project, or area remains unresolved and routes to `unsure/`.
 
 Triage and transactional ingestion are full-only CLI operations. In minimal,
 inventory inbox files directly, preserve raw sources, and do not claim an atomic
@@ -660,10 +760,12 @@ reference note with complete frontmatter and a `link` to the attachment. Without
 a final home, the original remains in inbox and the companion is untriaged.
 
 Minimal archive preserves one non-linear note, sets `status: archived`, updates
-`modified`, adds `archived_at` and `archived_from`, and moves without replacement
-to `04_archives/<YYYY_qN>/<title>.md`. Inspect source and destination immediately
-before the move and verify afterward. Extraction and linear dissolution remain
-full-only because they coordinate multiple notes.
+`modified`, adds lifecycle-event metadata `archived_at` and `archived_from`, and
+moves without silently replacing a destination to
+`04_archives/<YYYY_qN>/<title>.md`. `archived` is the status; the two extension
+fields record when and from where the move happened. Inspect source and
+destination immediately before the move and verify afterward. Extraction and
+linear dissolution remain full-only because they coordinate multiple notes.
 """
 
 INDEXING_CONTEXT_DOC_STUB = """# Indexing and Context
@@ -683,11 +785,12 @@ reported as missing or stale.
 |---|---|
 | `06_indexes/index.json` | Complete folder and file inventory with sizes and hashes |
 | `06_indexes/sidecar.json` | Frontmatter metadata for recognized notes |
-| `06_indexes/databases/search.db` | FTS5 note search index |
+| `06_indexes/databases/search.db` | FTS5 note search index, created only when SQLite exposes FTS5; otherwise search uses a live text fallback |
 | `06_indexes/context_index.json` | L0/L1/L2 context cache keyed by relative path |
 
-Canonical generated files remain complete. Agents use bounded query commands
-rather than byte-truncating those JSON artifacts.
+Generated derivatives remain complete. Agents use bounded query commands rather
+than byte-truncating those JSON artifacts. Markdown remains canonical for
+documents; `todo.db` remains authoritative for coordinated todo state.
 
 ## Hashes and levels
 
@@ -1017,6 +1120,37 @@ extracted_to: []
 ## Key resources
 """
 
+HOWTO_TEMPLATE_STUB = """## Current conclusion
+
+State the currently applicable answer directly.
+
+Last explicit review: REPLACE_WITH_DD-MM-YYYY-HH-MM_UTC
+
+## Why
+
+Summarize only the reasons and tradeoffs needed to apply the answer today.
+
+## How
+
+1. Add a concrete step.
+2. Add a verification criterion.
+
+## Examples
+
+Add short, reproducible examples.
+
+## Applicability and limits
+
+State prerequisites, exceptions, and signals that require another explicit
+review.
+
+## Linked notes
+
+- [[subject_map]] - navigation for the broader subject
+- [[detailed_decision]] - full reasoning or evidence
+- [[historical_note]] - superseded conclusions or alternatives
+"""
+
 GITIGNORE_STUB = """# Databases and SQLite runtime files
 *.db
 *.db-journal
@@ -1109,6 +1243,7 @@ tools:
         after_days: 30
         action: archive-with-trace
   reader:
+    # Planned/in construction; not invocable and not processed by sweep.
     category: transversal
     ephemeral: true
     skill: 06_indexes/global_skills/reader.skill.md
@@ -1121,6 +1256,7 @@ tools:
         after_days: 60
         action: archive-with-trace
   review:
+    # Planned/in construction; no generic review workflow is delivered.
     category: transversal
     ephemeral: false
     skill: 06_indexes/global_skills/review.skill.md
@@ -1130,6 +1266,7 @@ tools:
     status: planned
     lifecycle: []
   z_backup:
+    # Planned extension; core `arpent backup` is delivered independently.
     category: transversal
     ephemeral: false
     skill: 06_indexes/global_skills/z_backup.skill.md
@@ -1142,13 +1279,12 @@ tools:
 
 ARPENT_SKILL_STUB = """---
 name: arpent
-description: Operate an Arpent vault for typed capture, retrieval, routing, projects, lifecycle, and todo.
+description: Operate an Arpent vault.
 ---
 
 # Arpent
 
-Use for capture, organization, retrieval, routing, archival, project continuity,
-import, and actionable todo work.
+Use for capture, retrieval, routing, archival, project continuity, import, and todo.
 
 ## Load Progressively
 
@@ -1168,14 +1304,37 @@ import, and actionable todo work.
 
 ## Capture
 
-- Full-mode note: `arpent note new <title> --type <type> ... --json`.
+- Full note: `arpent note new <title> --type <type> ... --json`; `howto` is
+  current global guidance, `map` navigation.
 - Exact-plan note: add `--dry-run --json`, then use `--plan-hash`.
 - Full-mode todo: `arpent todo add <content> ... --json`.
 - Full-mode fleeting: `arpent note new <text> --type fleeting --json`.
-- Minimal: read `06_indexes/schemas/frontmatter_policy.yaml`, the routing section
-  of `06_indexes/cli/operations.yaml`, and
-  `06_indexes/docs/architecture/routing.md`; build complete frontmatter, compute
-  the route, create without replacement, and read back the result.
+
+## Minimal Hot Paths
+
+### Note
+
+1. Read `06_indexes/schemas/frontmatter_policy.yaml` and the routing contract.
+2. Build complete frontmatter, normalize the title, and compute the route.
+3. Reserved resource homes may materialize on first write; never invent another
+   missing home.
+4. Recheck the destination, create without silently replacing it, read back, and
+   verify frontmatter, body, and path.
+
+### Untracked Todo
+
+1. State that coordinated todo is unavailable in minimal mode.
+2. If the user still wants capture, create an ordinary inbox note clearly
+   labeled as an untracked action; do not claim a todo ID, database row, status
+   tracking, or reminder delivery.
+3. Suggest promotion to full mode when execution tracking is required.
+
+### Fleeting Append
+
+1. Use the current UTC file `00_inbox/fleeting/dd-mm-yyyy.md`.
+2. Preserve the complete existing file and append one `## HH:MM` block.
+3. Verify the final block. If safe append cannot be guaranteed, create an
+   ordinary inbox note instead of risking previous captures.
 
 Canonical field order: `title, id, created, modified, description, type,
 project, area, resource, status, effort_cadence, effort_level, tags,
@@ -1204,19 +1363,24 @@ The confirmation policy is in `06_indexes/cli/operations.yaml`.
 
 ## Method
 
-- Markdown is canonical; all ordinary notes use complete frontmatter.
-- Never delete, overwrite, guess routing, invent schema fields, infer subjective
-  fields, or use delegated memory without provider opt-in.
+- Markdown is canonical for documents; `todo.db` is authoritative for
+  coordinated todo state. All ordinary notes use complete frontmatter.
+- Prevent silent loss: never silently replace a destination or destroy user
+  content. Explicit edits may use checked atomic replacement. Never guess
+  routing, invent schema fields, infer subjective fields, or use delegated
+  memory without provider opt-in.
 - `project` and `resource` are mutually exclusive; `area` may accompany either.
 - Keep source URLs in `link`, titles in lowercase ASCII `snake_case`, and public
   timestamps in `dd-MM-YYYY-HH-mm` UTC format.
 - Agent-authored unrequested drafts use `author: agent`, `type: draft`, and the
   standard lifecycle status.
 - Resume from `me.md`, then target `_context.md`, then only needed sources.
-- Minimal keeps user-provided orientation in `me.md`, work state in `_context.md`, and
-  durable readable material in notes.
-- Skills and full-mode state remain retained; mode-gated state is dormant in
+- Minimal continuity uses `me.md` for approved orientation, `_context.md` for
+  work state, and notes for durable content.
+- External memory requires provider opt-in; full-mode state remains dormant in
   minimal.
+- Status and location are independent. `archived` is a status;
+  `archived_at`/`archived_from` describe archive events.
 
 Report concise paths and outcomes. Do not run status, index, triage, search, or a
 full reread after an ordinary successful capture.
@@ -1269,14 +1433,19 @@ Fresh L1 entries tied to their exact semantic source hashes.
 
 READER_SKILL_STUB = """---
 name: reader
-description: Transversal tool placeholder for captured articles, books, podcasts, and reading workflows.
+status: planned
+description: Planned/in-construction reader design. Not an invocable workflow in the current release.
 ---
 
 # Reader
 
-## Trigger
+> **Planned / in construction.** Do not invoke this skill. It becomes eligible
+> only after the registry says `status: installed` and an implementation,
+> dependencies, configuration, and permitted vault mode are all present.
 
-Use when capturing, reading, summarizing, or archiving external content.
+## Intended Trigger
+
+Future scope: capturing, reading, summarizing, or archiving external content.
 
 ## Input
 
@@ -1284,9 +1453,10 @@ A URL, file, book, podcast, transcript, or reading note.
 
 ## Steps
 
-1. Capture source material.
-2. Store runtime artifacts under the declared `05_tools/reader/` workspace.
-3. Create clean vault notes only when they become reusable knowledge.
+1. Validate an installed implementation and dependencies.
+2. Capture source material through that implementation.
+3. Store runtime artifacts only under declared paths.
+4. Create clean vault notes only when they become reusable knowledge.
 
 ## Output
 
@@ -1294,20 +1464,26 @@ Captured artifacts plus routed notes when appropriate.
 
 ## Method
 
-This skill remains in `06_indexes/global_skills/`. `05_tools/reader/` contains runtime
-material only. Structured state lives in `06_indexes/databases/reader.db`.
+This file is design know-how in `06_indexes/global_skills/`, not evidence of
+runtime availability. Its future workspace and database must not be created or
+used before installation.
 """
 
 REVIEW_SKILL_STUB = """---
 name: review
-description: Transversal tool placeholder for reviews and synthesis across projects, areas, and resources.
+status: planned
+description: Planned/in-construction review design. Not an invocable workflow in the current release.
 ---
 
 # Review
 
-## Trigger
+> **Planned / in construction.** Do not invoke this skill. It becomes eligible
+> only after the registry says `status: installed` and an implementation,
+> configuration, and permitted vault mode are available.
 
-Use for periodic review, synthesis, and vault health checks.
+## Intended Trigger
+
+Future scope: periodic review and synthesis across vault material.
 
 ## Input
 
@@ -1315,9 +1491,10 @@ Projects, areas, notes, indexes, and user priorities.
 
 ## Steps
 
-1. Read relevant indexes and context files.
-2. Identify stale, active, and high-value items.
-3. Apply the local confirmation policy before modifying files.
+1. Validate an installed implementation.
+2. Read relevant indexes and context files.
+3. Identify stale, active, and high-value items.
+4. Apply the local confirmation policy before modifying files.
 
 ## Output
 
@@ -1325,21 +1502,27 @@ Review summary, suggested updates, and policy-governed state changes.
 
 ## Method
 
-Keep this skill in `06_indexes/global_skills/`. Write runtime output only to
-registered `writes_to` paths. Mutations follow `always`, `explicit-intent`, or
-`never` from the local operation contract.
+This file remains design know-how in `06_indexes/global_skills/`. It does not
+make a generic review command or runtime path available. Future mutations would
+follow the local operation contract.
 """
 
 BACKUP_SKILL_STUB = """---
 name: z_backup
-description: Transversal workflow for local snapshot creation, verification, and restoration.
+status: planned
+description: Planned/in-construction backup extension. Not the delivered core backup command and not currently invocable.
 ---
 
-# Backup
+# Backup Extension
 
-## Trigger
+> **Planned / in construction.** Do not invoke this skill. The core `arpent
+> backup`, `backup verify`, and `backup restore` commands are already delivered
+> independently. This extension requires registry `status: installed` plus an
+> implementation and configuration before it can be used.
 
-Use when creating, verifying, or restoring local snapshots.
+## Intended Trigger
+
+Future scope: policy or orchestration around core local snapshots.
 
 ## Input
 
@@ -1347,9 +1530,9 @@ Vault root and backup destination.
 
 ## Steps
 
-1. Run `arpent backup [--destination <dir>]`.
-2. Verify the snapshot with `arpent backup verify <snapshot>`.
-3. Restore only to a new directory with `arpent backup restore <snapshot> --to <new-dir>`.
+1. Validate an installed extension implementation.
+2. Delegate snapshot creation and verification to the delivered core commands.
+3. Restore only to a new directory.
 
 ## Output
 
@@ -1357,9 +1540,10 @@ Backup record and verification summary.
 
 ## Method
 
-Keep this skill in `06_indexes/global_skills/`. Snapshots default to
-`06_indexes/backup/`. They exclude rebuildable/runtime state and do not include
-Git history, delegated memory, or external files. Never delete originals.
+Keep this design in `06_indexes/global_skills/`. Its presence does not activate
+or wrap the delivered core command. Core snapshots default to
+`06_indexes/backup/`; they exclude rebuildable/runtime state and do not include
+Git history, delegated memory, or external files.
 """
 
 TOOL_SKILL_TEMPLATE_STUB = """---
@@ -1406,6 +1590,8 @@ description: Operate the SQLite-backed Arpent todo list when creating, listing, 
 
 Use when the user asks to capture or manage an actionable task in the Arpent
 todo list.
+“Remember to do X” is actionable and belongs here, not in an external memory
+buffer.
 
 ## Input
 
@@ -1427,18 +1613,15 @@ quarterly archives.
 
 ## Method
 
-- `todo.db` stores structured fields; Markdown preserves a readable trace.
+- `todo.db` is authoritative for coordinated structured todo state; Markdown
+  preserves the durable readable counterpart and must remain consistent.
 - Selection values are configurable text keys, not hard-coded enums.
 - Project, dependency, and assignee fields are stable soft references.
 - Due/do timestamps use `dd-MM-YYYY-HH-mm` UTC; creation timestamps are automatic and immutable.
 - Todo records are tool-owned and must be changed through `arpent todo`.
 """
 
-PENDING_WRITES_STUB = """version: 0.1.0
-pending: []
-"""
-
-FRONTMATTER_POLICY_STUB = """version: 0.4.0
+FRONTMATTER_POLICY_STUB = """version: 0.4.1
 serialization:
   shape: complete_all_fields
   unused_scalar: null
@@ -1549,6 +1732,18 @@ fields:
 subjective_user_only:
   - appreciated
   - importance
+lifecycle_extensions:
+  archive_event:
+    applies_when_status: archived
+    capture_required: false
+    fields:
+      archived_at:
+        type: timestamp
+        format: dd-MM-YYYY-HH-mm
+        meaning: archive_event_time
+      archived_from:
+        type: string
+        meaning: pre_archive_vault_path
 defaults:
   type: note
   status: inbox
@@ -1569,6 +1764,7 @@ rules:
   depth: integer from 1 to 5 when meaningful
   effort: active actionables may use effort_cadence heavylift|slowburn and effort_level low|medium|high; never infer missing values
   relations: list of mappings with type and target; type must be in enums.relation_type
+  howto: one explicitly reviewed current practical answer; project and resource remain null; detailed and superseded material remains in annotated linked notes
   sweep: archive only done or stale; active, stable, and ongoing remain
 enums:
   status:
@@ -1613,6 +1809,7 @@ enums:
     - angle
     - production
     - map
+    - howto
     - artefact
   source:
     - manual
@@ -1707,7 +1904,6 @@ def _seed_vault(vault: Vault) -> None:
     _seed(vault, root / "06_indexes/cron.json", CRON_STUB)
     _seed(vault, root / "06_indexes/tools.yaml", TOOLS_STUB)
     _seed(vault, root / "06_indexes/agent_infrastructure_index.yaml", AGENT_INFRA_INDEX_STUB)
-    _seed(vault, root / "06_indexes/pending_db_writes.yaml", PENDING_WRITES_STUB)
     _seed(
         vault,
         root / "06_indexes/schemas/todo_schema.sql",
@@ -1752,6 +1948,7 @@ def _seed_vault(vault: Vault) -> None:
         PROJECT_CONTEXT_TEMPLATE_STUB,
     )
     _seed(vault, root / "02_areas/_context.template.md", AREA_CONTEXT_TEMPLATE_STUB)
+    _seed(vault, root / "03_resources/templates/howto.template.md", HOWTO_TEMPLATE_STUB)
     _seed(vault, root / ".gitignore", GITIGNORE_STUB)
 
 

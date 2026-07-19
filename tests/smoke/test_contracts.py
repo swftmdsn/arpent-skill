@@ -72,7 +72,7 @@ class JsonAndWorkflowSmokeTests(CliTestCase):
 
         database = vault / "06_indexes" / "databases" / "todo.db"
         self.assertSqliteIntegrity(database)
-        self.assertSqliteScalar(database, "PRAGMA user_version", 3)
+        self.assertSqliteScalar(database, "PRAGMA user_version", 4)
         self.assertSqliteRows(
             database,
             "SELECT content, due_date FROM todos WHERE id = ?",

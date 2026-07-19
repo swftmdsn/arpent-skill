@@ -102,7 +102,7 @@ class DateFormatTests(unittest.TestCase):
                 dates = connection.execute(
                     "SELECT due_date, do_date FROM todos WHERE id = 'todo-20260719-a'"
                 ).fetchone()
-            self.assertEqual(version, 3)
+            self.assertEqual(version, todo.SCHEMA_VERSION)
             self.assertEqual(dates, ("2026-07-20T00:00:00Z", "2026-07-19T00:00:00Z"))
 
 

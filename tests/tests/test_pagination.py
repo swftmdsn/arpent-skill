@@ -1,12 +1,14 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from scripts import cli
 from scripts import index as index_mod
 from scripts import notes
-from scripts import views
 from scripts.vault import init_vault
+from tests.support.cli import run_cli
 
 
 class PaginationTests(unittest.TestCase):
@@ -124,23 +126,79 @@ class PaginationTests(unittest.TestCase):
                 cursor=first["page"]["next_cursor"],
             )
 
-    def test_fts_search_is_not_silently_limited_to_fifty(self):
+    def _populate_search_notes(self, root):
+        vault = init_vault(root / "vault", minimal=False)
+        for index in range(55):
+            plan = notes.plan_note_new(
+                vault,
+                title=f"Search result {index}",
+                ntype="note",
+                body="shared-search-token",
+            )
+            notes.apply_note_new(vault, plan)
+        return vault
+
+    def _disable_fts_for_build(self, vault):
+        real_connect = index_mod.sqlite3.connect
+
+        def connect_without_fts(*args, **kwargs):
+            connection = real_connect(*args, **kwargs)
+            wrapped = mock.Mock(wraps=connection)
+
+            def execute(sql, *parameters):
+                if "CREATE VIRTUAL TABLE" in sql:
+                    raise index_mod.sqlite3.OperationalError("no such module: fts5")
+                return connection.execute(sql, *parameters)
+
+            wrapped.execute.side_effect = execute
+            return wrapped
+
+        with mock.patch.object(index_mod.sqlite3, "connect", side_effect=connect_without_fts):
+            search_available = index_mod.build_search_db(vault)
+        self.assertFalse(search_available)
+        self.assertFalse((vault.root / "06_indexes/databases/search.db").exists())
+
+    def test_search_fallback_follows_real_cli_cursors_to_completion(self):
         with tempfile.TemporaryDirectory() as temporary:
-            vault = init_vault(Path(temporary) / "vault", minimal=False)
-            for index in range(55):
-                plan = notes.plan_note_new(
-                    vault,
-                    title=f"Search result {index}",
-                    ntype="note",
-                    body="shared-search-token",
-                )
-                notes.apply_note_new(vault, plan)
-            index_mod.build_index(vault)
+            vault = self._populate_search_notes(Path(temporary))
+            self._disable_fts_for_build(vault)
+            items = []
+            cursor = None
+            pages = 0
+            while True:
+                arguments = [
+                    "search", "shared-search-token", "--json-page", "--limit", "13",
+                ]
+                if cursor is not None:
+                    arguments.extend(("--cursor", cursor))
+                result = run_cli(*arguments, cwd=vault.root)
+                self.assertEqual(0, result.returncode, result.output)
+                page = json.loads(result.stdout)
+                self.assertEqual({"text-fallback": 55}, page["summary"]["by_backend"])
+                items.extend(page["items"])
+                pages += 1
+                cursor = page["page"]["next_cursor"]
+                if cursor is None:
+                    self.assertFalse(page["page"]["has_more"])
+                    break
+            self.assertEqual(5, pages)
+            self.assertEqual(55, len(items))
+            self.assertEqual(55, len({item["path"] for item in items}))
+            self.assertEqual({"text-fallback"}, {item["backend"] for item in items})
 
-            hits = views.search(vault, "shared-search-token")
-
-            self.assertEqual(len(hits), 55)
-            self.assertTrue(all(hit["backend"] == "fts5" for hit in hits))
+    def test_fts5_backend_is_required_when_sqlite_provides_it(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            vault = self._populate_search_notes(Path(temporary))
+            if not index_mod.build_search_db(vault):
+                self.skipTest("SQLite FTS5 is unavailable in this Python build")
+            result = run_cli(
+                "search", "shared-search-token", "--json-page", "--all", cwd=vault.root,
+            )
+            self.assertEqual(0, result.returncode, result.output)
+            page = json.loads(result.stdout)
+            self.assertEqual({"fts5": 55}, page["summary"]["by_backend"])
+            self.assertEqual(55, len(page["items"]))
+            self.assertEqual({"fts5"}, {item["backend"] for item in page["items"]})
 
 
 if __name__ == "__main__":

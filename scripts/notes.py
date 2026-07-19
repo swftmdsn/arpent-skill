@@ -9,6 +9,7 @@ import codecs
 import hashlib
 import json
 import os
+import re
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import wraps
@@ -22,6 +23,12 @@ from .vault import Vault
 
 AGENT_SUBJECTIVE_FIELDS = ("appreciated", "importance")
 ARCHIVE_FRONTMATTER_FIELDS = {"archived_at", "archived_from"}
+STRING_FRONTMATTER_FIELDS = (
+    "description", "project", "area", "resource", "effort_cadence", "effort_level",
+    "chosen_location", "link", "parent", "expires_at",
+)
+LIST_FRONTMATTER_FIELDS = ("tags", "related", "observations", "extracted_to")
+ID_PATTERN = re.compile(r"^[a-z][a-z0-9_]*-[0-9]{8}-[a-z]+$")
 EFFORT_CADENCES = ("heavylift", "slowburn")
 EFFORT_LEVELS = ("low", "medium", "high")
 EXTRACTABLE_TYPES = tuple(ntype for ntype in routing.TYPES if ntype != "fleeting")
@@ -230,8 +237,9 @@ def create_note(vault: Vault, fm: dict, body: str = "", *, expected_id=None,
                 expected_route=None) -> tuple[Path, routing.Route]:
     with vault.exclusive_lock("mutations"):
         _recover_note_transaction(vault)
-        normalize_frontmatter_fields(fm)
+        _reject_unsupported_frontmatter_fields(fm)
         normalize_agent_subjective_fields(fm)
+        validate_frontmatter_values(fm)
         existing_ids = vault.existing_ids()
         if expected_id is not None:
             if expected_id in existing_ids:
@@ -239,6 +247,7 @@ def create_note(vault: Vault, fm: dict, body: str = "", *, expected_id=None,
             fm["id"] = expected_id
         else:
             fm["id"] = routing.new_id(fm["type"], existing_ids)
+        validate_frontmatter_values(fm)
         r = route_for(vault, fm)
         actual_route = {
             "destination_path": r.relpath,
@@ -302,7 +311,9 @@ def write_routed_note(vault: Vault, original_path: Path, fm: dict, body: str, *,
             raise ValueError("Note changed during update; retry with the current source.")
 
         normalize_frontmatter_fields(fm)
-        normalize_agent_subjective_fields(fm)
+        current_fm, _ = fmlib.parse_note_text(current_source)
+        normalize_agent_subjective_fields(fm, previous=current_fm)
+        validate_frontmatter_values(fm)
         r = route_for(vault, fm)
         if expected_destination is not None and r.relpath != expected_destination:
             raise ValueError(
@@ -412,7 +423,7 @@ def plan_note_edit(vault: Vault, note_id: str, *, changes=None, clear_fields=(),
     if changed:
         after["modified"] = fmlib.now_note_timestamp()
         normalize_frontmatter_fields(after)
-        normalize_agent_subjective_fields(after)
+        normalize_agent_subjective_fields(after, previous=before)
         validate_frontmatter_values(after)
 
     route = route_for(vault, after)
@@ -1013,6 +1024,7 @@ def extract_note(vault: Vault, linear_id: str, *, child_type: str, title: str,
         raise ValueError(f"Linear note '{linear_id}' already records child '{child_fm['id']}'.")
     source_fm["extracted_to"] = [*extracted_to, child_fm["id"]]
     source_fm["modified"] = fmlib.now_note_timestamp()
+    normalize_frontmatter_fields(source_fm)
     validate_frontmatter_values(source_fm)
 
     child_path = vault.safe_output_path(child_rel)
@@ -1115,6 +1127,7 @@ def dissolve_note(vault: Vault, linear_id: str) -> dict:
     source_fm["archived_at"] = source_fm["modified"]
     source_fm["archived_from"] = source_rel
     source_fm["extracted_to"] = child_ids
+    normalize_frontmatter_fields(source_fm)
     validate_frontmatter_values(source_fm)
     route = route_for(vault, source_fm)
     if route.reason or route.bucket_relpath != "04_archives/linear_notes":
@@ -1192,7 +1205,7 @@ def archive_note(vault: Vault, note_id: str):
         fm["archived_at"] = fm["modified"]
         fm["archived_from"] = rel
         normalize_frontmatter_fields(fm)
-        normalize_agent_subjective_fields(fm)
+        validate_frontmatter_values(fm)
         dest_rel = f"04_archives/{quarter}/{routing.slugify(fm['title'])}.md"
         dest = vault.safe_output_path(dest_rel)
         if dest.exists():
@@ -1217,15 +1230,54 @@ def archive_note(vault: Vault, note_id: str):
 
 
 def validate_frontmatter_values(fm: dict) -> None:
-    """Validate enum fields that can be edited after note creation."""
+    """Validate the closed universal frontmatter schema and archive extensions."""
+    if not isinstance(fm, dict):
+        raise ValueError("frontmatter must be a mapping")
     _reject_unsupported_frontmatter_fields(fm)
+    missing = [field for field in fmlib.KEY_ORDER if field not in fm]
+    if missing:
+        raise ValueError("missing required frontmatter fields: " + ", ".join(missing))
+
+    title = fm["title"]
+    if not isinstance(title, str) or not title or routing.slugify(title) != title:
+        raise ValueError("title must be a non-empty lowercase ASCII snake_case string")
+    _validate_note_id(fm["id"], "id")
+
     for field in ("created", "modified", "expires_at", "archived_at"):
         value = fm.get(field)
         if value is not None:
+            if not isinstance(value, str):
+                raise ValueError(f"{field} must be a valid UTC timestamp")
             try:
                 fmlib.parse_note_timestamp(value)
             except ValueError as exc:
                 raise ValueError(f"{field} must be a valid UTC timestamp") from exc
+    for field in ("created", "modified"):
+        if fm[field] is None:
+            raise ValueError(f"{field} is required")
+
+    for field in STRING_FRONTMATTER_FIELDS:
+        value = fm.get(field)
+        if value is not None and (not isinstance(value, str) or not value.strip()):
+            raise ValueError(f"{field} must be null or a non-empty string")
+
+    for field in LIST_FRONTMATTER_FIELDS:
+        _validate_string_list(fm.get(field, []), field)
+    for field in ("related", "observations", "extracted_to"):
+        for index, value in enumerate(fm.get(field, []), start=1):
+            _validate_note_id(value, f"{field}[{index}]")
+    parent = fm.get("parent")
+    if parent is not None:
+        _validate_note_id(parent, "parent")
+
+    pinned = fm.get("pinned", False)
+    if not isinstance(pinned, bool):
+        raise ValueError("pinned must be a boolean")
+    for field in AGENT_SUBJECTIVE_FIELDS:
+        value = fm.get(field)
+        if value is not None and not isinstance(value, (str, int, float, bool)):
+            raise ValueError(f"{field} must be null or a scalar value")
+
     if fm.get("type") not in routing.TYPES:
         raise ValueError(f"unknown type '{fm.get('type')}'. Valid: {', '.join(routing.TYPES)}")
     if fm.get("status") not in routing.STATUSES:
@@ -1234,6 +1286,8 @@ def validate_frontmatter_values(fm: dict) -> None:
         raise ValueError(f"unknown source '{fm.get('source')}'. Valid: {', '.join(routing.SOURCES)}")
     if fm.get("author") not in routing.AUTHORS:
         raise ValueError(f"unknown author '{fm.get('author')}'. Valid: {', '.join(routing.AUTHORS)}")
+    if fm.get("type") == "howto" and (fm.get("project") or fm.get("resource")):
+        raise ValueError("howto notes are global and cannot set project or resource")
     cadence = fm.get("effort_cadence")
     if cadence is not None and cadence not in EFFORT_CADENCES:
         raise ValueError(f"unknown effort cadence '{cadence}'. Valid: {', '.join(EFFORT_CADENCES)}")
@@ -1245,35 +1299,69 @@ def validate_frontmatter_values(fm: dict) -> None:
         raise ValueError("depth must be an integer from 1 to 5")
     validate_relations(fm.get("relations", []))
 
+    archive_fields = ARCHIVE_FRONTMATTER_FIELDS.intersection(fm)
+    if archive_fields and fm.get("status") != "archived":
+        raise ValueError("archived_at and archived_from are permitted only for archived notes")
+    if archive_fields and archive_fields != ARCHIVE_FRONTMATTER_FIELDS:
+        raise ValueError("archived_at and archived_from must be supplied together")
+    if archive_fields:
+        archived_from = fm["archived_from"]
+        if not isinstance(archived_from, str) or not archived_from.strip():
+            raise ValueError("archived_from must be a non-empty string")
+        if fm["archived_at"] is None:
+            raise ValueError("archived_at must be a valid UTC timestamp")
+
 
 def validate_relations(relations) -> None:
     """Validate typed semantic graph relations."""
-    if relations in (None, []):
+    if relations == []:
         return
     if not isinstance(relations, list):
         raise ValueError("relations must be a list of mappings with type and target")
     for index, relation in enumerate(relations, start=1):
         if not isinstance(relation, dict):
             raise ValueError(f"relations[{index}] must be a mapping with type and target")
+        if set(relation) != {"type", "target"}:
+            raise ValueError(f"relations[{index}] must contain exactly type and target")
         relation_type = relation.get("type")
         if relation_type not in fmlib.RELATION_TYPES:
             valid = ", ".join(fmlib.RELATION_TYPES)
             raise ValueError(f"unknown relation type '{relation_type}'. Valid: {valid}")
         target = relation.get("target")
-        if not isinstance(target, str) or not target.strip():
-            raise ValueError(f"relations[{index}] target must be a non-empty note id")
+        _validate_note_id(target, f"relations[{index}] target")
 
 
-def normalize_agent_subjective_fields(fm: dict) -> list[str]:
-    """Agents cannot set user-subjective evaluation fields."""
+def normalize_agent_subjective_fields(fm: dict, *, previous=None) -> list[str]:
+    """Reject agent-supplied ratings while preserving existing user values."""
     if fm.get("author") != "agent":
         return []
-    changed = []
-    for field in AGENT_SUBJECTIVE_FIELDS:
-        if fm.get(field) is not None:
-            fm[field] = None
-            changed.append(field)
-    return changed
+    if previous is None:
+        changed = [field for field in AGENT_SUBJECTIVE_FIELDS if fm.get(field) is not None]
+    else:
+        changed = [
+            field for field in AGENT_SUBJECTIVE_FIELDS
+            if fm.get(field) != previous.get(field)
+        ]
+    if changed:
+        raise ValueError(
+            "agent-authored notes cannot set or change user-only fields: "
+            + ", ".join(changed)
+        )
+    return []
+
+
+def _validate_note_id(value, field: str) -> None:
+    if not isinstance(value, str) or ID_PATTERN.fullmatch(value) is None:
+        raise ValueError(
+            f"{field} must use the <kind>-<YYYYMMDD>-<letters> ID format"
+        )
+
+
+def _validate_string_list(value, field: str) -> None:
+    if not isinstance(value, list):
+        raise ValueError(f"{field} must be a list")
+    if any(not isinstance(item, str) or not item.strip() for item in value):
+        raise ValueError(f"{field} must contain only non-empty strings")
 
 
 def normalize_frontmatter_fields(fm: dict) -> None:

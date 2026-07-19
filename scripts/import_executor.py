@@ -135,7 +135,9 @@ def _process_items(vault, plan_path, plan, plan_hash, by_path, slug_maps, root, 
                 if include_previews:
                     previews.append(item)
                 continue
-            result = None if stale_previous else _completed_result(vault, plan, record, item)
+            result = None if stale_previous else _completed_result(
+                vault, root, plan, record, item,
+            )
             if result is None and item["collision"]:
                 if stale_previous:
                     raise ValueError(
@@ -335,30 +337,93 @@ def _apply_item(vault, root: Path, plan: dict, record: dict, item: dict, *,
     return notes.apply_ingest(vault, ingest_plan, existing_ids=existing_ids)
 
 
-def _completed_result(vault, plan: dict, record: dict, item: dict):
+def _completed_result(vault, root: Path, plan: dict, record: dict, item: dict):
     """Recognize an item committed before its import-state event was appended."""
     destination = vault.root / item["destination_path"]
     if destination.is_symlink() or not destination.is_file():
         return None
     try:
         metadata, _ = fmlib.read_note(vault.safe_source_path(item["destination_path"]))
+        source = import_manifest.safe_source_file(root, record["path"])
+        if _hash_file(source) != record["sha256"]:
+            return None
+        stage_rel = _stage_relpath(plan["import_id"], record, item)
+        attachment = item.get("attachment_path")
+        companion = attachment or (stage_rel if record["kind"] == "binary" else None)
+        if companion and _hash_file(vault.safe_source_path(companion)) != record["sha256"]:
+            return None
+        expected_metadata, body = _expected_import_note(
+            metadata, plan, record, item, source, stage_rel,
+        )
+        if metadata != expected_metadata:
+            return None
+        compose = fmlib.compose_note if record["kind"] == "binary" else fmlib.compose_note_verbatim
+        if destination.read_bytes() != compose(expected_metadata, body).encode("utf-8"):
+            return None
     except (OSError, UnicodeDecodeError, ValueError):
         return None
-    expected_reason = f"Imported from {record['path']} through reviewed import {plan['import_id']}."
-    if metadata.get("chosen_location") != expected_reason:
-        return None
-    attachment = item.get("attachment_path")
-    if attachment:
-        attachment_path = vault.root / attachment
-        if attachment_path.is_symlink() or not attachment_path.is_file():
-            return None
-        if _hash_file(attachment_path) != record["sha256"]:
-            return None
     return {
-        "source_path": _stage_relpath(plan["import_id"], record, item),
+        "source_path": stage_rel,
         "destination_path": item["destination_path"],
         "attachment_path": attachment,
     }
+
+
+def _expected_import_note(metadata: dict, plan: dict, record: dict, item: dict,
+                          source: Path, stage_rel: str) -> tuple[dict, str]:
+    note_id = metadata.get("id")
+    timestamp = metadata.get("created")
+    if (
+        not isinstance(note_id, str)
+        or re.fullmatch(rf"{re.escape(item['type'])}-\d{{8}}-[a-z]+", note_id) is None
+        or not isinstance(timestamp, str)
+        or metadata.get("modified") != timestamp
+    ):
+        raise ValueError("invalid generated import identity")
+    link = (
+        item.get("attachment_path") or stage_rel
+        if record["kind"] == "binary"
+        else f"import:{plan['import_id']}:{record['path']}"
+    )
+    expected = {
+        "title": routing.slugify(item["title"]),
+        "id": note_id,
+        "created": timestamp,
+        "modified": timestamp,
+        "description": None,
+        "type": item["type"],
+        "project": item["project"],
+        "area": item["area"],
+        "resource": item["resource"],
+        "status": routing.DEFAULT_STATUS.get(item["type"], "inbox"),
+        "effort_cadence": None,
+        "effort_level": None,
+        "tags": ["imported"],
+        "chosen_location": (
+            f"Imported from {record['path']} through reviewed import {plan['import_id']}."
+        ),
+        "source": "imported",
+        "link": link,
+        "author": "imported",
+        "depth": None,
+        "appreciated": None,
+        "importance": None,
+        "pinned": False,
+        "expires_at": None,
+        "related": [],
+        "relations": [],
+        "parent": None,
+        "observations": [],
+        "extracted_to": [],
+    }
+    notes.validate_frontmatter_values(expected)
+    if record["kind"] == "binary":
+        filename = Path(stage_rel).name
+        body = f"Attachment: [{filename}]({link})\n"
+    else:
+        with source.open("r", encoding="utf-8", newline="") as stream:
+            body = stream.read()
+    return expected, body
 
 
 def _copy_to_stage(vault, source: Path, stage_rel: str, expected_hash: str) -> None:
@@ -381,7 +446,7 @@ def _copy_to_stage(vault, source: Path, stage_rel: str, expected_hash: str) -> N
         with temporary.open("rb") as stream:
             os.fsync(stream.fileno())
         try:
-            os.link(temporary, destination)
+            vault._link_or_copy_no_replace(temporary, destination)
         except FileExistsError as exc:
             raise ValueError(f"Import staging collision: {stage_rel}") from exc
         vault.fsync_directory(destination.parent)
