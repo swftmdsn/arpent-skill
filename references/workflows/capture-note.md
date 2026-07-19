@@ -21,6 +21,23 @@ Actions belong in todo in full mode. In minimal, user-provided orientation belon
 6. Use `howto` for one explicitly reviewed current practical answer and `map`
    for subject navigation. Follow `maintain-howto.md` for creation or revision.
 
+## Reconcile first
+
+Before every durable note (`fleeting` exempt), derive narrow queries from its
+thesis, title, aliases, key terms, and exact `link`. Full uses `arpent search
+<query> --json-page --all`; minimal searches live filenames, frontmatter, and
+bodies. Treat the maintained search index as the efficient whole-vault overview;
+do not rebuild it for each capture. Read plausible candidates completely.
+
+Classify the result as covered/no change, same thesis/enrich or revise, adjacent
+thesis/new linked note, or no match/create. Tags or emotions alone are
+insufficient. Journals, logs, and meetings remain separate unless they describe
+the same event, but may suggest a reusable note.
+
+For a creation request, propose the candidate before editing unless the user
+authorized reconciliation; this is meaning clarification. Preserve the ID,
+creation date, provenance, user-owned fields, and useful body material.
+
 ## Full path
 
 For an explicit bounded capture under `explicit-intent`, or any capture under
@@ -38,11 +55,8 @@ arpent note new <same arguments> --plan-hash <plan_sha256> --json
 ```
 
 Present the returned frontmatter, destination, warnings, and side effects once.
-The plan hash binds the durable ID, semantic metadata, body hash, and
-destination; it does not prove human review. `apply_generated_fields` identifies
-timestamps assigned by the transaction and returned in the final result. Do not
-reconstruct defaults manually and do not reread the created note merely to
-verify it.
+The plan hash binds semantics and destination but does not prove review. Do not
+reconstruct defaults or reread the created note merely to verify it.
 
 ## Minimal path
 

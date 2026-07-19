@@ -200,6 +200,43 @@ class PaginationTests(unittest.TestCase):
             self.assertEqual(55, len(page["items"]))
             self.assertEqual({"fts5"}, {item["backend"] for item in page["items"]})
 
+    def test_search_includes_frontmatter_link_in_fts_and_live_fallback(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            vault = init_vault(Path(temporary) / "vault", minimal=False)
+            link = "https://example.test/unique-prior-art-source"
+            plan = notes.plan_note_new(
+                vault,
+                title="Opaque reference",
+                ntype="reference",
+                body="No searchable source token in this body.",
+                source="captured",
+                link=link,
+            )
+            notes.apply_note_new(vault, plan)
+
+            fallback = run_cli(
+                "search", link, "--json-page", "--all", cwd=vault.root,
+            )
+            self.assertEqual(0, fallback.returncode, fallback.output)
+            fallback_page = json.loads(fallback.stdout)
+            self.assertEqual({"text-fallback": 1}, fallback_page["summary"]["by_backend"])
+            self.assertEqual(plan["frontmatter"]["id"], fallback_page["items"][0]["id"])
+
+            built = index_mod.build_index(vault)
+            sidecar = json.loads(
+                (vault.root / "06_indexes/sidecar.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(link, sidecar[plan["destination_path"]]["link"])
+            if built["search_backend"] != "fts5":
+                self.skipTest("SQLite FTS5 is unavailable in this Python build")
+            indexed = run_cli(
+                "search", link, "--json-page", "--all", cwd=vault.root,
+            )
+            self.assertEqual(0, indexed.returncode, indexed.output)
+            indexed_page = json.loads(indexed.stdout)
+            self.assertEqual({"fts5": 1}, indexed_page["summary"]["by_backend"])
+            self.assertEqual(plan["frontmatter"]["id"], indexed_page["items"][0]["id"])
+
 
 if __name__ == "__main__":
     unittest.main()

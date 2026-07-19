@@ -13,17 +13,16 @@ smallest sufficient context.
 ## Start
 
 1. Read the vault's `.arpent` marker before acting.
-2. Use the hot paths below; read `references/workflows/COMPASS.md` only for an
-   unclear operation and load at most one detailed contract when needed.
-3. Follow `references/modes/full.md` or `references/modes/minimal.md`. Full-mode
-   commands apply local confirmation policy; minimal and batch planning read it
-   from `06_indexes/cli/operations.yaml`.
+2. Use the hot paths; for unclear work read `references/workflows/COMPASS.md`
+   and at most one detailed contract.
+3. Follow the relevant mode reference. Full commands apply local confirmation;
+   minimal and batch planning read it from `06_indexes/cli/operations.yaml`.
 4. With minimal `auto_full: true`, a mode-gated command requests promotion. Run
    `arpent mode full --yes` first when policy requires it. Explicit minimal
    cancels the request.
 
-Do not read the root README, complete architecture, full COMPASS, or all
-references for an ordinary capture.
+For ordinary capture, do not read the root README, complete architecture, full
+COMPASS, or all references.
 
 ## Hot Paths
 
@@ -33,13 +32,16 @@ Use for readable knowledge: notes, ideas, meetings, journal entries, references,
 drafts, concepts, integrations, maps, how-tos, and production.
 
 - Prefer one reusable thesis per note.
+- Before a durable note, search and fully read plausible prior art (`fleeting`
+  exempt); tags or emotions alone do not prove one thesis.
+- If covered, recommend no change, enrichment, revision, or a new linked note;
+  never silently edit instead of a requested creation.
 - Use `note` when a more specific type adds no value.
 - `project` and `resource` are mutually exclusive; `area` may accompany either.
 - Reserved resource homes declared by the routing contract may be materialized
   on first write. Never invent any other missing project, area, or resource.
-- Keep source URLs in `link`, not the body.
-- Use `source: captured` only with an external URL; otherwise describe the real
-  provenance.
+- Keep source URLs in `link`. Use `source: captured` only with an external URL;
+  otherwise record the real provenance.
 - Route uncertainty to `00_inbox/unsure/` with a reason.
 - `howto` is reviewed current global guidance; `map` is navigation. Keep detail
   and history linked. See `references/workflows/maintain-howto.md`.
@@ -96,11 +98,9 @@ The local `confirmation` contract supports:
 | `explicit-intent` | Execute an explicit bounded request directly; confirm high-impact operations and batches at or above `bulk_threshold`. |
 | `never` | Never ask for additional confirmation; keep every technical validation and safety check. |
 
-Clarification is not confirmation. Ask for missing meaning when needed. In
-`never`, do not pause merely to restate a valid plan.
-
-Agents establish intent before invoking the CLI. A preview supports inspection
-and a plan hash binds a plan; neither proves review nor grants permission.
+Clarification is not confirmation: ask for missing meaning, but in `never` do
+not pause to restate a valid plan. Establish intent before the CLI; previews and
+plan hashes support inspection but neither proves review nor permission.
 
 ## Other Operations
 
@@ -164,9 +164,6 @@ Status and location are decoupled. `archived` is a status;
 
 ## Output Discipline
 
-After a simple capture, report only what changed, its relative path, type/status,
-and any warning. Do not automatically run help, status, triage, index, search, or
-full-content verification commands.
-
-For paginated output, never mistake one page for a complete result. Follow the
-cursor or use `--all`/`--full` when the task requires completeness.
+After simple capture, report only the change, path, type/status, and warnings.
+Do not then run help, status, triage, index, search, or full verification.
+Never treat one page as complete; follow its cursor or use `--all`/`--full`.

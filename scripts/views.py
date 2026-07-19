@@ -192,6 +192,7 @@ def search(vault, query: str) -> list[dict]:
             str(fm.get("title") or ""),
             str(fm.get("description") or ""),
             " ".join(str(t) for t in fm.get("tags") or []),
+            str(fm.get("link") or ""),
             body or "",
         ]).casefold()
         if q in haystack:

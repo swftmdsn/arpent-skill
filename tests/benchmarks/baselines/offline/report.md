@@ -39,7 +39,7 @@
 | `command_output_utf8_bytes` | 6639 |
 | `command_utf8_bytes` | 1891 |
 | `cumulative_input_proxy_utf8_bytes` | 3881 |
-| `document_utf8_bytes` | 308907 |
+| `document_utf8_bytes` | 311884 |
 | `final_utf8_bytes` | 4848 |
 | `prompt_utf8_bytes` | 2261 |
 | `provider_cache_creation_input_tokens` | null |
@@ -51,12 +51,12 @@
 | `provider_reported_cost_currency` | null |
 | `provider_total_tokens` | null |
 | `provider_usage_scenario_count` | 0 |
-| `repeated_document_utf8_bytes` | 159938 |
+| `repeated_document_utf8_bytes` | 161052 |
 | `request_count` | 17 |
 | `request_utf8_bytes` | 3881 |
 | `stable_prefix_utf8_bytes` | 99 |
 | `tool_count` | 70 |
-| `unique_document_utf8_bytes` | 148969 |
+| `unique_document_utf8_bytes` | 150832 |
 | `utf8_byte_quarter_estimate` | 976 |
 | `write_utf8_bytes` | 497 |
 

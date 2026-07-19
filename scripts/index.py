@@ -24,9 +24,11 @@ from .vault import INDEX_EXCLUDED_DIR_NAMES, Vault, is_index_excluded, raise_wal
 
 SIDECAR_FIELDS = [
     "id", "title", "type", "status", "project", "area", "resource",
-    "effort_cadence", "effort_level", "tags", "source", "author", "created", "modified",
+    "effort_cadence", "effort_level", "tags", "source", "link", "author",
+    "created", "modified",
     "related", "relations", "parent", "pinned",
 ]
+SEARCH_SCHEMA_VERSION = "2"
 
 EXCLUDED_FILE_NAMES = {".DS_Store", "Thumbs.db"}
 GENERATED_INDEX_PATHS = {
@@ -491,6 +493,7 @@ def _prepare_search_db(vault: Vault, notes, *, source_signature: str) -> Path | 
                 description,
                 tags,
                 body,
+                link,
                 type UNINDEXED,
                 status UNINDEXED,
                 source UNINDEXED,
@@ -507,6 +510,7 @@ def _prepare_search_db(vault: Vault, notes, *, source_signature: str) -> Path | 
                 fm.get("description") or "",
                 " ".join(str(t) for t in fm.get("tags") or []),
                 body or "",
+                fm.get("link") or "",
                 fm.get("type") or "",
                 fm.get("status") or "",
                 fm.get("source") or "",
@@ -517,14 +521,17 @@ def _prepare_search_db(vault: Vault, notes, *, source_signature: str) -> Path | 
         con.executemany(
             """
             INSERT INTO notes_fts(
-                id, path, title, description, tags, body, type, status, source, author
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                id, path, title, description, tags, body, link, type, status, source, author
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
-        con.execute(
-            "INSERT INTO search_meta(key, value) VALUES ('source_signature', ?)",
-            (source_signature,),
+        con.executemany(
+            "INSERT INTO search_meta(key, value) VALUES (?, ?)",
+            (
+                ("schema_version", SEARCH_SCHEMA_VERSION),
+                ("source_signature", source_signature),
+            ),
         )
         con.commit()
     except sqlite3.Error:
@@ -568,7 +575,15 @@ def search_fts(vault: Vault, query: str) -> list[dict] | None:
             stored_signature = con.execute(
                 "SELECT value FROM search_meta WHERE key = 'source_signature'"
             ).fetchone()
-            if stored_signature is None or stored_signature["value"] != _search_source_signature(vault):
+            stored_version = con.execute(
+                "SELECT value FROM search_meta WHERE key = 'schema_version'"
+            ).fetchone()
+            if (
+                stored_version is None
+                or stored_version["value"] != SEARCH_SCHEMA_VERSION
+                or stored_signature is None
+                or stored_signature["value"] != _search_source_signature(vault)
+            ):
                 return None
             rows = con.execute(
                 """

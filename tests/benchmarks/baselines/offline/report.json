@@ -1,13 +1,13 @@
 {
   "adapter": "replay",
   "benchmark_version": 3,
-  "bundle_sha256": "a94935bab0ea7b6ca7409fd2d3d7d4df7c8de3a00d65cb4d706ec7a00845d31e",
+  "bundle_sha256": "c170e470d703c81ea6bdfdfa66035a021129cbfd41849c9512577400588bc305",
   "document_manifest": {
     "documents": [
       {
         "path": "SKILL.md",
         "scenario_id": "cold_global_comprehension",
-        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "sha256": "09aba80c22ad0583c9d0462352ddbfd72de72e21a94acc5c2ddfbead52544f9e",
         "source": "repository",
         "utf8_bytes": 7700
       },
@@ -42,7 +42,7 @@
       {
         "path": "SKILL.md",
         "scenario_id": "full_first_capture",
-        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "sha256": "09aba80c22ad0583c9d0462352ddbfd72de72e21a94acc5c2ddfbead52544f9e",
         "source": "repository",
         "utf8_bytes": 7700
       },
@@ -77,9 +77,9 @@
       {
         "path": "references/workflows/capture-note.md",
         "scenario_id": "reviewed_capture",
-        "sha256": "811ca2480000d316ef84a71c853378dd8a7e4f459cd01da3b4f308f5de3e0af9",
+        "sha256": "7967f9a75990d0f58ce9a202fd0ab1190f52d0cc53d73a86a6960b43421d1f73",
         "source": "repository",
-        "utf8_bytes": 2584
+        "utf8_bytes": 3333
       },
       {
         "path": ".arpent",
@@ -91,7 +91,7 @@
       {
         "path": "SKILL.md",
         "scenario_id": "routing_ambiguity",
-        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "sha256": "09aba80c22ad0583c9d0462352ddbfd72de72e21a94acc5c2ddfbead52544f9e",
         "source": "repository",
         "utf8_bytes": 7700
       },
@@ -112,7 +112,7 @@
       {
         "path": "SKILL.md",
         "scenario_id": "todo_capture",
-        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "sha256": "09aba80c22ad0583c9d0462352ddbfd72de72e21a94acc5c2ddfbead52544f9e",
         "source": "repository",
         "utf8_bytes": 7700
       },
@@ -147,7 +147,7 @@
       {
         "path": "SKILL.md",
         "scenario_id": "minimal_note_capture",
-        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "sha256": "09aba80c22ad0583c9d0462352ddbfd72de72e21a94acc5c2ddfbead52544f9e",
         "source": "repository",
         "utf8_bytes": 7700
       },
@@ -196,7 +196,7 @@
       {
         "path": "SKILL.md",
         "scenario_id": "minimal_todo_boundary",
-        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "sha256": "09aba80c22ad0583c9d0462352ddbfd72de72e21a94acc5c2ddfbead52544f9e",
         "source": "repository",
         "utf8_bytes": 7700
       },
@@ -217,7 +217,7 @@
       {
         "path": "SKILL.md",
         "scenario_id": "rearchitecture_source_selection",
-        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "sha256": "09aba80c22ad0583c9d0462352ddbfd72de72e21a94acc5c2ddfbead52544f9e",
         "source": "repository",
         "utf8_bytes": 7700
       },
@@ -259,7 +259,7 @@
       {
         "path": "SKILL.md",
         "scenario_id": "add_note_type_source_selection",
-        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "sha256": "09aba80c22ad0583c9d0462352ddbfd72de72e21a94acc5c2ddfbead52544f9e",
         "source": "repository",
         "utf8_bytes": 7700
       },
@@ -294,14 +294,14 @@
       {
         "path": "tests/tests/test_capture_contract.py",
         "scenario_id": "add_note_type_source_selection",
-        "sha256": "aa50b55c518847b3e4b74845cac5c37c1fb522c40836c277f872ce4387727abc",
+        "sha256": "4bfa79f4586386732548dfad77c3b0240671c536f6f0498443141c92b9cecfcc",
         "source": "repository",
-        "utf8_bytes": 34926
+        "utf8_bytes": 36040
       },
       {
         "path": "SKILL.md",
         "scenario_id": "add_frontmatter_field_source_selection",
-        "sha256": "01a166a40e92f29710ccbc775b52cf205cfd6c366fda183dbb45e8af40728b6a",
+        "sha256": "09aba80c22ad0583c9d0462352ddbfd72de72e21a94acc5c2ddfbead52544f9e",
         "source": "repository",
         "utf8_bytes": 7700
       },
@@ -336,9 +336,9 @@
       {
         "path": "tests/tests/test_capture_contract.py",
         "scenario_id": "add_frontmatter_field_source_selection",
-        "sha256": "aa50b55c518847b3e4b74845cac5c37c1fb522c40836c277f872ce4387727abc",
+        "sha256": "4bfa79f4586386732548dfad77c3b0240671c536f6f0498443141c92b9cecfcc",
         "source": "repository",
-        "utf8_bytes": 34926
+        "utf8_bytes": 36040
       },
       {
         "path": ".arpent",
@@ -376,7 +376,7 @@
         "utf8_bytes": 62
       }
     ],
-    "sha256": "398b684560edf532e9b0e5fad618b42440baecea7b9a3033b1d3d795d26c4493"
+    "sha256": "1804e8db215b1930b65fb1e778351e2b218553864ae74e68812d1367cbeccdfe"
   },
   "mode": "offline",
   "scenarios": [
@@ -1136,7 +1136,7 @@
         "command_output_utf8_bytes": 1561,
         "command_utf8_bytes": 297,
         "cumulative_input_proxy_utf8_bytes": 181,
-        "document_utf8_bytes": 9159,
+        "document_utf8_bytes": 9908,
         "final_utf8_bytes": 140,
         "prompt_utf8_bytes": 87,
         "provider_cache_creation_input_tokens": null,
@@ -1152,7 +1152,7 @@
         "request_utf8_bytes": 181,
         "stable_prefix_utf8_bytes": 0,
         "tool_count": 5,
-        "unique_document_utf8_bytes": 9097,
+        "unique_document_utf8_bytes": 9846,
         "utf8_byte_quarter_estimate": 46,
         "write_utf8_bytes": 0
       },
@@ -2758,7 +2758,7 @@
         "command_output_utf8_bytes": 0,
         "command_utf8_bytes": 0,
         "cumulative_input_proxy_utf8_bytes": 274,
-        "document_utf8_bytes": 85358,
+        "document_utf8_bytes": 86472,
         "final_utf8_bytes": 636,
         "prompt_utf8_bytes": 169,
         "provider_cache_creation_input_tokens": null,
@@ -2774,7 +2774,7 @@
         "request_utf8_bytes": 274,
         "stable_prefix_utf8_bytes": 0,
         "tool_count": 6,
-        "unique_document_utf8_bytes": 69692,
+        "unique_document_utf8_bytes": 70806,
         "utf8_byte_quarter_estimate": 69,
         "write_utf8_bytes": 0
       },
@@ -2948,7 +2948,7 @@
         "command_output_utf8_bytes": 0,
         "command_utf8_bytes": 0,
         "cumulative_input_proxy_utf8_bytes": 289,
-        "document_utf8_bytes": 80298,
+        "document_utf8_bytes": 81412,
         "final_utf8_bytes": 628,
         "prompt_utf8_bytes": 184,
         "provider_cache_creation_input_tokens": null,
@@ -2959,7 +2959,7 @@
         "provider_reported_cost": null,
         "provider_reported_cost_currency": null,
         "provider_total_tokens": null,
-        "repeated_document_utf8_bytes": 80298,
+        "repeated_document_utf8_bytes": 81412,
         "request_count": 1,
         "request_utf8_bytes": 289,
         "stable_prefix_utf8_bytes": 0,
@@ -3685,7 +3685,7 @@
       "command_output_utf8_bytes": 6639,
       "command_utf8_bytes": 1891,
       "cumulative_input_proxy_utf8_bytes": 3881,
-      "document_utf8_bytes": 308907,
+      "document_utf8_bytes": 311884,
       "final_utf8_bytes": 4848,
       "prompt_utf8_bytes": 2261,
       "provider_cache_creation_input_tokens": null,
@@ -3697,12 +3697,12 @@
       "provider_reported_cost_currency": null,
       "provider_total_tokens": null,
       "provider_usage_scenario_count": 0,
-      "repeated_document_utf8_bytes": 159938,
+      "repeated_document_utf8_bytes": 161052,
       "request_count": 17,
       "request_utf8_bytes": 3881,
       "stable_prefix_utf8_bytes": 99,
       "tool_count": 70,
-      "unique_document_utf8_bytes": 148969,
+      "unique_document_utf8_bytes": 150832,
       "utf8_byte_quarter_estimate": 976,
       "write_utf8_bytes": 497
     },

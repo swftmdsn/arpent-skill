@@ -9,22 +9,23 @@ Use for capture, retrieval, routing, archival, project continuity, import, and t
 
 ## Load Progressively
 
-1. Read `.agent` and the small `.arpent` marker once.
-2. Use the note, todo, or fleeting hot path without loading full documentation.
-3. Read `COMPASS.md` only to classify a less common operation.
-4. Read one relevant detailed document only for an edge case.
+1. Read `.agent` and `.arpent` once.
+2. Use the hot paths; read `COMPASS.md` only for less common work and one
+   detailed document only for an edge case.
 
 ## Modes
 
-- `minimal`: use direct-file operations on canonical files; mode-gated CLI
-  commands require vault-mode promotion.
+- `minimal`: use canonical files directly; mode-gated CLI requires promotion.
 - `full`: use CLI-mediated vault operations.
-- If minimal has `auto_full: true`, the first mode-gated command requests
-  promotion. Use `arpent mode full --yes` first when the confirmation policy
-  requires it.
+- With minimal `auto_full: true`, the first gated command requests promotion;
+  use `arpent mode full --yes` first when policy requires it.
 
 ## Capture
 
+- Before durable notes, search titles, descriptions, tags, links, and bodies and
+  fully read plausible matches (`fleeting` exempt). Recommend no change,
+  enrichment/revision, or a linked note; tags or emotions alone are insufficient
+  and requested creation never silently becomes an edit.
 - Full note: `arpent note new <title> --type <type> ... --json`; `howto` is
   current global guidance, `map` navigation.
 - Exact-plan note: add `--dry-run --json`, then use `--plan-hash`.
@@ -67,13 +68,11 @@ expires_at, related, relations, parent, observations, extracted_to`. Use explici
 ## Project And Context
 
 - Full: use `arpent project create <name>` and `arpent session end`.
-- Minimal: normalize the project name to lowercase ASCII kebab-case, require the
-  destination to be absent, and reject `aux`, `clock$`, `con`, `nul`, `prn`,
-  `template-project`, `com1..9`, and `lpt1..9`. Create `notes/`, `drafts/`, and
-  `attachments/`, then instantiate `01_projects/_template_project/_context.md`
-  at `01_projects/<slug>/_context.md`. Replace every placeholder, convert the
-  context title to lowercase ASCII snake_case, assign a globally unique note ID
-  and current UTC timestamps, and leave the template itself unchanged.
+- Minimal: use a lowercase ASCII kebab slug and absent destination; reject
+  `aux`, `clock$`, `con`, `nul`, `prn`, `template-project`, `com1..9`, and
+  `lpt1..9`. Create `notes/`, `drafts/`, `attachments/`, and instantiate the
+  project `_context.md` template. Fill every placeholder, use a snake_case title,
+  unique ID and current UTC timestamps, and preserve the template.
 - For a missing area context in minimal, instantiate
   `02_areas/_context.template.md` at the existing area's root with its resolved
   slug, a snake_case title, unique ID, and current UTC timestamps.
@@ -96,12 +95,10 @@ The confirmation policy is in `06_indexes/cli/operations.yaml`.
 - Agent-authored unrequested drafts use `author: agent`, `type: draft`, and the
   standard lifecycle status.
 - Resume from `me.md`, then target `_context.md`, then only needed sources.
-- Minimal continuity uses `me.md` for approved orientation, `_context.md` for
-  work state, and notes for durable content.
-- External memory requires provider opt-in; full-mode state remains dormant in
-  minimal.
+- Minimal uses `me.md` for orientation, `_context.md` for work, and notes for
+  durable content; external memory still requires provider opt-in.
 - Status and location are independent. `archived` is a status;
   `archived_at`/`archived_from` describe archive events.
 
-Report concise paths and outcomes. Do not run status, index, triage, search, or a
-full reread after an ordinary successful capture.
+Report concise paths/outcomes. After capture, do not run status, index, triage,
+search, or a full reread.

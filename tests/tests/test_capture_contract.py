@@ -68,6 +68,28 @@ def _subprocess_env():
 
 
 class CaptureContractTests(unittest.TestCase):
+    def test_durable_capture_requires_prior_art_reconciliation(self):
+        skill = (REPOSITORY_ROOT / "SKILL.md").read_text(encoding="utf-8")
+        workflow = (
+            REPOSITORY_ROOT / "references/workflows/capture-note.md"
+        ).read_text(encoding="utf-8")
+        local_skill = (
+            REPOSITORY_ROOT
+            / "architecture_template/06_indexes/global_skills/arpent.skill.md"
+        ).read_text(encoding="utf-8")
+        indexing = (
+            REPOSITORY_ROOT / "references/indexing-and-context.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("Before a durable note, search", skill)
+        self.assertIn("never silently edit instead of a requested creation", skill)
+        self.assertIn("Before every durable note (`fleeting` exempt)", workflow)
+        self.assertIn("Tags or emotions alone are", workflow)
+        self.assertIn("Journals, logs, and meetings remain separate", workflow)
+        self.assertIn("arpent search", workflow)
+        self.assertIn("Before durable notes, search", local_skill)
+        self.assertIn("maintained search index", indexing)
+
     def test_note_plan_is_non_mutating_and_routes_captured_content(self):
         with tempfile.TemporaryDirectory() as temporary:
             vault = init_vault(Path(temporary) / "vault", minimal=False)

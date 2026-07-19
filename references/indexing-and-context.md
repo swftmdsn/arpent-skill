@@ -19,11 +19,15 @@ or stale.
 |---|---|
 | `06_indexes/index.json` | Every indexed folder and file, including non-note files, counts, types, sizes, and hashes |
 | `06_indexes/sidecar.json` | Frontmatter metadata for recognized notes |
-| `06_indexes/databases/search.db` | FTS5 index of note titles, descriptions, tags, and bodies, created only when SQLite exposes FTS5; otherwise search uses a live text fallback |
+| `06_indexes/databases/search.db` | FTS5 index of note titles, descriptions, tags, links, and bodies, created only when SQLite exposes FTS5; otherwise search uses a live text fallback |
 | `06_indexes/context_index.json` | L0/L1/L2 context cache keyed by relative path |
 
 These files are derivatives. Markdown and original files remain the source of
 truth.
+
+The maintained search index is the normal first-pass overview for durable-note
+prior art. `arpent search` validates its source signature and falls back to live
+text when stale or unavailable, so an ordinary capture does not rebuild indexes.
 
 ## Inventory scope
 
