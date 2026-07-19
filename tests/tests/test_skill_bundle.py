@@ -77,7 +77,10 @@ class SkillBundleTests(unittest.TestCase):
             real = root / "real"
             real.mkdir()
             linked = root / "linked"
-            linked.symlink_to(real, target_is_directory=True)
+            try:
+                linked.symlink_to(real, target_is_directory=True)
+            except (NotImplementedError, OSError) as exc:
+                self.skipTest(f"symlinks unavailable: {exc}")
             with self.assertRaisesRegex(ValueError, "symlinked skill destination"):
                 skill_bundle.install_skill_bundle(linked, replace=True)
 

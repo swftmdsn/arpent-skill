@@ -242,6 +242,24 @@ class DistributionReleaseTests(unittest.TestCase):
             self.assertTrue(essential_links)
             self.assertTrue(essential_links.issubset(actual_paths))
 
+            stale = skill_destination / "stale-from-previous-install.txt"
+            stale.write_text("remove on explicit replacement", encoding="utf-8")
+            replaced_skill = json.loads(self._run(
+                [
+                    str(arpent), "skill", "install", "--to", str(skill_destination),
+                    "--replace", "--json",
+                ],
+                cwd=workspace,
+                environment=installed_environment,
+                timeout=60,
+            ).stdout)
+            self.assertEqual(replaced_skill["destination"], str(skill_destination))
+            self.assertFalse(stale.exists())
+            self.assertEqual(
+                {entry["path"]: entry["sha256"] for entry in replaced_skill["files"]},
+                expected_bundle,
+            )
+
             self._run(
                 [str(arpent), "init", str(vault)],
                 cwd=workspace,
