@@ -136,6 +136,16 @@ The CLI normalizes the stored title and filename to lowercase ASCII
 route` to replace all routing fields, and `note status` to change lifecycle
 state.
 
+Every ordinary note keeps the complete 27-field canonical frontmatter schema.
+Optional values remain explicit as `null`, `[]`, or `false`; they are not
+removed from the note. Mutations validate field types, IDs, timestamps, enums,
+relations, and user-only ratings. An unsupported key is rejected rather than
+silently discarded, while existing user values in `appreciated` and
+`importance` are preserved. Archive operations may add the paired lifecycle
+extensions `archived_at` and `archived_from`. See
+[`references/contracts/frontmatter.md`](references/contracts/frontmatter.md)
+for the compact contract.
+
 Create global current guidance with:
 
 ```bash

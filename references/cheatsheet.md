@@ -13,7 +13,7 @@ ne change pas ce mode.
 
 | Contexte | Accès |
 |---|---|
-| Hors d'un vault | `--help`, `--version`, `init`, préparation d'un import, vérification/restauration d'un backup |
+| Hors d'un vault | `--help`, `--version`, `skill install`, `init`, préparation d'un import, vérification/restauration d'un backup |
 | Vault en mode `minimal` | Opérations direct-file; hors `--help` et `--version`, seules les commandes `init` et `mode` restent directement accessibles |
 | Vault en mode `full` | Opérations CLI-mediated et état coordonné disponibles selon leurs autres prérequis |
 
@@ -39,6 +39,18 @@ les imports appliqués, les sweeps et cron nécessitent le mode full.
   la confirmation policy peut aussi demander `--yes`.
 
 Utiliser `arpent <commande> --help` pour la syntaxe exhaustive.
+
+## Installation du skill agent
+
+```bash
+arpent skill install --to <répertoire-exact> [--replace] [--json]
+```
+
+Par défaut, la destination doit être absente. `--replace` demande explicitement
+la mise à jour d'un répertoire existant : le nouveau bundle est préparé et
+vérifié avant publication, et l'ancien est restauré si cette publication
+échoue. Les fichiers ordinaires, symlinks et destinations non sûres restent
+refusés.
 
 ## Initialisation et modes
 
@@ -96,6 +108,14 @@ arpent note new <title> [--type TYPE] [--status STATUS] \
 arpent note read <id> [--json-page] [--full]
 arpent note find <query> [--json-page]
 ```
+
+Une note ordinaire conserve toujours les 27 clés du frontmatter canonique. Un
+champ facultatif reste présent avec `null`, `[]` ou `false`; il n'est pas retiré.
+Les types, IDs, dates, enums et relations sont validés. Une clé inconnue est
+refusée plutôt que supprimée silencieusement. `appreciated` et `importance` sont
+réservés à l'utilisateur et leurs valeurs existantes sont préservées. Les seuls
+champs supplémentaires admis sont `archived_at` et `archived_from`, ensemble et
+uniquement pour un événement d'archivage.
 
 Capture fleeting implémentée:
 
